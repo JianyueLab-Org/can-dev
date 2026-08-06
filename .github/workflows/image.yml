@@ -48,8 +48,13 @@ jobs:
         with:
           context: .
           push: true
+          # 写死小写，不用 ${{ github.repository_owner }} —— 那个变量是
+          # `JianyueLab-Org`，带大写，而镜像仓库名必须全小写，buildx 会直接
+          # 拒绝（invalid tag: repository name must be lowercase）。写死的另一
+          # 个好处是它和 deploy/k8s.yaml 里的 image 字段一字不差，改一处漏一处
+          # 的可能性小一点。
           tags: |
-            ghcr.io/${{ github.repository_owner }}/can-dev:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/can-dev:latest
+            ghcr.io/jianyuelab-org/can-dev:${{ github.sha }}
+            ghcr.io/jianyuelab-org/can-dev:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
