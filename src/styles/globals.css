@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+/**
+ * 开发者中心的样式底座。
+ *
+ * 和 can-web 一样的做法：品牌色 + 一组**语义**的表面/文字/边框 token，深色模
+ * 式靠 `<html>` 上的 `.dark` 切换，所以用了这些 token 的地方都不需要再写一遍
+ * `dark:`。两个站点在成员眼里是同一个网络，颜色对不上会很显眼。
+ *
+ * 这里只搬了开发者中心真正用得到的那一小部分（按钮、卡片、输入框、徽章），
+ * 不是把 can-web 的设计系统整个抄过来 —— 抄过来的那份第二天就开始漂移。
+ */
+
+@theme {
+  --color-airwaysn-50: #eff6ff;
+  --color-airwaysn-100: #dbeafe;
+  --color-airwaysn-200: #bfdbfe;
+  --color-airwaysn-500: #3b82f6;
+  --color-airwaysn-600: #2563eb;
+  --color-airwaysn-700: #1d4ed8;
+
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+}
+
+@layer base {
+  :root {
+    --surface: #ffffff;
+    --surface-sunken: #f8fafc;
+    --chrome: #ffffff;
+    --border-subtle: #e2e8f0;
+    --ink: #0f172a;
+    --muted: #475569;
+    --faint: #94a3b8;
+  }
+
+  .dark {
+    --surface: #0f172a;
+    --surface-sunken: #020617;
+    --chrome: #0f172a;
+    --border-subtle: #1e293b;
+    --ink: #f8fafc;
+    --muted: #cbd5e1;
+    --faint: #64748b;
+  }
+
+  html {
+    background: var(--surface-sunken);
+    color: var(--ink);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      "Noto Sans SC",
+      sans-serif;
+  }
+}
+
+@utility bg-surface {
+  background-color: var(--surface);
+}
+@utility bg-surface-sunken {
+  background-color: var(--surface-sunken);
+}
+@utility bg-chrome {
+  background-color: var(--chrome);
+}
+@utility border-subtle {
+  border-color: var(--border-subtle);
+}
+@utility text-ink {
+  color: var(--ink);
+}
+@utility text-muted {
+  color: var(--muted);
+}
+@utility text-faint {
+  color: var(--faint);
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] border border-transparent px-4 py-2 text-sm font-medium transition-colors;
+    @apply bg-[var(--color-airwaysn-600)] text-white hover:bg-[var(--color-airwaysn-700)];
+    @apply disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-ghost {
+    @apply border-[var(--border-subtle)] bg-transparent text-[var(--ink)] hover:bg-[var(--surface-sunken)];
+  }
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .card {
+    @apply rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface)] p-5;
+  }
+
+  .input {
+    @apply w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)];
+    @apply outline-none placeholder:text-[var(--faint)] focus:border-[var(--color-airwaysn-500)];
+    line-height: 1.5rem;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-[var(--ink)];
+  }
+  .hint {
+    @apply mt-1 text-xs text-[var(--faint)];
+  }
+  .link {
+    @apply text-[var(--color-airwaysn-600)] underline underline-offset-2;
+  }
+}
+
+/* 触控设备。和 can-web 同样的两条，理由也一样：iOS Safari 会把小于 16px 的
+   输入框放大，而且失焦后不缩回去；44px 是舒服的触控目标下限。刻意不放进
+   @layer，这样它也能盖过调用处写的 text-sm。 */
+@media (pointer: coarse) {
+  .input {
+    font-size: 1rem;
+  }
+  .btn {
+    min-height: 2.75rem;
+  }
+}

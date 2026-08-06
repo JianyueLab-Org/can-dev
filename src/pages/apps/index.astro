@@ -1,0 +1,70 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import AppManager from "@/components/AppManager.vue";
+import { listClients } from "@/lib/canApi";
+
+/**
+ * 「我的应用」。
+ *
+ * 首屏的数据在服务端取好、当 prop 交给岛屿，而不是让岛屿挂载后自己再拉一次
+ * —— 后者会让页面先闪一下空列表。之后的增删改由岛屿走 /api/clients/*。
+ *
+ * 中间件保证到这里一定有会话（/apps 在 PROTECTED 里）。
+ */
+const session = Astro.locals.session!;
+const result = await listClients(session.accessToken);
+
+/**
+ * 权限清单写在这里，而不是从 can-web 拉。
+ *
+ * 这份文案是给注册者读的（「你要申请什么」），can-web 字典里那份是给成员读的
+ * （「你要授予什么」）—— 同一个 scope，两种人称。真正防止两边漂移的是
+ * can-web 的 `SELF_SERVICE_SCOPES`：这里多列一个，它也不会通过。
+ */
+const SCOPES = [
+  {
+    name: "openid",
+    title: "确认身份",
+    detail: "拿到成员的 ASN ID。登录都需要它。",
+  },
+  {
+    name: "profile",
+    title: "基本资料",
+    detail: "姓名、ASN ID、管制等级、注册时间。",
+  },
+  { name: "email", title: "邮箱地址", detail: "邮箱及其验证状态。" },
+  { name: "divisions", title: "分部信息", detail: "所属分部与席位权限。" },
+  { name: "flights:read", title: "飞行记录", detail: "连线时间、呼号、时长。" },
+  { name: "atc:read", title: "管制记录", detail: "席位、时长、等级变化。" },
+  {
+    name: "offline_access",
+    title: "离线访问",
+    detail: "成员关掉浏览器后仍可访问，直到他撤销。没有把握就别要。",
+  },
+];
+---
+
+<BaseLayout title="我的应用">
+  <h1 class="text-2xl font-semibold text-ink">我的应用</h1>
+  <p class="mt-2 mb-8 max-w-2xl text-sm text-muted">
+    在这里注册的应用可以让 CAN 成员用自己的账号登录。回调地址是整串精确匹配的，
+    改之前先想清楚 —— 它决定授权码发到哪里去。
+  </p>
+
+  {
+    result.ok ? (
+      <AppManager client:load initial={result.data} scopes={SCOPES} />
+    ) : (
+      <div class="card border-red-300 bg-red-50 text-sm text-red-900">
+        <p>没能从 airwaysn.org 读到你的应用：{result.message}</p>
+        <p class="mt-2">
+          如果是登录过期，
+          <a class="link" href="/auth/login">
+            重新登录
+          </a>
+          一次。
+        </p>
+      </div>
+    )
+  }
+</BaseLayout>
