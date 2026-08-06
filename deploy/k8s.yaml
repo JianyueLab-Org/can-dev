@@ -16,9 +16,9 @@
 #
 #   bun run scripts/oauth-client.mjs create can-dev \
 #     --name "CAN 开发者中心" \
-#     --redirect https://dev.airwaysn.org/auth/callback \
+#     --redirect https://platform.airwaysn.org/auth/callback \
 #     --scopes "openid profile apps:manage" \
-#     --trusted --website https://dev.airwaysn.org
+#     --trusted --website https://platform.airwaysn.org
 #
 # 回调地址要和这里的 PUBLIC_ORIGIN 拼出来的一字不差 —— can-web 那边是整串精确
 # 匹配，差一个斜杠都不行。
@@ -53,7 +53,7 @@ spec:
             - name: CAN_ISSUER
               value: https://airwaysn.org
             - name: PUBLIC_ORIGIN
-              value: https://dev.airwaysn.org
+              value: https://platform.airwaysn.org
             - name: CAN_CLIENT_ID
               value: can-dev
           envFrom:
@@ -105,7 +105,7 @@ metadata:
 spec:
   ingressClassName: cloudflare-tunnel
   rules:
-    - host: dev.airwaysn.org
+    - host: platform.airwaysn.org
       http:
         paths:
           - backend:

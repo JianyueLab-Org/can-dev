@@ -17,9 +17,9 @@ can-web 那边手工注册：
 # 在 can-web 仓库，需要 DATABASE_URL
 bun run scripts/oauth-client.mjs create can-dev \
   --name "CAN 开发者中心" \
-  --redirect https://dev.airwaysn.org/auth/callback \
+  --redirect https://platform.airwaysn.org/auth/callback \
   --scopes "openid profile apps:manage" \
-  --trusted --website https://dev.airwaysn.org
+  --trusted --website https://platform.airwaysn.org
 ```
 
 打印出来的 `client_secret` 只出现这一次。回调地址要和 `PUBLIC_ORIGIN` 拼出来
