@@ -49,7 +49,7 @@ spec:
           # （llm-web 跑的是 ghcr.io/jianyuelab/llm-web:801aeaa…）。
           # :latest 没有回滚故事：没有更早的标签可指，而「重启一下」实际上等于
           # 「用最后推上去的那个」。CI 两个标签都推，所以换成 sha 只是改这一行。
-          image: ghcr.io/jianyuelab-org/can-dev:bde314f47b555f91b24ebba9c0263386d094aae2
+          image: ghcr.io/jianyuelab/can-dev:bde314f47b555f91b24ebba9c0263386d094aae2
           imagePullPolicy: Always
           ports:
             - containerPort: 4321
