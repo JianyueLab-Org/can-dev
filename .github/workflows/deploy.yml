@@ -1,0 +1,24 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 权限要在**调用方**声明：可复用工作流里的 permissions 是它需要什么，不是它
+# 能拿到什么。仓库默认的 GITHUB_TOKEN 只有 packages: read / deployments: none，
+# 缺了会在启动阶段被拒，而 startup_failure 是拿不到日志的。
+permissions:
+  contents: read
+  packages: write
+  deployments: write
+
+jobs:
+  deploy:
+    uses: JianyueLab-Org/actions/.github/workflows/deploy-k8s.yml@main
+    with:
+      image: ghcr.io/jianyuelab-org/can-dev
+      namespace: can-dev
+      manifest: deploy/k8s.yaml
+      environment_url: https://platform.airwaysn.org
+    secrets: inherit
