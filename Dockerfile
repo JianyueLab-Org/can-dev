@@ -20,8 +20,9 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=4321
 
-# 不用 root 跑。node 镜像自带 uid 1000 的 node 用户。
-USER node
+# 不用 root 跑。写 uid 而不是名字：Kubernetes 的 runAsNonRoot 只认数字，
+# 遇到名字会以「无法确认不是 root」为由拒绝启动容器。
+USER 1000
 
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/node_modules ./node_modules

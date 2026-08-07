@@ -45,7 +45,11 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/jianyuelab-org/can-dev:latest
+          # 按 sha 钉住，不用 :latest —— 集群里别的应用也是这么做的
+          # （llm-web 跑的是 ghcr.io/jianyuelab/llm-web:801aeaa…）。
+          # :latest 没有回滚故事：没有更早的标签可指，而「重启一下」实际上等于
+          # 「用最后推上去的那个」。CI 两个标签都推，所以换成 sha 只是改这一行。
+          image: ghcr.io/jianyuelab-org/can-dev:bde314f47b555f91b24ebba9c0263386d094aae2
           imagePullPolicy: Always
           ports:
             - containerPort: 4321
@@ -79,9 +83,16 @@ spec:
               memory: 128Mi
             limits:
               memory: 512Mi
+          # runAsUser 必须是数字：镜像里写的是 USER node（名字），kubelet 不
+          # 解析名字，配上 runAsNonRoot 会直接 CreateContainerConfigError。
+          # can-radar 上线时踩过这一脚。
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
             capabilities:
               drop: ["ALL"]
 ---
