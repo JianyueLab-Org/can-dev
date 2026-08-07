@@ -46,7 +46,8 @@ spec:
       containers:
         - name: app
           # 按 sha 钉住，不用 :latest —— 集群里别的应用也是这么做的
-          # （llm-web 跑的是 ghcr.io/jianyuelab-org/llm-web:801aeaa…）。
+          # （llm-web 跑的是 ghcr.io/jianyuelab/llm-web:801aeaa… —— 它的仓库在
+          # JianyueLab 组织下，所以前缀不同，这不是笔误）。
           # :latest 没有回滚故事：没有更早的标签可指，而「重启一下」实际上等于
           # 「用最后推上去的那个」。CI 两个标签都推，所以换成 sha 只是改这一行。
           image: ghcr.io/jianyuelab-org/can-dev:bde314f47b555f91b24ebba9c0263386d094aae2
