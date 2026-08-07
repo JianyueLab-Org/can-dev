@@ -1,9 +1,18 @@
 import crypto from "node:crypto";
 
-import { SCOPES, clientId, clientSecret, issuer, redirectUri } from "./config";
+import {
+  SCOPES,
+  apiOrigin,
+  clientId,
+  clientSecret,
+  redirectUri,
+  webOrigin,
+} from "./config";
 
 /**
- * can-web 那一侧：授权、换令牌，以及调 `/api/v1/dev/clients`。
+ * 上游那一侧：授权、换令牌，以及调 `/api/v1/dev/clients`。
+ *
+ * 落在两个源上 —— 同意页在 can-web，其余全在 can-api。哪个用哪个见 config.ts。
  *
  * 这个文件是**唯一**知道 client_secret 的地方，而且它只在服务端跑。
  */
@@ -27,12 +36,14 @@ export function challengeFor(verifier: string): string {
 /**
  * 授权地址。
  *
- * PKCE 带上了，尽管开发者中心是机密客户端 —— can-web 那边对**所有**客户端强
- * 制 S256，理由写在它的 CLAUDE.md 里：授权码要经过浏览器地址栏，那里 client
- * secret 保护不了任何东西。
+ * 唯一还指向 can-web 的东西：同意页是渲染给人看的页面，带着主站的样式和会话，
+ * 没有跟着数据层搬进 Go。
+ *
+ * PKCE 带上了，尽管开发者中心是机密客户端 —— 服务端对**所有**客户端强制 S256：
+ * 授权码要经过浏览器地址栏，那里 client secret 保护不了任何东西。
  */
 export function authorizeUrl(state: string, verifier: string): string {
-  const url = new URL("/oauth/authorize", issuer());
+  const url = new URL("/oauth/authorize", webOrigin());
   url.search = new URLSearchParams({
     response_type: "code",
     client_id: clientId(),
@@ -58,7 +69,7 @@ export async function exchangeCode(
   code: string,
   verifier: string,
 ): Promise<TokenResponse> {
-  const response = await fetch(new URL("/api/oauth/token", issuer()), {
+  const response = await fetch(new URL("/api/oauth/token", apiOrigin()), {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -87,7 +98,7 @@ export async function exchangeCode(
 export async function userinfo(
   accessToken: string,
 ): Promise<{ sub: string; name?: string | null }> {
-  const response = await fetch(new URL("/api/oauth/userinfo", issuer()), {
+  const response = await fetch(new URL("/api/oauth/userinfo", apiOrigin()), {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok) throw new Error(`userinfo 失败：${response.status}`);
@@ -124,7 +135,7 @@ export interface ApiFailure {
 export type ApiResult<T> = { ok: true; data: T } | ApiFailure;
 
 /**
- * 调 can-web 的开发者 API。
+ * 调 can-api 的开发者 API。
  *
  * 失败**不抛异常**，返回一个带 message 的失败对象：这些错误里绝大多数是成员
  * 填错了东西（回调地址不是 https、应用名像官方的），要原样显示在表单旁边，而
@@ -135,7 +146,7 @@ async function call<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<ApiResult<T>> {
-  const response = await fetch(new URL(path, issuer()), {
+  const response = await fetch(new URL(path, apiOrigin()), {
     ...init,
     headers: {
       Authorization: `Bearer ${accessToken}`,

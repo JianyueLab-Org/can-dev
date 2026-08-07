@@ -1,12 +1,12 @@
 import type { APIRoute } from "astro";
 
 import { clearSession, readSession } from "@/lib/session";
-import { issuer } from "@/lib/config";
+import { apiOrigin } from "@/lib/config";
 
 /**
  * 退出。
  *
- * 两件事，缺一不可：清掉本地会话，**并且**把访问令牌拿去 can-web 吊销。只清
+ * 两件事，缺一不可：清掉本地会话，**并且**把访问令牌拿去 can-api 吊销。只清
  * cookie 的话，那个令牌在它剩下的寿命里仍然是有效的 —— 而它能管理这个成员名
  * 下的所有应用。令牌是不透明的、每次使用都查库，所以吊销是立刻生效的。
  *
@@ -21,7 +21,7 @@ export const POST: APIRoute = async ({ cookies, redirect }) => {
 
   if (session) {
     try {
-      await fetch(new URL("/api/oauth/revoke", issuer()), {
+      await fetch(new URL("/api/oauth/revoke", apiOrigin()), {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({

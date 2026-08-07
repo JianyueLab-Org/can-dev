@@ -15,9 +15,31 @@ function required(name: string): string {
   return value;
 }
 
-/** can-web 的地址，也就是 OIDC 的 issuer。 */
-export const issuer = () =>
-  (process.env.CAN_ISSUER || "https://airwaysn.org").replace(/\/+$/, "");
+/**
+ * 上游是**两个**地址，这是数据层搬进 can-api 之后必然的结果。
+ *
+ * `CAN_API_ORIGIN` 是 OIDC 的 issuer，也是除同意页以外所有东西的去处：换令牌、
+ * userinfo、吊销，以及 `/api/v1/dev/clients`。
+ *
+ * `CAN_WEB_ORIGIN` 只剩一件事 —— 同意页 `/oauth/authorize`。它没有跟着数据层
+ * 搬走，因为它是一个要渲染给人看、带着主站样式和会话的**页面**，不是一个端点。
+ * RFC 8414 允许 discovery 里的 authorization_endpoint 落在别的源上，can-api
+ * 的 discovery 文档正是这么写的（issuer 是它自己，authorization_endpoint 指回
+ * can-web），所以这不是配错了。
+ *
+ * 两者共用同一个数据库：授权码由 can-web 写进 `oauthCode`，由 can-api 兑换。
+ *
+ * 旧的 `CAN_ISSUER` 没有保留。它当时同时表示这两件事，而现在这两件事是两个地
+ * 址 —— 留着它只会让人以为改一个值就够了。
+ */
+export const apiOrigin = () =>
+  (process.env.CAN_API_ORIGIN || "https://api.airwaysn.org").replace(
+    /\/+$/,
+    "",
+  );
+
+export const webOrigin = () =>
+  (process.env.CAN_WEB_ORIGIN || "https://airwaysn.org").replace(/\/+$/, "");
 
 /** 这个部署自己的对外地址，回调地址就是从它拼出来的。 */
 export const origin = () =>

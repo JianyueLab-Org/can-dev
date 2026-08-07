@@ -10,9 +10,9 @@
 #     --from-literal=CAN_CLIENT_SECRET=<注册应用时打印的那一次> \
 #     --from-literal=SESSION_SECRET="$(openssl rand -base64 32)"
 #
-# CAN_CLIENT_SECRET 从哪来：开发者中心自己是 can-web 上的一个 OAuth 应用，而且
-# 必须**手工**注册 —— 它要的 apps:manage 不在自助注册的名单里（这正是那条规则
-# 存在的意义）。在 can-web 那边跑：
+# CAN_CLIENT_SECRET 从哪来：开发者中心自己是网络上的一个 OAuth 应用，而且必须
+# **手工**注册 —— 它要的 apps:manage 不在自助注册的名单里（这正是那条规则存在
+# 的意义）。在 can-web 那边跑：
 #
 #   bun run scripts/oauth-client.mjs create can-dev \
 #     --name "CAN 开发者中心" \
@@ -20,8 +20,11 @@
 #     --scopes "openid profile apps:manage" \
 #     --trusted --website https://platform.airwaysn.org
 #
-# 回调地址要和这里的 PUBLIC_ORIGIN 拼出来的一字不差 —— can-web 那边是整串精确
-# 匹配，差一个斜杠都不行。
+# 那个脚本写的是 oauthClient 表，而 can-api 读的是同一个库，所以已经注册过的这
+# 一行不用重来 —— 换的是主机，不是凭据。
+#
+# 回调地址要和这里的 PUBLIC_ORIGIN 拼出来的一字不差 —— 服务端是整串精确匹配，
+# 差一个斜杠都不行。
 ---
 apiVersion: v1
 kind: Namespace
@@ -55,7 +58,14 @@ spec:
           ports:
             - containerPort: 4321
           env:
-            - name: CAN_ISSUER
+            # 上游是两个地址。can-api 是 issuer，换令牌、userinfo、吊销和
+            # /api/v1/dev/clients 都在它那儿；can-web 只剩同意页
+            # /oauth/authorize —— 那是渲染给人看的页面，没有跟着数据层搬进 Go。
+            # RFC 8414 允许 authorization_endpoint 落在别的源上，can-api 的
+            # discovery 文档正是这么写的。
+            - name: CAN_API_ORIGIN
+              value: https://api.airwaysn.org
+            - name: CAN_WEB_ORIGIN
               value: https://airwaysn.org
             - name: PUBLIC_ORIGIN
               value: https://platform.airwaysn.org
