@@ -54,7 +54,7 @@ jobs:
           # 个好处是它和 deploy/k8s.yaml 里的 image 字段一字不差，改一处漏一处
           # 的可能性小一点。
           tags: |
-            ghcr.io/jianyuelab/can-dev:${{ github.sha }}
-            ghcr.io/jianyuelab/can-dev:latest
+            ghcr.io/jianyuelab-org/can-dev:${{ github.sha }}
+            ghcr.io/jianyuelab-org/can-dev:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
