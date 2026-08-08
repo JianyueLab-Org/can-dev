@@ -14,7 +14,9 @@ const session = Astro.locals.session;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title} · CAN 开发者中心</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
     {/* 主题在样式表之前定下来，否则深色模式的用户会先看到一帧白屏。 */}
     <script is:inline>
       (() => {
