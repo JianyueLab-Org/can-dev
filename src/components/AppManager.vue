@@ -215,10 +215,16 @@ function copy(text: string) {
           class="flex-1 overflow-x-auto rounded-[var(--radius-control)] bg-white px-3 py-2 font-mono text-xs"
           >{{ freshSecret.secret }}</code
         >
-        <button class="btn btn-sm" @click="copy(freshSecret.secret)">
+        <button
+          class="btn px-3 py-1.5 text-xs"
+          @click="copy(freshSecret.secret)"
+        >
           复制
         </button>
-        <button class="btn btn-ghost btn-sm" @click="freshSecret = null">
+        <button
+          class="btn btn-ghost px-3 py-1.5 text-xs"
+          @click="freshSecret = null"
+        >
           我抄好了
         </button>
       </div>
@@ -230,29 +236,35 @@ function copy(text: string) {
 
       <div class="grid gap-4">
         <div>
-          <label class="label" for="f-name">应用名</label>
+          <label class="mb-1 block text-sm font-medium text-ink" for="f-name"
+            >应用名</label
+          >
           <input id="f-name" v-model="form.name" class="input" />
-          <p class="hint">
+          <p class="mt-1 text-xs text-faint">
             成员在授权页上看到的就是这个名字。不能让人误以为它是网络官方的应用。
           </p>
         </div>
 
         <div>
-          <label class="label" for="f-uris">回调地址</label>
+          <label class="mb-1 block text-sm font-medium text-ink" for="f-uris"
+            >回调地址</label
+          >
           <textarea
             id="f-uris"
             v-model="form.redirectUris"
             class="input"
             rows="3"
           />
-          <p class="hint">
+          <p class="mt-1 text-xs text-faint">
             一行一个，整串精确匹配。只收 https；本机调试用
             http://127.0.0.1（端口可变），移动端可用带点的私有 scheme。
           </p>
         </div>
 
         <fieldset>
-          <legend class="label">申请的权限</legend>
+          <legend class="mb-1 block text-sm font-medium text-ink">
+            申请的权限
+          </legend>
           <label
             v-for="scope in props.scopes"
             :key="scope.name"
@@ -273,11 +285,15 @@ function copy(text: string) {
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="label" for="f-site">主页（可选）</label>
+            <label class="mb-1 block text-sm font-medium text-ink" for="f-site"
+              >主页（可选）</label
+            >
             <input id="f-site" v-model="form.websiteUrl" class="input" />
           </div>
           <div>
-            <label class="label" for="f-logo">图标地址（可选）</label>
+            <label class="mb-1 block text-sm font-medium text-ink" for="f-logo"
+              >图标地址（可选）</label
+            >
             <input id="f-logo" v-model="form.logoUrl" class="input" />
           </div>
         </div>
@@ -340,26 +356,29 @@ function copy(text: string) {
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <button class="btn btn-ghost btn-sm" @click="openEdit(client)">
+            <button
+              class="btn btn-ghost px-3 py-1.5 text-xs"
+              @click="openEdit(client)"
+            >
               修改
             </button>
             <button
               v-if="!client.isPublic"
-              class="btn btn-ghost btn-sm"
+              class="btn btn-ghost px-3 py-1.5 text-xs"
               :disabled="busy"
               @click="rotate(client)"
             >
               换密钥
             </button>
             <button
-              class="btn btn-ghost btn-sm"
+              class="btn btn-ghost px-3 py-1.5 text-xs"
               :disabled="busy"
               @click="toggle(client)"
             >
               {{ client.disabled ? "启用" : "停用" }}
             </button>
             <button
-              class="btn btn-danger btn-sm"
+              class="btn btn-danger px-3 py-1.5 text-xs"
               @click="
                 deleting = client;
                 deleteTyped = '';

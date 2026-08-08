@@ -1,137 +1,1208 @@
 @import "tailwindcss";
+/* can-web 在这里加载 @tailwindcss/typography，那是给 /docs 的长文用的。开发者
+   中心只有应用列表和一个表单，没有长文，所以插件没有跟着搬 —— 它是这份样式表
+   唯一的外部依赖。下面残留的 .prose / .doc-content 规则只是链接下划线的样式，
+   没有插件也照样是合法 CSS，只是在这里永远匹配不到东西。can-radar 出于同样的
+   理由做了同样的事。 */
 
-/**
- * 开发者中心的样式底座。
- *
- * 和 can-web 一样的做法：品牌色 + 一组**语义**的表面/文字/边框 token，深色模
- * 式靠 `<html>` 上的 `.dark` 切换，所以用了这些 token 的地方都不需要再写一遍
- * `dark:`。两个站点在成员眼里是同一个网络，颜色对不上会很显眼。
- *
- * 这里只搬了开发者中心真正用得到的那一小部分（按钮、卡片、输入框、徽章），
- * 不是把 can-web 的设计系统整个抄过来 —— 抄过来的那份第二天就开始漂移。
- */
+/* ===========================================================================
+   Design system conventions (see src/components/ui/ for the Vue primitives)
+   ---------------------------------------------------------------------------
+   - Reuse the Vue UI components inside islands: BaseButton, BaseCard,
+     BaseBadge, BaseInput, BaseSelect, DataTable, StatCard, PageHeader,
+     EmptyState, Spinner, AlertBox, AppShell.
+   - In Astro-only markup (no island), use the Layer B classes below:
+     .btn/.btn-primary|secondary|soft|danger|ghost, .card, .input, .badge-*,
+     .link, .skeleton, .surface-grid.
+   - Color: brand = airwaysn (+ the airwaysn-50..900 ramp). Do NOT borrow
+     Tailwind blue or indigo for brand UI. Status = success/danger/warning/
+     info/neutral (accent via text, bg and ring color utilities; soft
+     surfaces via the -bg and -fg pairs). Surfaces = bg-surface / raised /
+     bg-surface-sunken / bg-surface-overlay; borders = border-subtle /
+     border-strong. Text = text-ink (primary), text-muted (secondary),
+     text-faint (tertiary). All of these auto-swap in dark mode — no dark:
+     variant needed, so prefer text-muted over text-gray-600 dark:text-gray-400.
+   - Radius: cards rounded-card (--radius-card), controls rounded-control
+     (--radius-control), badges pill. Elevation: shadow-card / shadow-
+     card-hover / shadow-popover. Page padding: px-4 sm:px-6 lg:px-8 py-8.
+   - Links are NOT underlined globally; opt in with .link or inside .prose /
+     .doc-content, so buttons and nav items stay clean on hover.
+   - The Leaflet block far below is intentionally hardcoded — leave it.
+   =========================================================================== */
 
 @theme {
-  --color-airwaysn-50: #eff6ff;
-  --color-airwaysn-100: #dbeafe;
-  --color-airwaysn-200: #bfdbfe;
-  --color-airwaysn-500: #3b82f6;
-  --color-airwaysn-600: #2563eb;
-  --color-airwaysn-700: #1d4ed8;
+  /* Typography — system stack that degrades gracefully for CJK, which this
+     app renders in three locales. */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Noto Sans", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
 
-  --radius-control: 0.5rem;
-  --radius-card: 0.75rem;
+  --color-airwaysn: #4c92c1;
+  --color-airwaysn-dark: #3a7ba8;
+  --color-green-500: #10b981;
+  --color-red-500: #ef4444;
+  --color-yellow-500: #f59e0b;
+
+  /* Custom color utilities */
+  --color-airwaysn-hex: #4c92c1;
+  --color-airwaysn-dark-hex: #3a7ba8;
+
+  /* Brand color ramp — use these instead of borrowing Tailwind blue/indigo. */
+  --color-airwaysn-50: #f0f6fa;
+  --color-airwaysn-100: #dceaf3;
+  --color-airwaysn-200: #bdd9ea;
+  --color-airwaysn-300: #93c0db;
+  --color-airwaysn-400: #6aa8cd;
+  --color-airwaysn-500: #4c92c1;
+  --color-airwaysn-600: #3a7ba8;
+  --color-airwaysn-700: #2f6488;
+  --color-airwaysn-800: #274f6b;
+  --color-airwaysn-900: #1e3c52;
+
+  /* Standardized elevation — layered and soft rather than one hard drop. */
+  --shadow-card:
+    0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.06);
+  --shadow-card-hover:
+    0 4px 8px -2px rgb(16 24 40 / 0.08), 0 12px 24px -4px rgb(16 24 40 / 0.1);
+  --shadow-popover:
+    0 8px 16px -4px rgb(16 24 40 / 0.1), 0 20px 32px -8px rgb(16 24 40 / 0.14);
+
+  /* Standardized radii. */
+  --radius-control: 0.5rem; /* buttons, inputs */
+  --radius-card: 0.875rem; /* cards, panels */
+
+  /* Text hierarchy — three steps, both themes. Prefer these over the
+     text-gray-900 dark:text-white pairs scattered through older markup. */
+  --color-ink: #101828;
+  --color-muted: #556070;
+  --color-faint: #8a94a6;
+
+  /* Semantic status accents — declared in @theme so the text, bg and ring
+     color utilities are generated. Light values here; :root.dark overrides. */
+  --color-success: #059669;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-info: #3a7ba8;
+
+  /* Soft background / readable foreground pairs for status surfaces
+     (badges, alert boxes). Light values; :root.dark overrides. */
+  --color-success-bg: #ecfdf5;
+  --color-success-fg: #047857;
+  --color-danger-bg: #fef2f2;
+  --color-danger-fg: #b91c1c;
+  --color-warning-bg: #fffbeb;
+  --color-warning-fg: #b45309;
+  --color-info-bg: #f0f6fa;
+  --color-info-fg: #2f6488;
+  --color-neutral-bg: #f2f4f7;
+  --color-neutral-fg: #344054;
 }
 
-@layer base {
-  :root {
-    --surface: #ffffff;
-    --surface-sunken: #f8fafc;
-    --chrome: #ffffff;
-    --border-subtle: #e2e8f0;
-    --ink: #0f172a;
-    --muted: #475569;
-    --faint: #94a3b8;
+/* Add custom Tailwind utilities */
+@layer utilities {
+  .bg-airwaysn {
+    background-color: var(--color-airwaysn);
   }
 
-  .dark {
-    --surface: #0f172a;
-    --surface-sunken: #020617;
-    --chrome: #0f172a;
-    --border-subtle: #1e293b;
-    --ink: #f8fafc;
-    --muted: #cbd5e1;
-    --faint: #64748b;
+  .bg-airwaysn-dark {
+    background-color: var(--color-airwaysn-dark);
   }
 
-  html {
-    background: var(--surface-sunken);
-    color: var(--ink);
-    -webkit-text-size-adjust: 100%;
+  .text-airwaysn {
+    color: var(--color-airwaysn);
   }
 
-  body {
-    margin: 0;
-    font-family:
-      ui-sans-serif,
-      system-ui,
-      -apple-system,
-      "Segoe UI",
-      "Noto Sans SC",
-      sans-serif;
+  .text-airwaysn-dark {
+    color: var(--color-airwaysn-dark);
+  }
+
+  .border-airwaysn {
+    border-color: var(--color-airwaysn);
+  }
+
+  .border-airwaysn-dark {
+    border-color: var(--color-airwaysn-dark);
+  }
+
+  /* Theme-aware surface & border helpers — auto-swap in dark mode,
+     so no dark: pair is needed at the call site. */
+  .bg-surface {
+    background-color: var(--surface);
+  }
+  .bg-surface-raised {
+    background-color: var(--surface-raised);
+  }
+  .bg-surface-sunken {
+    background-color: var(--surface-sunken);
+  }
+  .bg-surface-overlay {
+    background-color: var(--surface-overlay);
+  }
+  .border-subtle {
+    border-color: var(--border-subtle);
+  }
+  .border-strong {
+    border-color: var(--border-strong);
+  }
+  /* Pairs with Tailwind's `divide-y`, and has to match the elements Tailwind
+     actually puts the border on.
+     Tailwind v4 compiles `divide-y` to `:where(.divide-y > :not(:last-child))`
+     — every child but the LAST. This rule was written for v3, which used
+     `> :not([hidden]) ~ :not([hidden])` — every child but the FIRST. The two
+     sets miss each other at both ends: the first child got a border with no
+     colour, so it fell back to the initial `currentcolor` (preflight sets
+     `border: 0 solid`, which names no colour) and drew a bright line in the
+     text colour, while the last child got a colour and no border to put it on.
+     With exactly two children nothing at all matched both, which is why an
+     ATC seat card for two airports showed one hard white rule down the middle.
+     Both shapes are kept so this survives Tailwind moving either way. */
+  .divide-subtle > :not(:last-child),
+  .divide-subtle > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--border-subtle);
+  }
+
+  /* Blurred translucent chrome (sticky headers, floating docks). */
+  .bg-chrome {
+    background-color: var(--chrome);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+  }
+
+  /* Faint dotted backdrop for hero / empty canvases. */
+  .surface-grid {
+    background-image: radial-gradient(
+      var(--border-strong) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+
+  /* Veils over a decorative photo backdrop (see PhotoBackdrop.astro). Built
+     from --surface rather than white/black, so the same class carries the
+     photo in both themes and text-ink / text-muted keep their contrast — the
+     photo reads as texture, not as a picture competing with the copy.
+     .photo-scrim is directional (heaviest top-left, where headings sit);
+     .photo-scrim-flat is even, for centred copy. */
+  .photo-scrim {
+    background-image: linear-gradient(
+      to bottom right,
+      color-mix(in srgb, var(--surface) 96%, transparent),
+      color-mix(in srgb, var(--surface) 88%, transparent) 55%,
+      color-mix(in srgb, var(--surface) 78%, transparent)
+    );
+  }
+  .photo-scrim-flat {
+    background-color: color-mix(in srgb, var(--surface) 90%, transparent);
+  }
+
+  /* Top scrim for the full-bleed auth panel (AuthLayout.astro), which is white
+     text over a photo rather than page copy over a veil — hence black, not
+     --surface. Four stops rather than a Tailwind `from/via/to`, because the
+     curve is the whole point: it has to stay dark well past the deepest black
+     bar a source image might carry (~12% of height) and then fade slowly, so
+     the bar's bottom edge lands in shadow instead of against a bright sky.
+     Deliberately never reaches full opacity: a solid band would invent a
+     letterbox on the majority of photos that have none. */
+  .photo-scrim-top {
+    background-image: linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0.92),
+      rgb(0 0 0 / 0.62) 30%,
+      rgb(0 0 0 / 0.28) 62%,
+      transparent
+    );
+  }
+  /* For a full-bleed section rather than a card. RouteFrame burns a bright
+     wordmark and the photographer's signature into every image, and bright
+     marks survive the veil above — barely visible in a 280px card, but at
+     full hero size they are large enough to read and compete with the
+     headline. More veil, so the photo stays texture at that scale. */
+  .photo-scrim-heavy {
+    background-image: linear-gradient(
+      to bottom right,
+      color-mix(in srgb, var(--surface) 98%, transparent),
+      color-mix(in srgb, var(--surface) 94%, transparent) 55%,
+      color-mix(in srgb, var(--surface) 88%, transparent)
+    );
+  }
+
+  /* Numeric columns line up when digits are tabular. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-@utility bg-surface {
-  background-color: var(--surface);
-}
-@utility bg-surface-sunken {
-  background-color: var(--surface-sunken);
-}
-@utility bg-chrome {
-  background-color: var(--chrome);
-}
-@utility border-subtle {
-  border-color: var(--border-subtle);
-}
-@utility text-ink {
-  color: var(--ink);
-}
-@utility text-muted {
-  color: var(--muted);
-}
-@utility text-faint {
-  color: var(--faint);
-}
+@custom-variant dark (&:where(.dark, .dark *));
 
+/* ---------------------------------------------------------------------------
+   Component layer (Layer B) — thin, token-driven primitives for Astro-only
+   markup (index.astro, Footer.astro, DocsLayout, MDX) that cannot render the
+   Vue ui/ components. Vue components apply these same classes so both layers
+   stay visually identical. Keep this set small and flat.
+--------------------------------------------------------------------------- */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] border border-transparent px-4 py-2 text-sm font-medium transition-colors;
-    @apply bg-[var(--color-airwaysn-600)] text-white hover:bg-[var(--color-airwaysn-700)];
-    @apply disabled:cursor-not-allowed disabled:opacity-60;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    letter-spacing: -0.006em;
+    white-space: nowrap;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.1s ease;
+    cursor: pointer;
   }
-  .btn-ghost {
-    @apply border-[var(--border-subtle)] bg-transparent text-[var(--ink)] hover:bg-[var(--surface-sunken)];
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
   }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--surface),
+      0 0 0 4px var(--ring-brand);
+  }
+
+  .btn-primary {
+    background-color: var(--color-airwaysn);
+    color: #ffffff;
+    box-shadow: var(--shadow-card);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-airwaysn-dark);
+    color: #ffffff;
+  }
+
+  .btn-secondary {
+    background-color: var(--surface-raised);
+    color: var(--color-ink);
+    border-color: var(--border-strong);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--surface-sunken);
+    border-color: var(--color-faint);
+  }
+
+  /* Brand-tinted, lower-emphasis than primary — good for secondary CTAs
+     that still need to read as the brand action. */
+  .btn-soft {
+    background-color: var(--color-info-bg);
+    color: var(--color-info-fg);
+  }
+  .btn-soft:hover:not(:disabled) {
+    background-color: color-mix(
+      in srgb,
+      var(--color-airwaysn) 18%,
+      transparent
+    );
+  }
+
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700;
+    background-color: var(--color-danger);
+    color: #ffffff;
   }
-  .btn-sm {
-    @apply px-3 py-1.5 text-xs;
+  .btn-danger:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--color-danger) 85%, black);
+    color: #ffffff;
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--color-muted);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--surface-sunken);
+    color: var(--color-ink);
   }
 
   .card {
-    @apply rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface)] p-5;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
   }
 
   .input {
-    @apply w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)];
-    @apply outline-none placeholder:text-[var(--faint)] focus:border-[var(--color-airwaysn-500)];
+    display: block;
+    width: 100%;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    background-color: var(--surface-raised);
+    color: var(--color-ink);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
     line-height: 1.5rem;
+    outline: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .input::placeholder {
+    color: var(--color-faint);
+  }
+  .input:hover:not(:disabled):not(:focus) {
+    border-color: var(--color-faint);
+  }
+  .input:focus {
+    border-color: var(--color-airwaysn);
+    box-shadow: 0 0 0 3px var(--ring-brand);
+  }
+  .input-error {
+    border-color: var(--color-danger);
+  }
+  .input-error:focus {
+    border-color: var(--color-danger);
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--color-danger) 22%, transparent);
   }
 
   .badge {
-    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.125rem;
+    white-space: nowrap;
   }
-  .label {
-    @apply mb-1 block text-sm font-medium text-[var(--ink)];
+  .badge-success {
+    background-color: var(--color-success-bg);
+    color: var(--color-success-fg);
   }
-  .hint {
-    @apply mt-1 text-xs text-[var(--faint)];
+  .badge-danger {
+    background-color: var(--color-danger-bg);
+    color: var(--color-danger-fg);
   }
+  .badge-warning {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning-fg);
+  }
+  .badge-info {
+    background-color: var(--color-info-bg);
+    color: var(--color-info-fg);
+  }
+  .badge-neutral {
+    background-color: var(--color-neutral-bg);
+    color: var(--color-neutral-fg);
+  }
+
+  /* Opt-in underlined link. Global anchors stay undecorated so nav items,
+     buttons and cards are not dashed on hover. */
   .link {
-    @apply text-[var(--color-airwaysn-600)] underline underline-offset-2;
+    color: var(--color-airwaysn-600);
+    text-decoration: underline;
+    text-decoration-style: dashed;
+    text-decoration-color: color-mix(
+      in srgb,
+      var(--color-airwaysn) 55%,
+      transparent
+    );
+    text-underline-offset: 0.25em;
+    transition: color 0.15s ease;
+  }
+  .link:hover {
+    color: var(--color-airwaysn-700);
+    text-decoration-color: currentColor;
+  }
+
+  /* Loading placeholder — pair with a width/height, or use the Skeleton
+     component for whole-block shapes.
+
+     The sweep is a `transform` on an overlay rather than an animated
+     `background-position`, which is what it used to be. Background position is
+     a paint property: every frame re-rasterises the element on the main
+     thread, and a skeleton screen is not one element — a placeholder table is
+     fifty of them shimmering at once, on the exact frames where the page is
+     also parsing a JSON response. A translated overlay is composited, so it
+     costs the main thread nothing after the first frame. */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--surface-sunken);
+    border-radius: var(--radius-control);
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--border-subtle) 85%, transparent),
+      transparent
+    );
+    animation: skeleton-sweep 1.5s ease-in-out infinite;
   }
 }
 
-/* 触控设备。和 can-web 同样的两条，理由也一样：iOS Safari 会把小于 16px 的
-   输入框放大，而且失焦后不缩回去；44px 是舒服的触控目标下限。刻意不放进
-   @layer，这样它也能盖过调用处写的 text-sm。 */
+/* One keyframe only: the resting `translateX(-100%)` on the element is the
+   implicit start, so the sweep needs no `from`. */
+@keyframes skeleton-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #101828;
+
+  /* Surfaces & borders — collapse the bg-white/dark:bg-gray-800 pairs. */
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f7f8fa;
+  --surface-overlay: #ffffff;
+  --chrome: rgb(255 255 255 / 0.82);
+  --border-subtle: #e7eaee;
+  --border-strong: #d3d8e0;
+  --ring-brand: color-mix(in srgb, var(--color-airwaysn) 28%, transparent);
+}
+
+:root.dark {
+  --background: #0d1219;
+  --foreground: #f2f5f9;
+
+  --surface: #0d1219;
+  --surface-raised: #151c25;
+  --surface-sunken: #0a0f15;
+  --surface-overlay: #1b232e;
+  --chrome: rgb(13 18 25 / 0.82);
+  --border-subtle: #232c38;
+  --border-strong: #33404f;
+
+  --color-ink: #f2f5f9;
+  --color-muted: #9aa6b6;
+  --color-faint: #6b7889;
+
+  --color-success: #34d399;
+  --color-success-bg: color-mix(in srgb, #10b981 16%, transparent);
+  --color-success-fg: #6ee7b7;
+  --color-danger: #f87171;
+  --color-danger-bg: color-mix(in srgb, #ef4444 16%, transparent);
+  --color-danger-fg: #fca5a5;
+  --color-warning: #fbbf24;
+  --color-warning-bg: color-mix(in srgb, #f59e0b 16%, transparent);
+  --color-warning-fg: #fcd34d;
+  --color-info: #6aa8cd;
+  --color-info-bg: color-mix(in srgb, #4c92c1 16%, transparent);
+  --color-info-fg: #93c0db;
+  --color-neutral-bg: #202936;
+  --color-neutral-fg: #d3dae3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Tell the browser which way the theme swings, so the chrome it paints
+   itself — form controls, the canvas between navigations, native scrollbar
+   gutters — matches. The no-flash script in ThemeScript.astro toggles `.dark`
+   before first paint, so this swaps with it rather than after it. */
+html:not(.dark) {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* Headings read tighter than body copy at large sizes. */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.018em;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-airwaysn) 26%, transparent);
+}
+
+/* One consistent keyboard-focus treatment for anything not styled above. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-airwaysn);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+/* Slim, theme-aware scrollbars for the panel lists and side rails. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-faint);
+}
+
+/* Long-form content: this is where the dashed underline belongs. */
+.doc-content a,
+.prose a {
+  color: var(--color-airwaysn-600);
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 0.3em;
+}
+.doc-content a:hover,
+.prose a:hover {
+  color: var(--color-airwaysn-700);
+}
+.dark .doc-content a,
+.dark .prose a {
+  color: var(--color-airwaysn-300);
+}
+.dark .doc-content a:hover,
+.dark .prose a:hover {
+  color: var(--color-airwaysn-200);
+}
+
+/* Long-form content has to survive a 390px screen, and the markup comes from
+   MDX, so these rules land on generated elements.
+
+   `.table-scroll` is the wrapper the rehype plugin in astro.config.mjs puts
+   around every markdown table; the note there covers why the table is wrapped
+   rather than made `display: block` itself. The `min-width` is the half that
+   makes the wrapper do anything: the typography plugin sets `width: 100%`, so
+   inside a scroller the table would obediently shrink to the container and
+   squash four columns of Japanese into 350px instead of scrolling. Against
+   `max-content` the 100% only wins while the table is narrow enough to fit,
+   which is the desktop case and the behaviour we already had.
+
+   `overflow-wrap` is the other half of the same problem: a bare URL or a long
+   identifier in a paragraph is one unbreakable word, and one of those pushes
+   the layout out exactly the way a wide table does. */
+.table-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.table-scroll table {
+  min-width: max-content;
+}
+.doc-content,
+.prose {
+  overflow-wrap: break-word;
+}
+
+/* ---------------------------------------------------------------------------
+   Touch input. Gated on `pointer: coarse` — the *primary* input being a
+   finger — rather than a width breakpoint, because the two problems below are
+   properties of the input device, not of the viewport: a 1024px iPad has both
+   of them and a 375px desktop window has neither.
+
+   1. iOS Safari zooms the page in whenever a focused input, select or textarea
+      computes to under 16px, and it does not zoom back out on blur — the
+      member is left on a page scrolled sideways, mid-form. `.input` is
+      0.875rem (see Layer B above), which is every text field in the app:
+      sign-in, sign-up, reset, the flight plan, the support form, every
+      management dialog. The line box is a fixed 1.5rem, so raising the
+      font-size does not move the control's height — this costs nothing but
+      the two extra pixels of text.
+
+   2. 44px is the minimum comfortable touch target. `.btn` computes to 38px
+      (8px padding either side of a 20px line box, plus the border) and the
+      `sm` size to 30px. Icon-only buttons carry `p-0` next to a `size-*`
+      utility that sets both axes, so they need the floor on both or they
+      stretch into rectangles.
+--------------------------------------------------------------------------- */
 @media (pointer: coarse) {
-  .input {
+  .input,
+  select.input,
+  textarea.input {
     font-size: 1rem;
   }
+
   .btn {
     min-height: 2.75rem;
   }
+  .btn.p-0 {
+    min-width: 2.75rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   DataTable, small screens. A five-column table on a 390px phone is a
+   horizontal-scroll puzzle, so below `sm` each row collapses into a card and
+   every cell grows a label from its `data-label`. The markup is unchanged —
+   one <table> serves both layouts.
+--------------------------------------------------------------------------- */
+@media (max-width: 639px) {
+  .data-table thead {
+    display: none;
+  }
+  .data-table tbody tr {
+    display: block;
+    margin-bottom: 0.625rem;
+    padding: 0.25rem 0.875rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    background-color: var(--surface-raised);
+  }
+  .data-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+  .data-table tbody td {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: right;
+    white-space: normal;
+  }
+  .data-table tbody td:last-child {
+    border-bottom: 0;
+  }
+  .data-table tbody td::before {
+    content: attr(data-label);
+    flex: none;
+    color: var(--color-faint);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+  /* Loading / empty rows span every column and get no label. */
+  .data-table tbody tr.dt-row-span {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  .data-table tbody tr.dt-row-span td {
+    display: block;
+    border-bottom: 0;
+    text-align: center;
+  }
+  .data-table tbody tr.dt-row-span td::before {
+    content: none;
+  }
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────────
+   Ported from RouteFrame (src/styles/global.css there), which is the same
+   Astro-MPA + Tailwind v4 shape as this app, so the whole system is CSS and
+   there is no animation library to ship.
+
+   Two halves. Between pages, the browser cross-fades. Within a page, content
+   arrives with a short rise. Both are opt-in at the call site except the
+   navigation fade, which is global.
+   ------------------------------------------------------------------------ */
+
+/* Cross-fade between same-origin navigations. Chromium honours this; Safari
+   and Firefox no-op silently and simply keep the instant swap they had. */
+@view-transition {
+  navigation: auto;
+}
+
+/* The browser default for these pseudo-elements is `mix-blend-mode:
+   plus-lighter`, which additively blends the outgoing and incoming snapshots.
+   On a page carrying a full-bleed photo — the hero, the sign-in artwork —
+   that reads as a blown-out flash for the moment both are on screen. Normal
+   blending gives a plain opacity cross-fade instead. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  mix-blend-mode: normal;
+}
+
+/* The theme toggle drives its own circular wipe (see ThemeLangControls), so
+   suppress the cross-fade underneath it — otherwise the two animations run at
+   once and the wipe is invisible behind a fade. Scoped to the class the
+   toggle sets, so page navigation is unaffected. */
+html.theme-transitioning::view-transition-old(root),
+html.theme-transitioning::view-transition-new(root) {
+  animation: none;
+}
+html.theme-transitioning::view-transition-old(root) {
+  z-index: 1;
+}
+html.theme-transitioning::view-transition-new(root) {
+  z-index: 9999;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* `both` matters: it holds the from-state during the delay, so an element
+   never flashes at full opacity before its turn. */
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out both;
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out both;
+}
+
+/* Overlay entrances — same keyframes, shorter. The page-level 0.3–0.4s reads
+   as considered when a section arrives; on a dialog the user just asked for it
+   reads as lag, and every overlay in the app used to have no entrance at all
+   (the modals carried a dead `transform transition-all` from a Headless UI
+   copy-paste, with nothing to transition). Opacity and transform only, so both
+   stay on the compositor, and the reduced-motion block below already covers
+   them. */
+.animate-overlay-in {
+  animation: fade-in 0.15s ease-out both;
+}
+.animate-panel-in {
+  animation: scale-in 0.2s ease-out both;
+}
+
+/* For a dialog centred by `left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2`.
+   A keyframe's `transform` REPLACES the element's, so plain .animate-panel-in
+   would drop the centring translate and throw the dialog down and to the right
+   for the length of the animation. The translate has to be carried in the
+   keyframe itself. */
+@keyframes panel-in-centered {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+.animate-panel-in-centered {
+  animation: panel-in-centered 0.2s ease-out both;
+}
+
+/* Drawers slide in from their own edge rather than scaling — the portal
+   sidebar comes from the left, the public mobile menu from the right. */
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes drawer-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-drawer-in {
+  animation: drawer-in 0.22s ease-out both;
+}
+.animate-drawer-in-right {
+  animation: drawer-in-right 0.22s ease-out both;
+}
+
+/* The radar's side panel is a drawer on a phone but a plain layout column from
+   `lg` up (`lg:static`), where it is open on arrival — so the slide has to stop
+   at the breakpoint, or the desktop layout animates itself in on every page
+   load. Scoped by media query rather than a `max-lg:` variant because these
+   animation classes are hand-written CSS, not generated utilities, and Tailwind
+   variants only compose with the latter. */
+@media (max-width: 1023px) {
+  .animate-drawer-panel {
+    animation: drawer-in-right 0.22s ease-out both;
+  }
+}
+
+/* Cascade the children of a grid or list in. Put it on the container; the
+   children need no classes, which is what keeps it usable on a `map()` that
+   renders markup this stylesheet has never seen.
+
+   Capped at 13+ rather than continuing the ramp: past about half a second the
+   cascade stops reading as one movement and starts reading as a slow list,
+   and a roster can be hundreds of rows. */
+.stagger > * {
+  animation: fade-up 0.45s ease-out both;
+}
+.stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+.stagger > *:nth-child(6) {
+  animation-delay: 200ms;
+}
+.stagger > *:nth-child(7) {
+  animation-delay: 240ms;
+}
+.stagger > *:nth-child(8) {
+  animation-delay: 280ms;
+}
+.stagger > *:nth-child(9) {
+  animation-delay: 320ms;
+}
+.stagger > *:nth-child(10) {
+  animation-delay: 360ms;
+}
+.stagger > *:nth-child(11) {
+  animation-delay: 400ms;
+}
+.stagger > *:nth-child(12) {
+  animation-delay: 440ms;
+}
+.stagger > *:nth-child(n + 13) {
+  animation-delay: 480ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    /* Without this the stagger keeps its cascade and content still trickles
+       in, which is most of what the preference is asking us not to do. */
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* The rule above would collapse the shimmer to its end frame rather than
+     stop it, parking a bright band across every placeholder. Drop the sweep
+     and leave the flat tint, which still reads as "content is coming". */
+  .skeleton::after {
+    display: none;
+  }
+  /* The wipe is a scripted animation on the view-transition pseudo-element,
+     so the rules above cannot reach it. Skip the transition entirely and let
+     the theme swap instantly. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* Leaflet custom styles for radar map */
+.leaflet-container {
+  background: #0f172a !important;
+}
+
+/* Light theme styles */
+:root:not(.dark) .leaflet-container {
+  background: #f8fafc !important;
+}
+
+:root:not(.dark) .leaflet-popup-content-wrapper {
+  background: white;
+  color: #1e293b;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e2e8f0;
+}
+
+:root:not(.dark) .leaflet-popup-tip {
+  background: white;
+  border: 1px solid #e2e8f0;
+}
+
+:root:not(.dark) .leaflet-popup-content h3 {
+  color: #1e293b;
+}
+
+:root:not(.dark) .leaflet-popup-content strong {
+  color: #374151;
+}
+
+:root:not(.dark) .leaflet-popup-content div {
+  color: #64748b;
+}
+
+:root:not(.dark) .leaflet-control-attribution {
+  background: rgba(248, 250, 252, 0.9) !important;
+  color: #64748b !important;
+}
+
+:root:not(.dark) .leaflet-control-zoom a {
+  background: white !important;
+  color: #374151 !important;
+  border-color: #e2e8f0 !important;
+}
+
+:root:not(.dark) .leaflet-control-zoom a:hover {
+  background: #f1f5f9 !important;
+}
+
+/* Dark theme styles */
+.dark .leaflet-popup-content-wrapper {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7) !important;
+  border: 1px solid #475569 !important;
+}
+
+.dark .leaflet-popup-tip {
+  background: #1e293b !important;
+  border: 1px solid #475569 !important;
+}
+
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.aircraft-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Ensure popup content is properly styled */
+.leaflet-popup-content {
+  margin: 0;
+  min-width: 200px;
+}
+
+.leaflet-popup-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+.dark .leaflet-popup-content h3 {
+  color: #f1f5f9 !important;
+}
+
+.leaflet-popup-content strong {
+  font-weight: 600;
+}
+
+.dark .leaflet-popup-content strong {
+  color: #e2e8f0 !important;
+}
+
+.dark .leaflet-popup-content div {
+  color: #cbd5e1 !important;
+}
+
+.leaflet-control-attribution {
+  font-size: 10px !important;
+}
+
+.dark .leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: #64748b !important;
+}
+
+.dark .leaflet-control-zoom a {
+  background: #374151 !important;
+  color: #f1f5f9 !important;
+  border-color: #4b5563 !important;
+}
+
+.dark .leaflet-control-zoom a:hover {
+  background: #4b5563 !important;
+  color: #ffffff !important;
+}
+
+/* Boundary styles for control areas */
+.boundary-control-area {
+  stroke-width: 2px;
+  stroke-opacity: 0.8;
+  fill-opacity: 0.1;
+}
+
+.boundary-control-area.active {
+  stroke: #10b981;
+  fill: #10b981;
+}
+
+.boundary-control-area.inactive {
+  stroke: #6b7280;
+  fill: #6b7280;
+  stroke-dasharray: 5, 5;
+}
+
+/* Button styles for boundary toggle */
+/* Boundary popup styles */
+.boundary-popup .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.boundary-popup .leaflet-popup-content {
+  min-width: 280px;
+  max-width: 400px;
+}
+
+.boundary-popup h3 {
+  border-bottom: 2px solid #10b981;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.dark .boundary-popup h3 {
+  border-bottom-color: #10b981 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark .boundary-popup .leaflet-popup-content-wrapper {
+  background: #1e293b !important;
+  border: 1px solid #475569 !important;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.8),
+    0 10px 10px -5px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Dark mode specific text colors for boundary popups */
+.dark .boundary-popup .text-green-600 {
+  color: #22c55e !important;
+}
+
+.dark .boundary-popup .text-blue-600 {
+  color: #3b82f6 !important;
+}
+
+.dark .boundary-popup .border-green-500 {
+  border-color: #22c55e !important;
+}
+
+.dark .boundary-popup .border-blue-500 {
+  border-color: #3b82f6 !important;
+}
+
+.dark .boundary-popup .bg-gray-50 {
+  background-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+
+.dark .boundary-popup .text-gray-500 {
+  color: #9ca3af !important;
+}
+
+/* Dark mode styles for all popups */
+.dark .leaflet-popup .text-blue-600 {
+  color: #60a5fa !important;
+}
+
+.dark .leaflet-popup .text-green-600 {
+  color: #34d399 !important;
+}
+
+.dark .leaflet-popup .text-yellow-600 {
+  color: #fbbf24 !important;
+}
+
+.dark .leaflet-popup .text-gray-600 {
+  color: #d1d5db !important;
+}
+
+.dark .leaflet-popup .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+.dark .leaflet-popup .text-gray-500 {
+  color: #9ca3af !important;
+}
+
+.dark .leaflet-popup .text-sm {
+  color: #d1d5db !important;
+}
+
+.dark .leaflet-popup .text-xs {
+  color: #d1d5db !important;
+}
+
+.dark .leaflet-popup .bg-gray-50 {
+  background-color: #374151 !important;
+}
+
+.dark .leaflet-popup .font-mono {
+  color: #e5e7eb !important;
+}
+
+/* Hover effect for active boundary areas */
+.leaflet-interactive:hover {
+  cursor: pointer;
+}
+
+.boundary-toggle-btn {
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }

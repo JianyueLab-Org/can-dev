@@ -43,13 +43,16 @@ const session = Astro.locals.session;
                   {session.name ?? session.username}
                 </span>
                 <form method="POST" action="/auth/logout">
-                  <button class="btn btn-ghost btn-sm" type="submit">
+                  <button
+                    class="btn btn-ghost px-3 py-1.5 text-xs"
+                    type="submit"
+                  >
                     退出
                   </button>
                 </form>
               </>
             ) : (
-              <a class="btn btn-sm" href="/auth/login">
+              <a class="btn px-3 py-1.5 text-xs" href="/auth/login">
                 用 CAN 账号登录
               </a>
             )
