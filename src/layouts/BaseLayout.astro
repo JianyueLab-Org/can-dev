@@ -46,7 +46,11 @@ const fullTitle = title ? `${title} · ${t("siteName")}` : t("siteName");
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/logo-full.png" />
+    {
+      /* 方形标记，不是 logo-full.png —— 那张图上写的是网络的旧名字
+        "Airway Simulation Network"，而分享卡片是这个站露脸最多的地方。 */
+    }
+    <meta property="og:image" content="/icon-512.png" />
     <ThemeScript />
   </head>
   <body class="min-h-dvh bg-surface-sunken">

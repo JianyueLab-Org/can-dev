@@ -101,16 +101,13 @@ onBeforeUnmount(() => window.removeEventListener("scroll", onScroll));
       aria-label="Global"
       class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8"
     >
+      <!-- 方形标记 + 文字，**不是** logo-full.png。那张图里的字是
+           "Airway Simulation Network" —— 网络的旧名字。把它挂在这儿，站头就成
+           了「旧品牌 + 新站名」并排，而且同一个名字说了两遍。文字用词条，所以
+           它跟着语言走。 -->
       <a href="/" class="-m-1.5 flex shrink-0 items-center gap-2.5 p-1.5">
-        <img
-          alt="Cerulean Aviation Network"
-          src="/logo-full.png"
-          class="h-10 w-auto"
-        />
-        <span
-          class="hidden text-sm font-semibold text-muted sm:inline"
-          aria-hidden="true"
-        >
+        <img alt="" src="/logo.png" class="h-8 w-auto" />
+        <span class="text-sm font-semibold text-ink">
           {{ t("dev.siteName") }}
         </span>
       </a>
@@ -192,9 +189,11 @@ onBeforeUnmount(() => window.removeEventListener("scroll", onScroll));
         class="animate-drawer-in-right fixed inset-y-0 right-0 z-50 flex w-full max-w-xs flex-col overflow-y-auto overscroll-contain border-l border-subtle bg-surface px-6 py-5 shadow-popover"
       >
         <div class="flex items-center justify-between">
-          <a href="/" class="-m-1.5 p-1.5">
-            <span class="sr-only">{{ t("dev.siteName") }}</span>
-            <img alt="" src="/logo-full.png" class="h-10 w-auto" />
+          <a href="/" class="-m-1.5 flex items-center gap-2.5 p-1.5">
+            <img alt="" src="/logo.png" class="h-8 w-auto" />
+            <span class="text-sm font-semibold text-ink">
+              {{ t("dev.siteName") }}
+            </span>
           </a>
           <button
             type="button"
