@@ -75,7 +75,7 @@ const features = ["pkce", "redirect", "revoke"] as const;
   <div class="stagger mt-8 grid gap-4 sm:grid-cols-3">
     {
       features.map((key) => (
-        <div class="card animate-fade-up">
+        <div class="card animate-fade-up p-6">
           <h2 class="font-semibold text-ink">
             {t(`home.features.${key}.title`)}
           </h2>
