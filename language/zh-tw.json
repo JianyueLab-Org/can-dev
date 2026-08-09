@@ -1,0 +1,258 @@
+{
+  "header": {
+    "forum": "論壇",
+    "docs": "文件",
+    "onlineMap": "雷達",
+    "signin": "登入",
+    "panel": "飛行員面板",
+    "roster": "管制員名冊",
+    "home": "首頁",
+    "openMenu": "開啟選單",
+    "closeMenu": "關閉選單",
+    "skipToContent": "跳至主要內容",
+    "activities": "活動",
+    "downloads": "下載"
+  },
+  "footer": {
+    "description": "友善、開放的模擬飛行連線平台",
+    "pilots": {
+      "title": "飛行員",
+      "items": {
+        "pilotPanel": "飛行員面板",
+        "onlineMap": "線上地圖",
+        "flightPlan": "飛航計畫",
+        "statistics": "統計"
+      }
+    },
+    "controllers": {
+      "title": "管制員",
+      "items": {
+        "controllerPanel": "管制員面板",
+        "professionalGuidelines": "職業準則",
+        "roster": "管制員名冊"
+      }
+    },
+    "docs": {
+      "title": "文件",
+      "items": {
+        "regulations": "規章制度",
+        "api": "開放 API"
+      }
+    },
+    "links": {
+      "title": "連結",
+      "items": {
+        "forum": "論壇",
+        "qqGroup": "QQ群",
+        "discord": "Discord",
+        "support": "問題與建議"
+      }
+    }
+  },
+  "apiDocs": {
+    "eyebrow": "開發者",
+    "title": "開放 API",
+    "description": "有幾個介面是特意不需要登入的 —— EuroScope、通播用戶端和線上地圖呼叫的就是它們。文件寫在這裡，你也可以拿去用。",
+    "baseUrl": "介面位址",
+    "onThisPage": "本頁目錄",
+    "englishNotice": "下面的介面說明是英文的：參數名、請求標頭和回傳欄位在協定裡本來就是英文，多一份翻譯就多一份要同步的東西。",
+    "conventions": {
+      "title": "開始之前",
+      "auth": {
+        "term": "不需要 API Key",
+        "detail": "沒有需要申請的東西。下面大部分介面直接開放；日誌上傳要在請求主體裡帶上 ASN ID 和網路密碼。`/api` 下的其他路由都需要網站自己的工作階段 Cookie，不屬於對外介面。"
+      },
+      "envelope": {
+        "term": "回傳結構",
+        "detail": "JSON 回傳除了資料本身，還帶 `status` 和 `timestamp`，資料一般放在 `data` 下。例外是 ATIS 文字介面，它回傳純文字 —— EuroScope 不會解析 JSON。"
+      },
+      "errors": {
+        "term": "錯誤處理",
+        "detail": "以 HTTP 狀態碼為準。錯誤回傳裡帶 `error` 欄位，有時是給人看的句子，有時是留給你自己翻譯的短識別，每個介面都註明了是哪一種。"
+      },
+      "rateLimits": {
+        "term": "頻率限制",
+        "detail": "每個介面都按固定時間窗計數，通常按 IP。超出會回傳 **429**，並在 `Retry-After` 裡給出需要等待的秒數，請等待而不要立刻重試。本頁的數字直接讀自執行中的設定，就是實際生效的限制。"
+      },
+      "cors": {
+        "term": "跨來源",
+        "detail": "逐個介面標註。寫著任意來源的會回傳 `Access-Control-Allow-Origin: *`，瀏覽器可以直接呼叫。"
+      },
+      "versioning": {
+        "term": "版本",
+        "detail": "只有 `/api/v1` 這一個版本。欄位只增不改；本頁寫明的內容不會在沒有先於 Discord 和 QQ 群通知的情況下改名或下線。"
+      },
+      "oauth": {
+        "term": "統一登入",
+        "detail": "需要代表某位成員存取資料的應用，請走 OAuth 2.1 授權碼 + PKCE：將成員帶往 `/oauth/authorize`，以授權碼在 `/api/oauth/token` 換取 access 權杖，再用 `Authorization: Bearer` 呼叫。探索文件位於 `/.well-known/openid-configuration`。註冊應用請透過意見回饋表單與我們聯絡。"
+      }
+    },
+    "labels": {
+      "authentication": "驗證",
+      "rateLimit": "頻率限制",
+      "cors": "跨來源",
+      "pathParams": "路徑參數",
+      "query": "查詢參數",
+      "fields": "請求主體欄位",
+      "headers": "請求標頭",
+      "statuses": "回傳狀態",
+      "example": "範例",
+      "notes": "說明",
+      "required": "必填",
+      "optional": "選填",
+      "perHour": "每小時 {limit} 次",
+      "perMinutes": "每 {minutes} 分鐘 {limit} 次",
+      "noLimit": "不限"
+    },
+    "auth": {
+      "none": "開放",
+      "noneHint": "不需要金鑰，也不需要 Cookie，頻率限制是唯一的門檻。",
+      "credentials": "ASN ID + 網路密碼",
+      "credentialsHint": "放在請求主體裡，就是桌面用戶端連線用的那一組。",
+      "oauth": "OAuth 存取權杖",
+      "oauthHint": "在 `Authorization: Bearer` 標頭中帶上透過統一登入取得的 access 權杖。",
+      "oauthClient": "應用憑證",
+      "oauthClientHint": "註冊應用時取得的 client_id / client_secret。公開客戶端不帶密鑰，改以 PKCE 證明自己。",
+      "browser": "成員登入",
+      "browserHint": "瀏覽器頁面，需要成員本人在本站登入後操作。"
+    },
+    "cors": {
+      "open": "任意來源",
+      "closed": "僅同來源"
+    },
+    "notPublic": {
+      "title": "沒有寫在這裡的介面",
+      "description": "/api 下還有別的路由，但它們不是對外介面。列在這裡，是為了讓「找不到」讀起來像一個決定，而不是遺漏。"
+    },
+    "help": {
+      "title": "有疑問，或者希望開放某個介面？",
+      "description": "透過回報表單告訴我們，會直接送到維護者手上。",
+      "cta": "問題與建議"
+    }
+  },
+  "dev": {
+    "siteName": "CAN 開發者中心",
+    "tagline": "在這裡註冊應用程式，讓 CAN 成員用自己的帳號登入它。",
+    "nav": {
+      "home": "首頁",
+      "apps": "我的應用程式",
+      "docs": "介面文件",
+      "mainSite": "回到主站"
+    },
+    "auth": {
+      "signIn": "用 CAN 帳號登入",
+      "signOut": "登出"
+    },
+    "home": {
+      "eyebrow": "開發者中心",
+      "title": "把 CAN 帳號接進你的應用程式",
+      "description": "Cerulean Aviation Network 是一個標準的 OAuth 2.1 / OpenID Connect 身分提供方。成員用自己的 ASN 帳號登入你的應用程式，你拿到的是一枚權杖，而不是他的密碼。在這裡註冊應用程式、管理回呼位址與密鑰。",
+      "manageApps": "管理我的應用程式",
+      "readDocs": "介面文件",
+      "features": {
+        "pkce": {
+          "title": "強制 PKCE",
+          "detail": "所有用戶端一律 S256，機密用戶端也不例外 —— 授權碼要經過瀏覽器網址列，密鑰在那裡保護不了任何東西。"
+        },
+        "redirect": {
+          "title": "回呼位址完全比對",
+          "detail": "沒有萬用字元、沒有前綴比對。唯一的例外是 RFC 8252 的回送位址，只忽略連接埠，給桌面端使用。"
+        },
+        "revoke": {
+          "title": "權杖可即時撤銷",
+          "detail": "access 權杖是不透明的，每次使用都查資料庫。成員在「已授權應用程式」裡一按，下一個請求就失效。"
+        }
+      },
+      "errors": {
+        "missing_state": "登入請求已經過期了，重新點一次。",
+        "state_mismatch": "這次登入的來源對不上，出於安全考量沒有繼續。重新點一次。",
+        "exchange_failed": "沒能換到權杖，稍後再試。",
+        "access_denied": "你在授權頁上點了拒絕。",
+        "unknown": "登入失敗：{error}"
+      }
+    },
+    "apps": {
+      "title": "我的應用程式",
+      "description": "在這裡註冊的應用程式可以讓 CAN 成員用自己的帳號登入。回呼位址是整串完全比對的，改之前先想清楚 —— 它決定授權碼送到哪裡去。",
+      "loadFailed": "沒能讀到你的應用程式：{message}",
+      "loadFailedHint": "登入可能已經過期。",
+      "signInAgain": "重新登入",
+      "count": "{count} 個應用程式",
+      "register": "註冊新應用程式",
+      "empty": "還沒有應用程式。註冊一個，就能讓成員用 CAN 帳號登入它。",
+      "networkError": "網路不通，稍後再試。",
+      "requestFailed": "請求失敗（{status}）",
+      "secret": {
+        "title": "這是 client_secret，只顯示這一次",
+        "detail": "我們只存它的雜湊值，關掉之後誰也找不回來。丟了就得再換一把。",
+        "copy": "複製",
+        "done": "我抄好了"
+      },
+      "form": {
+        "createTitle": "註冊一個新應用程式",
+        "editTitle": "修改應用程式",
+        "name": "應用程式名稱",
+        "nameHint": "成員在授權頁上看到的就是這個名稱。不能讓人誤以為它是網路官方的應用程式。",
+        "redirectUris": "回呼位址",
+        "redirectUrisHint": "一行一個，整串完全比對。只收 https；本機除錯用 http://127.0.0.1（連接埠可變），行動端可用帶點的私有 scheme。",
+        "scopes": "申請的權限",
+        "website": "首頁（選填）",
+        "logo": "圖示位址（選填）",
+        "publicClient": "這是公開用戶端",
+        "publicClientHint": "桌面端、行動端、純前端應用程式 —— 存不住密鑰的那些。不發 client_secret，靠 PKCE 證明自己。註冊後不可更改。",
+        "save": "儲存",
+        "create": "註冊",
+        "cancel": "取消"
+      },
+      "card": {
+        "disabled": "已停用",
+        "activeTokens": "{count} 枚權杖使用中",
+        "publicClient": "公開用戶端",
+        "copyClientId": "複製 client_id",
+        "edit": "修改",
+        "rotate": "換密鑰",
+        "enable": "啟用",
+        "disable": "停用",
+        "delete": "刪除",
+        "redirectUris": "回呼位址",
+        "scopes": "權限"
+      },
+      "delete": {
+        "title": "刪除「{name}」？",
+        "detail": "連同它的權杖和成員的授權紀錄一起刪掉，不可復原。正在用它登入的人會立刻被擋在外面。確認的話，把應用程式名稱抄一遍：",
+        "cancel": "取消",
+        "confirm": "刪除"
+      }
+    },
+    "scopes": {
+      "openid": {
+        "title": "確認身分",
+        "detail": "拿到成員的 ASN ID。登入都需要它。"
+      },
+      "profile": {
+        "title": "基本資料",
+        "detail": "姓名、ASN ID、管制等級、註冊時間。"
+      },
+      "email": {
+        "title": "電子郵件位址",
+        "detail": "電子郵件及其驗證狀態。"
+      },
+      "divisions": {
+        "title": "分部資訊",
+        "detail": "所屬分部與席位權限。"
+      },
+      "flights:read": {
+        "title": "飛行紀錄",
+        "detail": "連線時間、呼號、時長。"
+      },
+      "atc:read": {
+        "title": "管制紀錄",
+        "detail": "席位、時長、等級變化。"
+      },
+      "offline_access": {
+        "title": "離線存取",
+        "detail": "成員關掉瀏覽器後仍可存取，直到他撤銷。沒有把握就別要。"
+      }
+    }
+  }
+}

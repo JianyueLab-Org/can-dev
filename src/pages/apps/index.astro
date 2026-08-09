@@ -1,7 +1,9 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
+import SiteLayout from "@/layouts/SiteLayout.astro";
+import AlertBox from "@/components/ui/AlertBox.vue";
 import AppManager from "@/components/AppManager.vue";
 import { listClients } from "@/lib/canApi";
+import { getLocale, getMessages, useTranslations } from "@/lib/i18n";
 
 /**
  * 「我的应用」。
@@ -14,57 +16,61 @@ import { listClients } from "@/lib/canApi";
 const session = Astro.locals.session!;
 const result = await listClients(session.accessToken);
 
+const locale = getLocale(Astro.cookies);
+const t = useTranslations(locale, "dev");
+
 /**
- * 权限清单写在这里，而不是从 can-web 拉。
+ * 权限清单的**名字**写在这里，文案在词典里。
  *
  * 这份文案是给注册者读的（「你要申请什么」），can-web 字典里那份是给成员读的
- * （「你要授予什么」）—— 同一个 scope，两种人称。真正防止两边漂移的是
- * can-web 的 `SELF_SERVICE_SCOPES`：这里多列一个，它也不会通过。
+ * （「你要授予什么」）—— 同一个 scope，两种人称。真正防止两边漂移的不是文案
+ * 而是 can-api 的 `SelfServiceScopes`：这里多列一个，它也不会通过。
  */
-const SCOPES = [
-  {
-    name: "openid",
-    title: "确认身份",
-    detail: "拿到成员的 ASN ID。登录都需要它。",
-  },
-  {
-    name: "profile",
-    title: "基本资料",
-    detail: "姓名、ASN ID、管制等级、注册时间。",
-  },
-  { name: "email", title: "邮箱地址", detail: "邮箱及其验证状态。" },
-  { name: "divisions", title: "分部信息", detail: "所属分部与席位权限。" },
-  { name: "flights:read", title: "飞行记录", detail: "连线时间、呼号、时长。" },
-  { name: "atc:read", title: "管制记录", detail: "席位、时长、等级变化。" },
-  {
-    name: "offline_access",
-    title: "离线访问",
-    detail: "成员关掉浏览器后仍可访问，直到他撤销。没有把握就别要。",
-  },
-];
+const SCOPE_NAMES = [
+  "openid",
+  "profile",
+  "email",
+  "divisions",
+  "flights:read",
+  "atc:read",
+  "offline_access",
+] as const;
+
+const scopes = SCOPE_NAMES.map((name) => ({
+  name,
+  title: t(`scopes.${name}.title`),
+  detail: t(`scopes.${name}.detail`),
+}));
 ---
 
-<BaseLayout title="我的应用">
-  <h1 class="text-2xl font-semibold text-ink">我的应用</h1>
-  <p class="mt-2 mb-8 max-w-2xl text-sm text-muted">
-    在这里注册的应用可以让 CAN 成员用自己的账号登录。回调地址是整串精确匹配的，
-    改之前先想清楚 —— 它决定授权码发到哪里去。
+<SiteLayout title={t("apps.title")}>
+  <h1 class="text-2xl font-semibold tracking-tight text-ink">
+    {t("apps.title")}
+  </h1>
+  <p class="mb-8 mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+    {t("apps.description")}
   </p>
 
   {
     result.ok ? (
-      <AppManager client:load initial={result.data} scopes={SCOPES} />
+      <AppManager
+        client:load
+        initial={result.data}
+        scopes={scopes}
+        messages={getMessages(locale, "dev.apps")}
+      />
     ) : (
-      <div class="card border-red-300 bg-red-50 text-sm text-red-900">
-        <p>没能从 airwaysn.org 读到你的应用：{result.message}</p>
-        <p class="mt-2">
-          如果是登录过期，
-          <a class="link" href="/auth/login">
-            重新登录
+      <AlertBox
+        variant="danger"
+        title={t("apps.loadFailed", { message: result.message })}
+      >
+        <p>
+          {t("apps.loadFailedHint")}{" "}
+          <a class="link font-semibold" href="/auth/login">
+            {t("apps.signInAgain")}
           </a>
-          一次。
         </p>
-      </div>
+      </AlertBox>
     )
   }
-</BaseLayout>
+</SiteLayout>

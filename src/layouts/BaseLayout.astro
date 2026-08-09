@@ -1,98 +1,60 @@
 ---
+/**
+ * 页面外框。三个站现在是同一份形状 —— `<head>` 的声明逐字相同，主题脚本是同
+ * 一个组件，浮动控件的开关走同一个 `floatingControls` prop。
+ *
+ * 这个文件原来还兼着站头和页脚，于是它既是外框又是导航；两件事拆开之后，渲染
+ * `Header` 的页面把 `floatingControls` 设成 false（控件已经在站头里了），只有
+ * 没有外壳的页面才落到右下角那颗浮动药丸上。can-web 和 can-radar 都是这个规
+ * 矩，写在这里是为了让第三个站不要自己再发明一次。
+ */
 import "@/styles/globals.css";
+import ThemeScript from "@/components/ThemeScript.astro";
 import ThemeLangControls from "@/components/ui/ThemeLangControls.vue";
+import { getLocale, useTranslations } from "@/lib/i18n";
 
 interface Props {
-  title: string;
+  /** 页面标题，会拼上站名。整串自己定的话传 `titleOverride`。 */
+  title?: string;
+  description?: string;
+  floatingControls?: boolean;
 }
-const { title } = Astro.props;
-const session = Astro.locals.session;
+
+const locale = getLocale(Astro.cookies);
+const t = useTranslations(locale, "dev");
+
+const {
+  title,
+  description = t("tagline"),
+  floatingControls = true,
+} = Astro.props;
+
+const fullTitle = title ? `${title} · ${t("siteName")}` : t("siteName");
 ---
 
 <!doctype html>
-<html lang="zh-CN" class="h-full">
+<html lang={locale} class="h-full antialiased">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title} · CAN 开发者中心</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-    {/* 主题在样式表之前定下来，否则深色模式的用户会先看到一帧白屏。 */}
-    <script is:inline>
-      (() => {
-        const stored = localStorage.getItem("theme");
-        const dark =
-          stored === "dark" ||
-          (!stored && matchMedia("(prefers-color-scheme: dark)").matches);
-        document.documentElement.classList.toggle("dark", dark);
-      })();
-    </script>
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#4c92c1" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/logo-full.png" />
+    <ThemeScript />
   </head>
   <body class="min-h-dvh bg-surface-sunken">
-    <header class="border-b border-subtle bg-chrome">
-      <div
-        class="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6"
-      >
-        <a href="/" class="-m-1.5 flex shrink-0 items-center gap-2.5 p-1.5">
-          <img
-            src="/logo.png"
-            alt=""
-            class="h-8 w-auto"
-            width="32"
-            height="32"
-          />
-          <span class="font-semibold text-ink">CAN 开发者中心</span>
-        </a>
-        <nav class="flex items-center gap-3 text-sm">
-          {
-            /*
-            主题切换：这个站一直支持深色（globals.css 和那段无闪烁脚本都在），
-            但从来没给过开关 —— 跟随系统而无法覆盖，等于一个关不掉的深色模式。
-            语言那半关掉：开发者中心通篇中文，一个每项都跳回原页的选择器比没有
-            更糟，它看着像坏了而不像没有。
-          */
-          }
-          <ThemeLangControls client:load locale="zh-cn" :languages={false} />
-          {
-            session ? (
-              <>
-                <a class="text-muted hover:text-ink" href="/apps">
-                  我的应用
-                </a>
-                <span class="text-faint">
-                  {session.name ?? session.username}
-                </span>
-                <form method="POST" action="/auth/logout">
-                  <button
-                    class="btn btn-ghost px-3 py-1.5 text-xs"
-                    type="submit"
-                  >
-                    退出
-                  </button>
-                </form>
-              </>
-            ) : (
-              <a class="btn px-3 py-1.5 text-xs" href="/auth/login">
-                用 CAN 账号登录
-              </a>
-            )
-          }
-        </nav>
-      </div>
-    </header>
-
-    <main class="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <slot />
-    </main>
-
-    <footer class="mx-auto max-w-5xl px-4 pb-10 text-xs text-faint sm:px-6">
-      <p>
-        Cerulean Aviation Network · 接入说明见
-        <a class="link" href="https://airwaysn.org/developers"
-          >airwaysn.org/developers</a
-        >
-      </p>
-    </footer>
+    <slot />
+    {
+      floatingControls && (
+        <ThemeLangControls locale={locale} variant="floating" client:idle />
+      )
+    }
   </body>
 </html>

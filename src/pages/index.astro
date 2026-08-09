@@ -1,73 +1,89 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
+import SiteLayout from "@/layouts/SiteLayout.astro";
+import AlertBox from "@/components/ui/AlertBox.vue";
+import { getLocale, useTranslations } from "@/lib/i18n";
+
+const locale = getLocale(Astro.cookies);
+const t = useTranslations(locale, "dev");
 
 const session = Astro.locals.session;
 const error = Astro.url.searchParams.get("error");
 
-/** 登录路上出的错，翻成人话。未知的原样显示，总比一句「出错了」有用。 */
-const ERRORS: Record<string, string> = {
-  missing_state: "登录请求已经过期了，重新点一次。",
-  state_mismatch: "这次登录的来源对不上，出于安全考虑没有继续。重新点一次。",
-  exchange_failed: "没能从 airwaysn.org 换到令牌，稍后再试。",
-  access_denied: "你在授权页上点了拒绝。",
-};
+/**
+ * 登录路上出的错，翻成人话。
+ *
+ * 未知的原样带上 `error` 显示 —— 一句「出错了」什么也不说，而这些值来自
+ * OAuth 规范，写出来至少能被搜到。
+ */
+const KNOWN_ERRORS = new Set([
+  "missing_state",
+  "state_mismatch",
+  "exchange_failed",
+  "access_denied",
+]);
+
+const errorText = error
+  ? KNOWN_ERRORS.has(error)
+    ? t(`home.errors.${error}`)
+    : t("home.errors.unknown", { error })
+  : null;
+
+const features = ["pkce", "redirect", "revoke"] as const;
 ---
 
-<BaseLayout title="首页">
+<SiteLayout title={t("home.eyebrow")}>
   {
-    error && (
-      <div class="card mb-6 border-red-300 bg-red-50 text-sm text-red-900">
-        {ERRORS[error] ?? `登录失败：${error}`}
+    errorText && (
+      <div class="mb-8">
+        <AlertBox variant="danger">{errorText}</AlertBox>
       </div>
     )
   }
 
-  <h1 class="text-2xl font-semibold text-ink">把 CAN 账号接进你的应用</h1>
-  <p class="mt-3 max-w-2xl text-muted">
-    Cerulean Aviation Network 是一个标准的 OAuth 2.1 / OpenID Connect
-    身份提供方。成员用自己的 ASN 账号登录你的应用，你拿到的是一枚令牌，而不是
-    他的密码。在这里注册应用、管理回调地址和密钥。
-  </p>
+  <section class="card overflow-hidden">
+    <div class="relative isolate px-6 py-10 sm:px-10 sm:py-12">
+      <div
+        aria-hidden="true"
+        class="absolute inset-0 -z-10 bg-gradient-to-br from-airwaysn-50 to-transparent dark:from-airwaysn-900/40"
+      >
+      </div>
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-airwaysn">
+        {t("home.eyebrow")}
+      </p>
+      <h1 class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+        {t("home.title")}
+      </h1>
+      <p class="mt-4 max-w-2xl text-lg text-muted">{t("home.description")}</p>
 
-  <div class="mt-8 flex flex-wrap gap-3">
+      <div class="mt-8 flex flex-wrap gap-3">
+        {
+          session ? (
+            <a class="btn btn-primary" href="/apps">
+              {t("home.manageApps")}
+            </a>
+          ) : (
+            <a class="btn btn-primary" href="/auth/login">
+              {t("auth.signIn")}
+            </a>
+          )
+        }
+        <a class="btn btn-ghost" href="/docs">{t("home.readDocs")}</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="stagger mt-8 grid gap-4 sm:grid-cols-3">
     {
-      session ? (
-        <a class="btn" href="/apps">
-          管理我的应用
-        </a>
-      ) : (
-        <a class="btn" href="/auth/login">
-          用 CAN 账号登录
-        </a>
-      )
+      features.map((key) => (
+        <div class="card animate-fade-up">
+          <h2 class="font-semibold text-ink">
+            {t(`home.features.${key}.title`)}
+          </h2>
+          <p class="mt-2 text-sm leading-relaxed text-muted">
+            {t(`home.features.${key}.detail`)}
+          </p>
+        </div>
+      ))
     }
-    <a class="btn btn-ghost" href="https://airwaysn.org/developers">
-      接口文档
-    </a>
   </div>
-
-  <div class="mt-12 grid gap-4 sm:grid-cols-3">
-    <div class="card">
-      <h2 class="font-medium text-ink">强制 PKCE</h2>
-      <p class="mt-2 text-sm text-muted">
-        所有客户端一律 S256，机密客户端也不例外 ——
-        授权码要经过浏览器地址栏，密钥在那里保护不了任何东西。
-      </p>
-    </div>
-    <div class="card">
-      <h2 class="font-medium text-ink">回调地址精确匹配</h2>
-      <p class="mt-2 text-sm text-muted">
-        没有通配、没有前缀匹配。唯一的例外是 RFC 8252 的环回地址，只忽略端口，
-        给桌面端用。
-      </p>
-    </div>
-    <div class="card">
-      <h2 class="font-medium text-ink">令牌可即时撤销</h2>
-      <p class="mt-2 text-sm text-muted">
-        access 令牌是不透明的，每次使用都查库。成员在
-        <span class="whitespace-nowrap">「已授权应用」</span>
-        里一按，下一个请求就失效。
-      </p>
-    </div>
-  </div>
-</BaseLayout>
+</SiteLayout>

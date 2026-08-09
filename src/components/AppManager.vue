@@ -1,15 +1,23 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { createTranslator } from "@/lib/i18n";
+import { useOverlay } from "@/lib/useOverlay";
+import AlertBox from "@/components/ui/AlertBox.vue";
 
 /**
  * 「我的应用」的全部交互。
  *
- * 它调的是**本站**的 /api/clients/*，不是 can-web —— 访问令牌留在服务端的会
+ * 它调的是**本站**的 /api/clients/*，不是 can-api —— 访问令牌留在服务端的会
  * 话 cookie 里，这个组件从头到尾看不到它（原因见 src/lib/session.ts）。
  *
  * 校验也不在这里做第二遍。回调地址是不是 https、应用名是不是像官方的，规则
- * 只有 can-web 的 registry.ts 说了算；这里把它返回的 message 原样显示出来。
+ * 只有 can-api 的 registry.go 说了算；这里把它返回的 message 原样显示出来。
  * 前端再抄一份的下场是两份规则慢慢对不上，而**宽的那一份**会先被人发现。
+ *
+ * 颜色一律走设计系统的语义记号（`badge-*`、`AlertBox`、`bg-surface-*`），不
+ * 写 `bg-red-50`/`bg-slate-100` 这类固定色阶。这个文件原来通篇是后者，于是深
+ * 色模式下每一个提示框都是浅底深字 —— 而这个站从建站起就跟随系统深色，也就
+ * 是说它一直是坏的，只是没人在深色下打开过。
  */
 
 interface ManagedClient {
@@ -28,7 +36,11 @@ interface ManagedClient {
 const props = defineProps<{
   initial: ManagedClient[];
   scopes: { name: string; title: string; detail: string }[];
+  /** `dev.apps` 那一支词典，服务端解好传进来。 */
+  messages: Record<string, unknown>;
 }>();
+
+const t = createTranslator(props.messages);
 
 const clients = ref<ManagedClient[]>([...props.initial]);
 const busy = ref(false);
@@ -50,7 +62,7 @@ const blank = () => ({
 const form = ref(blank());
 
 const formTitle = computed(() =>
-  editing.value ? "修改应用" : "注册一个新应用",
+  editing.value ? t("form.editTitle") : t("form.createTitle"),
 );
 
 function openCreate() {
@@ -93,12 +105,13 @@ async function send<T>(
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
-      error.value = body.message || `请求失败（${response.status}）`;
+      error.value =
+        body.message || t("requestFailed", { status: response.status });
       return null;
     }
     return body.data as T;
   } catch {
-    error.value = "网络不通，稍后再试。";
+    error.value = t("networkError");
     return null;
   } finally {
     busy.value = false;
@@ -162,9 +175,27 @@ async function toggle(client: ManagedClient) {
  *
  * 不用 confirm()：这一步是不可逆的，而且删掉的是别人正在用来登录的东西 ——
  * 一个能靠肌肉记忆点掉的确认框拦不住手滑。要求把应用名抄一遍，成本正好。
+ *
+ * 开关是**两个** ref：`deleteOpen` 是给 `useOverlay` 的布尔量（Escape 会直接
+ * 写它），`deleting` 是删谁。合成一个 `ref<Client|null>` 的话 useOverlay 关不
+ * 掉它 —— 它只会把值设成 `false`，而模板判的是「不是 null」。
  */
 const deleting = ref<ManagedClient | null>(null);
+const deleteOpen = ref(false);
 const deleteTyped = ref("");
+const deletePanel = useOverlay(deleteOpen);
+
+function openDelete(client: ManagedClient) {
+  deleting.value = client;
+  deleteTyped.value = "";
+  deleteOpen.value = true;
+}
+
+function closeDelete() {
+  deleteOpen.value = false;
+  deleting.value = null;
+  deleteTyped.value = "";
+}
 
 async function confirmDelete() {
   if (!deleting.value || deleteTyped.value !== deleting.value.name) return;
@@ -173,8 +204,7 @@ async function confirmDelete() {
     { method: "DELETE" },
   );
   if (done) {
-    deleting.value = null;
-    deleteTyped.value = "";
+    closeDelete();
     await refresh();
   }
 }
@@ -187,68 +217,61 @@ function copy(text: string) {
 <template>
   <div>
     <div class="mb-6 flex items-center justify-between gap-4">
-      <p class="text-sm text-muted">{{ clients.length }} 个应用</p>
-      <button class="btn" :disabled="busy" @click="openCreate">
-        注册新应用
+      <p class="text-sm text-muted">
+        {{ t("count", { count: clients.length }) }}
+      </p>
+      <button class="btn btn-primary" :disabled="busy" @click="openCreate">
+        {{ t("register") }}
       </button>
     </div>
 
-    <p
-      v-if="error"
-      class="card mb-4 border-red-300 bg-red-50 text-sm text-red-900"
-      role="alert"
-    >
-      {{ error }}
-    </p>
+    <AlertBox v-if="error" variant="danger" class="mb-4">{{ error }}</AlertBox>
 
     <!-- 密钥只在这一刻存在。刷新之后就再也拿不到了，所以说得直白些。 -->
-    <div
+    <AlertBox
       v-if="freshSecret"
-      class="card mb-4 border-amber-300 bg-amber-50 text-amber-950"
+      variant="warning"
+      :title="t('secret.title')"
+      class="mb-4"
     >
-      <h3 class="font-medium">这是 client_secret，只显示这一次</h3>
-      <p class="mt-1 text-sm">
-        我们只存它的哈希，关掉之后谁也找不回来。丢了就得再换一把。
-      </p>
-      <div class="mt-3 flex items-center gap-2">
+      <p>{{ t("secret.detail") }}</p>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
         <code
-          class="flex-1 overflow-x-auto rounded-[var(--radius-control)] bg-white px-3 py-2 font-mono text-xs"
+          class="min-w-0 flex-1 overflow-x-auto rounded-control bg-surface px-3 py-2 font-mono text-xs text-ink"
           >{{ freshSecret.secret }}</code
         >
         <button
-          class="btn px-3 py-1.5 text-xs"
+          class="btn btn-primary px-3 py-1.5 text-xs"
           @click="copy(freshSecret.secret)"
         >
-          复制
+          {{ t("secret.copy") }}
         </button>
         <button
           class="btn btn-ghost px-3 py-1.5 text-xs"
           @click="freshSecret = null"
         >
-          我抄好了
+          {{ t("secret.done") }}
         </button>
       </div>
-    </div>
+    </AlertBox>
 
     <!-- 表单 -->
     <div v-if="creating" class="card mb-6">
-      <h2 class="mb-4 font-medium text-ink">{{ formTitle }}</h2>
+      <h2 class="mb-4 font-semibold text-ink">{{ formTitle }}</h2>
 
       <div class="grid gap-4">
         <div>
-          <label class="mb-1 block text-sm font-medium text-ink" for="f-name"
-            >应用名</label
-          >
+          <label class="mb-1 block text-sm font-medium text-ink" for="f-name">{{
+            t("form.name")
+          }}</label>
           <input id="f-name" v-model="form.name" class="input" />
-          <p class="mt-1 text-xs text-faint">
-            成员在授权页上看到的就是这个名字。不能让人误以为它是网络官方的应用。
-          </p>
+          <p class="mt-1 text-xs text-faint">{{ t("form.nameHint") }}</p>
         </div>
 
         <div>
-          <label class="mb-1 block text-sm font-medium text-ink" for="f-uris"
-            >回调地址</label
-          >
+          <label class="mb-1 block text-sm font-medium text-ink" for="f-uris">{{
+            t("form.redirectUris")
+          }}</label>
           <textarea
             id="f-uris"
             v-model="form.redirectUris"
@@ -256,14 +279,13 @@ function copy(text: string) {
             rows="3"
           />
           <p class="mt-1 text-xs text-faint">
-            一行一个，整串精确匹配。只收 https；本机调试用
-            http://127.0.0.1（端口可变），移动端可用带点的私有 scheme。
+            {{ t("form.redirectUrisHint") }}
           </p>
         </div>
 
         <fieldset>
           <legend class="mb-1 block text-sm font-medium text-ink">
-            申请的权限
+            {{ t("form.scopes") }}
           </legend>
           <label
             v-for="scope in props.scopes"
@@ -285,14 +307,18 @@ function copy(text: string) {
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="mb-1 block text-sm font-medium text-ink" for="f-site"
-              >主页（可选）</label
+            <label
+              class="mb-1 block text-sm font-medium text-ink"
+              for="f-site"
+              >{{ t("form.website") }}</label
             >
             <input id="f-site" v-model="form.websiteUrl" class="input" />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-ink" for="f-logo"
-              >图标地址（可选）</label
+            <label
+              class="mb-1 block text-sm font-medium text-ink"
+              for="f-logo"
+              >{{ t("form.logo") }}</label
             >
             <input id="f-logo" v-model="form.logoUrl" class="input" />
           </div>
@@ -302,53 +328,54 @@ function copy(text: string) {
         <label v-if="!editing" class="flex items-start gap-2 text-sm">
           <input v-model="form.isPublic" type="checkbox" class="mt-1" />
           <span>
-            <span class="text-ink">这是公共客户端</span>
+            <span class="text-ink">{{ t("form.publicClient") }}</span>
             <span class="block text-xs text-faint">
-              桌面端、移动端、纯前端应用 —— 存不住密钥的那些。不发
-              client_secret，靠 PKCE 证明自己。注册后不可更改。
+              {{ t("form.publicClientHint") }}
             </span>
           </span>
         </label>
       </div>
 
       <div class="mt-5 flex gap-2">
-        <button class="btn" :disabled="busy" @click="submit">
-          {{ editing ? "保存" : "注册" }}
+        <button class="btn btn-primary" :disabled="busy" @click="submit">
+          {{ editing ? t("form.save") : t("form.create") }}
         </button>
         <button class="btn btn-ghost" :disabled="busy" @click="close">
-          取消
+          {{ t("form.cancel") }}
         </button>
       </div>
     </div>
 
     <!-- 列表 -->
     <p v-if="!clients.length" class="card text-sm text-muted">
-      还没有应用。注册一个，就能让成员用 CAN 账号登录它。
+      {{ t("empty") }}
     </p>
 
     <ul class="grid gap-4">
       <li v-for="client in clients" :key="client.id" class="card">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
-            <h3 class="flex items-center gap-2 font-medium text-ink">
+            <h3
+              class="flex flex-wrap items-center gap-2 font-semibold text-ink"
+            >
               {{ client.name }}
-              <span v-if="client.disabled" class="badge bg-red-100 text-red-800"
-                >已停用</span
-              >
+              <span v-if="client.disabled" class="badge badge-danger">{{
+                t("card.disabled")
+              }}</span>
               <span
                 v-else-if="client.activeTokens"
-                class="badge bg-green-100 text-green-800"
-                >{{ client.activeTokens }} 个令牌在用</span
+                class="badge badge-success"
+                >{{
+                  t("card.activeTokens", { count: client.activeTokens })
+                }}</span
               >
-              <span
-                v-if="client.isPublic"
-                class="badge bg-slate-100 text-slate-700"
-                >公共客户端</span
-              >
+              <span v-if="client.isPublic" class="badge badge-neutral">{{
+                t("card.publicClient")
+              }}</span>
             </h3>
             <button
               class="mt-1 font-mono text-xs text-faint hover:text-ink"
-              title="复制 client_id"
+              :title="t('card.copyClientId')"
               @click="copy(client.id)"
             >
               {{ client.id }}
@@ -360,7 +387,7 @@ function copy(text: string) {
               class="btn btn-ghost px-3 py-1.5 text-xs"
               @click="openEdit(client)"
             >
-              修改
+              {{ t("card.edit") }}
             </button>
             <button
               v-if="!client.isPublic"
@@ -368,30 +395,27 @@ function copy(text: string) {
               :disabled="busy"
               @click="rotate(client)"
             >
-              换密钥
+              {{ t("card.rotate") }}
             </button>
             <button
               class="btn btn-ghost px-3 py-1.5 text-xs"
               :disabled="busy"
               @click="toggle(client)"
             >
-              {{ client.disabled ? "启用" : "停用" }}
+              {{ client.disabled ? t("card.enable") : t("card.disable") }}
             </button>
             <button
               class="btn btn-danger px-3 py-1.5 text-xs"
-              @click="
-                deleting = client;
-                deleteTyped = '';
-              "
+              @click="openDelete(client)"
             >
-              删除
+              {{ t("card.delete") }}
             </button>
           </div>
         </div>
 
         <dl class="mt-4 grid gap-2 text-xs sm:grid-cols-2">
           <div>
-            <dt class="text-faint">回调地址</dt>
+            <dt class="text-faint">{{ t("card.redirectUris") }}</dt>
             <dd class="mt-1 space-y-0.5">
               <code
                 v-for="uri in client.redirectUris"
@@ -402,12 +426,12 @@ function copy(text: string) {
             </dd>
           </div>
           <div>
-            <dt class="text-faint">权限</dt>
+            <dt class="text-faint">{{ t("card.scopes") }}</dt>
             <dd class="mt-1 flex flex-wrap gap-1">
               <span
                 v-for="scope in client.scopes"
                 :key="scope"
-                class="badge bg-slate-100 text-slate-700"
+                class="badge badge-neutral"
                 >{{ scope }}</span
               >
             </dd>
@@ -418,16 +442,26 @@ function copy(text: string) {
 
     <!-- 删除确认 -->
     <div
-      v-if="deleting"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      role="dialog"
-      aria-modal="true"
+      v-if="deleteOpen && deleting"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
-      <div class="card w-full max-w-md">
-        <h3 class="font-medium text-ink">删除「{{ deleting.name }}」？</h3>
-        <p class="mt-2 text-sm text-muted">
-          连同它的令牌和成员的授权记录一起删掉，不可撤销。正在用它登录的人会立刻
-          被挡在外面。确认的话，把应用名抄一遍：
+      <div
+        class="animate-overlay-in absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+        @click="closeDelete"
+      ></div>
+      <div
+        ref="deletePanel"
+        tabindex="-1"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-title"
+        class="animate-panel-in card relative w-full max-w-md overscroll-contain"
+      >
+        <h3 id="delete-title" class="font-semibold text-ink">
+          {{ t("delete.title", { name: deleting.name }) }}
+        </h3>
+        <p class="mt-2 text-sm leading-relaxed text-muted">
+          {{ t("delete.detail") }}
         </p>
         <input
           v-model="deleteTyped"
@@ -435,13 +469,15 @@ function copy(text: string) {
           :placeholder="deleting.name"
         />
         <div class="mt-4 flex justify-end gap-2">
-          <button class="btn btn-ghost" @click="deleting = null">取消</button>
+          <button class="btn btn-ghost" @click="closeDelete">
+            {{ t("delete.cancel") }}
+          </button>
           <button
             class="btn btn-danger"
             :disabled="busy || deleteTyped !== deleting.name"
             @click="confirmDelete"
           >
-            删除
+            {{ t("delete.confirm") }}
           </button>
         </div>
       </div>

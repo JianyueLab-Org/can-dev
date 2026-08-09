@@ -15,19 +15,8 @@ const props = withDefaults(
   defineProps<{
     locale: string;
     variant?: "inline" | "floating";
-    /**
-     * Whether to offer the language menu.
-     *
-     * Off for a site that has only one language to offer — the developer
-     * centre is written in Chinese throughout, and a picker whose every entry
-     * lands you back on the same page is worse than no picker: it reads as
-     * broken rather than as absent. The theme half still applies everywhere,
-     * because a site that respects `prefers-color-scheme` but gives no way to
-     * override it is a site whose dark mode you cannot turn off.
-     */
-    languages?: boolean;
   }>(),
-  { variant: "inline", languages: true },
+  { variant: "inline" },
 );
 
 const LANGUAGES = [
@@ -186,7 +175,6 @@ const buttonClass =
     </button>
 
     <button
-      v-if="languages"
       type="button"
       :class="[buttonClass, menuOpen ? 'bg-surface-sunken text-ink' : '']"
       aria-label="Select language"
@@ -200,7 +188,7 @@ const buttonClass =
     </button>
 
     <div
-      v-if="languages && menuOpen"
+      v-if="menuOpen"
       role="menu"
       :class="[
         'absolute right-0 z-50 w-40 overflow-hidden rounded-card border border-subtle bg-surface-overlay py-1 shadow-popover',

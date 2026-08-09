@@ -1,0 +1,59 @@
+---
+/**
+ * 站头 + 正文 + 页脚这个三明治，写一次。
+ *
+ * can-web 上每个页面都自己拼一遍这三件事，那是几十个页面长出来的历史，不是
+ * 值得抄的东西 —— 这个站只有三个页面，三份复制品会立刻开始漂移（`max-w` 差
+ * 一档、少一个 `#main-content`），而漂移正好是这次统一要消掉的毛病。
+ *
+ * `messages` 是 `header` 和 `dev` 两个命名空间**合成**的一份字典：站头里
+ * `skipToContent` 这类词条来自共享的 `header`，`nav.*` / `auth.*` 来自本站
+ * 自己的 `dev`。合在这里而不是丢整本词典进去，是因为整本还带着 `apiDocs` ——
+ * 那是十来 KB 的 JSON，会跟着岛屿的 props 序列化进每一个页面的 HTML。
+ */
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Header from "@/components/Header.vue";
+import Footer from "@/components/Footer.astro";
+import { getLocale, getMessages } from "@/lib/i18n";
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** 正文容器的宽度。文档页要更宽的一档来放侧边目录。 */
+  width?: "narrow" | "wide";
+}
+
+const { title, description, width = "narrow" } = Astro.props;
+
+const locale = getLocale(Astro.cookies);
+const session = Astro.locals.session;
+
+const headerMessages = {
+  ...getMessages(locale, "header"),
+  dev: getMessages(locale, "dev"),
+};
+
+const mainWidth = width === "wide" ? "max-w-7xl" : "max-w-5xl";
+---
+
+<BaseLayout title={title} description={description} floatingControls={false}>
+  <div class="flex min-h-dvh flex-col">
+    <Header
+      messages={headerMessages}
+      memberName={session ? (session.name ?? session.username) : null}
+      pathname={Astro.url.pathname}
+      locale={locale}
+      client:load
+    />
+
+    <main
+      id="main-content"
+      tabindex="-1"
+      class={`mx-auto w-full flex-1 px-4 py-10 sm:px-6 lg:px-8 ${mainWidth}`}
+    >
+      <slot />
+    </main>
+
+    <Footer />
+  </div>
+</BaseLayout>

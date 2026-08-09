@@ -1,0 +1,258 @@
+{
+  "header": {
+    "forum": "论坛",
+    "docs": "文档",
+    "onlineMap": "雷达",
+    "signin": "登录",
+    "panel": "飞行员面板",
+    "roster": "管制员名册",
+    "home": "首页",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单",
+    "skipToContent": "跳到主要内容",
+    "activities": "活动",
+    "downloads": "下载"
+  },
+  "footer": {
+    "description": "友好，开放，有热情的模拟飞行连飞平台",
+    "pilots": {
+      "title": "飞行员",
+      "items": {
+        "pilotPanel": "飞行员面板",
+        "onlineMap": "在线地图",
+        "flightPlan": "飞行计划",
+        "statistics": "统计"
+      }
+    },
+    "controllers": {
+      "title": "管制员",
+      "items": {
+        "controllerPanel": "管制员面板",
+        "professionalGuidelines": "职业准则",
+        "roster": "管制员名册"
+      }
+    },
+    "docs": {
+      "title": "文档",
+      "items": {
+        "regulations": "规章制度",
+        "api": "开放 API"
+      }
+    },
+    "links": {
+      "title": "链接",
+      "items": {
+        "forum": "论坛",
+        "qqGroup": "QQ群",
+        "discord": "Discord",
+        "support": "问题与建议"
+      }
+    }
+  },
+  "apiDocs": {
+    "eyebrow": "开发者",
+    "title": "开放 API",
+    "description": "有几个接口是特意不需要登录的 —— EuroScope、通播客户端和在线地图调用的就是它们。文档写在这里，你也可以拿去用。",
+    "baseUrl": "接口地址",
+    "onThisPage": "本页目录",
+    "englishNotice": "下面的接口说明是英文的：参数名、请求头和返回字段在协议里本来就是英文，多一份翻译就多一份要同步的东西。",
+    "conventions": {
+      "title": "开始之前",
+      "auth": {
+        "term": "不需要 API Key",
+        "detail": "没有需要申请的东西。下面大部分接口直接开放；日志上传要在请求体里带上 ASN ID 和网络密码。`/api` 下的其他路由都需要网站自己的会话 Cookie，不属于对外接口。"
+      },
+      "envelope": {
+        "term": "返回结构",
+        "detail": "JSON 返回除了数据本身，还带 `status` 和 `timestamp`，数据一般放在 `data` 下。例外是 ATIS 文本接口，它返回纯文本 —— EuroScope 不会解析 JSON。"
+      },
+      "errors": {
+        "term": "错误处理",
+        "detail": "以 HTTP 状态码为准。错误返回里带 `error` 字段，有时是给人看的句子，有时是留给你自己翻译的短标识，每个接口都注明了是哪一种。"
+      },
+      "rateLimits": {
+        "term": "频率限制",
+        "detail": "每个接口都按固定时间窗计数，通常按 IP。超出会返回 **429**，并在 `Retry-After` 里给出需要等待的秒数，请等待而不要立刻重试。本页的数字直接读自运行中的配置，就是实际生效的限制。"
+      },
+      "cors": {
+        "term": "跨域",
+        "detail": "逐个接口标注。写着任意来源的会返回 `Access-Control-Allow-Origin: *`，浏览器可以直接调用。"
+      },
+      "versioning": {
+        "term": "版本",
+        "detail": "只有 `/api/v1` 这一个版本。字段只增不改；本页写明的内容不会在没有先于 Discord 和 QQ 群通知的情况下改名或下线。"
+      },
+      "oauth": {
+        "term": "统一登录",
+        "detail": "需要代表某个成员访问数据的应用，走 OAuth 2.1 授权码 + PKCE：把成员带到 `/oauth/authorize`，用授权码在 `/api/oauth/token` 换取 access 令牌，再以 `Authorization: Bearer` 调用。发现文档在 `/.well-known/openid-configuration`。注册应用请通过反馈表单联系我们。"
+      }
+    },
+    "labels": {
+      "authentication": "鉴权",
+      "rateLimit": "频率限制",
+      "cors": "跨域",
+      "pathParams": "路径参数",
+      "query": "查询参数",
+      "fields": "请求体字段",
+      "headers": "请求头",
+      "statuses": "返回状态",
+      "example": "示例",
+      "notes": "说明",
+      "required": "必填",
+      "optional": "可选",
+      "perHour": "每小时 {limit} 次",
+      "perMinutes": "每 {minutes} 分钟 {limit} 次",
+      "noLimit": "不限"
+    },
+    "auth": {
+      "none": "开放",
+      "noneHint": "不需要密钥，也不需要 Cookie，频率限制是唯一的门槛。",
+      "credentials": "ASN ID + 网络密码",
+      "credentialsHint": "放在请求体里，就是桌面客户端连线用的那一组。",
+      "oauth": "OAuth 访问令牌",
+      "oauthHint": "在 `Authorization: Bearer` 头里带上通过统一登录取得的 access 令牌。",
+      "oauthClient": "应用凭据",
+      "oauthClientHint": "注册应用时拿到的 client_id / client_secret。公共客户端不带密钥，靠 PKCE 证明自己。",
+      "browser": "成员登录",
+      "browserHint": "浏览器页面，需要成员本人在本站登录后操作。"
+    },
+    "cors": {
+      "open": "任意来源",
+      "closed": "仅同源"
+    },
+    "notPublic": {
+      "title": "没有写在这里的接口",
+      "description": "/api 下还有别的路由，但它们不是对外接口。列在这里，是为了让「找不到」读起来像一个决定，而不是遗漏。"
+    },
+    "help": {
+      "title": "有疑问，或者希望开放某个接口？",
+      "description": "通过反馈表单告诉我们，会直接送到维护者手上。",
+      "cta": "问题与建议"
+    }
+  },
+  "dev": {
+    "siteName": "CAN 开发者中心",
+    "tagline": "在这里注册应用，让 CAN 成员用自己的账号登录它。",
+    "nav": {
+      "home": "首页",
+      "apps": "我的应用",
+      "docs": "接口文档",
+      "mainSite": "返回主站"
+    },
+    "auth": {
+      "signIn": "用 CAN 账号登录",
+      "signOut": "退出"
+    },
+    "home": {
+      "eyebrow": "开发者中心",
+      "title": "把 CAN 账号接进你的应用",
+      "description": "Cerulean Aviation Network 是一个标准的 OAuth 2.1 / OpenID Connect 身份提供方。成员用自己的 ASN 账号登录你的应用，你拿到的是一枚令牌，而不是他的密码。在这里注册应用、管理回调地址和密钥。",
+      "manageApps": "管理我的应用",
+      "readDocs": "接口文档",
+      "features": {
+        "pkce": {
+          "title": "强制 PKCE",
+          "detail": "所有客户端一律 S256，机密客户端也不例外 —— 授权码要经过浏览器地址栏，密钥在那里保护不了任何东西。"
+        },
+        "redirect": {
+          "title": "回调地址精确匹配",
+          "detail": "没有通配、没有前缀匹配。唯一的例外是 RFC 8252 的环回地址，只忽略端口，给桌面端用。"
+        },
+        "revoke": {
+          "title": "令牌可即时撤销",
+          "detail": "access 令牌是不透明的，每次使用都查库。成员在「已授权应用」里一按，下一个请求就失效。"
+        }
+      },
+      "errors": {
+        "missing_state": "登录请求已经过期了，重新点一次。",
+        "state_mismatch": "这次登录的来源对不上，出于安全考虑没有继续。重新点一次。",
+        "exchange_failed": "没能换到令牌，稍后再试。",
+        "access_denied": "你在授权页上点了拒绝。",
+        "unknown": "登录失败：{error}"
+      }
+    },
+    "apps": {
+      "title": "我的应用",
+      "description": "在这里注册的应用可以让 CAN 成员用自己的账号登录。回调地址是整串精确匹配的，改之前先想清楚 —— 它决定授权码发到哪里去。",
+      "loadFailed": "没能读到你的应用：{message}",
+      "loadFailedHint": "登录可能已经过期。",
+      "signInAgain": "重新登录",
+      "count": "{count} 个应用",
+      "register": "注册新应用",
+      "empty": "还没有应用。注册一个，就能让成员用 CAN 账号登录它。",
+      "networkError": "网络不通，稍后再试。",
+      "requestFailed": "请求失败（{status}）",
+      "secret": {
+        "title": "这是 client_secret，只显示这一次",
+        "detail": "我们只存它的哈希，关掉之后谁也找不回来。丢了就得再换一把。",
+        "copy": "复制",
+        "done": "我抄好了"
+      },
+      "form": {
+        "createTitle": "注册一个新应用",
+        "editTitle": "修改应用",
+        "name": "应用名",
+        "nameHint": "成员在授权页上看到的就是这个名字。不能让人误以为它是网络官方的应用。",
+        "redirectUris": "回调地址",
+        "redirectUrisHint": "一行一个，整串精确匹配。只收 https；本机调试用 http://127.0.0.1（端口可变），移动端可用带点的私有 scheme。",
+        "scopes": "申请的权限",
+        "website": "主页（可选）",
+        "logo": "图标地址（可选）",
+        "publicClient": "这是公共客户端",
+        "publicClientHint": "桌面端、移动端、纯前端应用 —— 存不住密钥的那些。不发 client_secret，靠 PKCE 证明自己。注册后不可更改。",
+        "save": "保存",
+        "create": "注册",
+        "cancel": "取消"
+      },
+      "card": {
+        "disabled": "已停用",
+        "activeTokens": "{count} 个令牌在用",
+        "publicClient": "公共客户端",
+        "copyClientId": "复制 client_id",
+        "edit": "修改",
+        "rotate": "换密钥",
+        "enable": "启用",
+        "disable": "停用",
+        "delete": "删除",
+        "redirectUris": "回调地址",
+        "scopes": "权限"
+      },
+      "delete": {
+        "title": "删除「{name}」？",
+        "detail": "连同它的令牌和成员的授权记录一起删掉，不可撤销。正在用它登录的人会立刻被挡在外面。确认的话，把应用名抄一遍：",
+        "cancel": "取消",
+        "confirm": "删除"
+      }
+    },
+    "scopes": {
+      "openid": {
+        "title": "确认身份",
+        "detail": "拿到成员的 ASN ID。登录都需要它。"
+      },
+      "profile": {
+        "title": "基本资料",
+        "detail": "姓名、ASN ID、管制等级、注册时间。"
+      },
+      "email": {
+        "title": "邮箱地址",
+        "detail": "邮箱及其验证状态。"
+      },
+      "divisions": {
+        "title": "分部信息",
+        "detail": "所属分部与席位权限。"
+      },
+      "flights:read": {
+        "title": "飞行记录",
+        "detail": "连线时间、呼号、时长。"
+      },
+      "atc:read": {
+        "title": "管制记录",
+        "detail": "席位、时长、等级变化。"
+      },
+      "offline_access": {
+        "title": "离线访问",
+        "detail": "成员关掉浏览器后仍可访问，直到他撤销。没有把握就别要。"
+      }
+    }
+  }
+}

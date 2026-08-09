@@ -4,8 +4,11 @@ Cerulean Aviation Network 的开发者中心：成员在这里自助注册 OAuth
 回调地址、权限和密钥。它接管的是 `scripts/oauth-client.mjs` 原本手工干的事 ——
 读写的是同一张 `oauthClient` 表。
 
-Astro SSR（standalone Node 适配器）+ Vue 岛屿 + Tailwind v4，和 can-web 同一套
-形状。
+`/docs` 是**公开接口文档** —— 网络对外开放的那几个端点，连同统一登录的完整说
+明。它原来在主站的 `airwaysn.org/developers`，那个地址现在是一条 301。
+
+Astro SSR（standalone Node 适配器）+ Vue 岛屿 + Tailwind v4，和 can-web、
+can-radar 共用同一套设计系统与四语言词典。
 
 ## 它自己也是一个 OAuth 应用
 

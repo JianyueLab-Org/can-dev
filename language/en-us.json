@@ -1,0 +1,258 @@
+{
+  "header": {
+    "forum": "Forum",
+    "docs": "Docs",
+    "onlineMap": "Radar",
+    "signin": "Sign In",
+    "panel": "Pilots Panel",
+    "roster": "ATC Roster",
+    "home": "Home",
+    "openMenu": "Open main menu",
+    "closeMenu": "Close menu",
+    "skipToContent": "Skip to main content",
+    "activities": "Activities",
+    "downloads": "Downloads"
+  },
+  "footer": {
+    "description": "A Friendly, Open, and Enthusiastic Flight Simulation Platform",
+    "pilots": {
+      "title": "Pilots",
+      "items": {
+        "pilotPanel": "Pilots Panel",
+        "onlineMap": "Online Map",
+        "flightPlan": "Flight Plan",
+        "statistics": "Statistics"
+      }
+    },
+    "controllers": {
+      "title": "ATC",
+      "items": {
+        "controllerPanel": "ATC Panel",
+        "professionalGuidelines": "Professional Guidelines",
+        "roster": "ATC Roster"
+      }
+    },
+    "docs": {
+      "title": "Documents",
+      "items": {
+        "regulations": "Regulations",
+        "api": "API"
+      }
+    },
+    "links": {
+      "title": "Links",
+      "items": {
+        "forum": "Forum",
+        "qqGroup": "QQ Group",
+        "discord": "Discord",
+        "support": "Issues & ideas"
+      }
+    }
+  },
+  "apiDocs": {
+    "eyebrow": "Developers",
+    "title": "Public API",
+    "description": "A few of our endpoints answer without a session on purpose — the ones EuroScope, the ATIS client and the live map call. They are documented here so you can build against them too.",
+    "baseUrl": "Base URL",
+    "onThisPage": "On this page",
+    "englishNotice": "The reference is written in English. Parameter names, headers and response fields are English on the wire, and a translated copy of a wire format is one more thing to keep in step.",
+    "conventions": {
+      "title": "Before you start",
+      "auth": {
+        "term": "No API key",
+        "detail": "There is nothing to apply for. Most endpoints below are open; the log upload takes an ASN ID and network password in the request body. Everything else under `/api` needs the website's own session cookie and is not a public interface."
+      },
+      "envelope": {
+        "term": "Response shape",
+        "detail": "JSON answers carry a `status` and a `timestamp` next to the payload, which usually sits under `data`. The ATIS text generator is the exception: it returns plain text, because EuroScope has no JSON parser."
+      },
+      "errors": {
+        "term": "Errors",
+        "detail": "The HTTP status is the truth. An error body carries `error` — sometimes a sentence for a human, sometimes a short key for you to translate. Each endpoint says which."
+      },
+      "rateLimits": {
+        "term": "Rate limits",
+        "detail": "Every endpoint is counted in a fixed window, usually per IP. Over the limit is a **429** with `Retry-After` in seconds; wait it out rather than retrying straight away. The numbers on this page are read from the running configuration, so they are the limits actually enforced."
+      },
+      "cors": {
+        "term": "CORS",
+        "detail": "Marked per endpoint. Where it says any origin, `Access-Control-Allow-Origin: *` is sent and a browser can call it directly."
+      },
+      "versioning": {
+        "term": "Versioning",
+        "detail": "`/api/v1` is the only version. Fields get added; nothing documented here is renamed or removed without a note in the Discord and QQ group first."
+      },
+      "oauth": {
+        "term": "Unified sign-in",
+        "detail": "An application that needs to act for a member uses OAuth 2.1 authorization code + PKCE: send the member to `/oauth/authorize`, exchange the code at `/api/oauth/token`, then call with `Authorization: Bearer`. The discovery document is at `/.well-known/openid-configuration`. Ask us through the feedback form to register an application."
+      }
+    },
+    "labels": {
+      "authentication": "Authentication",
+      "rateLimit": "Rate limit",
+      "cors": "CORS",
+      "pathParams": "Path parameters",
+      "query": "Query parameters",
+      "fields": "Body fields",
+      "headers": "Request headers",
+      "statuses": "Responses",
+      "example": "Example",
+      "notes": "Notes",
+      "required": "required",
+      "optional": "optional",
+      "perHour": "{limit} requests an hour",
+      "perMinutes": "{limit} requests per {minutes} minutes",
+      "noLimit": "Not limited"
+    },
+    "auth": {
+      "none": "Open",
+      "noneHint": "No key and no cookie — the rate limit is the only gate.",
+      "credentials": "ASN ID + network password",
+      "credentialsHint": "Sent in the request body; the same credentials the desktop clients connect with.",
+      "oauth": "OAuth access token",
+      "oauthHint": "Send an access token obtained through unified sign-in in the `Authorization: Bearer` header.",
+      "oauthClient": "Client credentials",
+      "oauthClientHint": "The client_id / client_secret issued when the app was registered. Public clients send no secret and prove themselves with PKCE.",
+      "browser": "Member sign-in",
+      "browserHint": "A browser page — the member has to be signed in here in person."
+    },
+    "cors": {
+      "open": "Any origin",
+      "closed": "Same origin only"
+    },
+    "notPublic": {
+      "title": "What is not here",
+      "description": "There are other routes under /api, but they are not a public interface. They are listed so that not finding one reads as a decision rather than an oversight."
+    },
+    "help": {
+      "title": "Questions, or something you need opened?",
+      "description": "Send a note through the report form — it reaches the maintainer directly.",
+      "cta": "Issues & ideas"
+    }
+  },
+  "dev": {
+    "siteName": "CAN Developer Centre",
+    "tagline": "Register an application here and CAN members can sign in to it with their own account.",
+    "nav": {
+      "home": "Home",
+      "apps": "My applications",
+      "docs": "API reference",
+      "mainSite": "Main site"
+    },
+    "auth": {
+      "signIn": "Sign in with CAN",
+      "signOut": "Sign out"
+    },
+    "home": {
+      "eyebrow": "Developer centre",
+      "title": "Put CAN accounts into your application",
+      "description": "Cerulean Aviation Network is a standard OAuth 2.1 / OpenID Connect identity provider. Members sign in to your application with their own ASN account, and what you receive is a token — never their password. Register applications, manage redirect URIs and rotate secrets here.",
+      "manageApps": "Manage my applications",
+      "readDocs": "API reference",
+      "features": {
+        "pkce": {
+          "title": "PKCE is mandatory",
+          "detail": "S256 for every client, confidential ones included — the authorization code travels through the browser's address bar, and a client secret protects nothing there."
+        },
+        "redirect": {
+          "title": "Redirect URIs match exactly",
+          "detail": "No wildcards, no prefix matching. The one exception is the RFC 8252 loopback address, where only the port is ignored, for desktop clients."
+        },
+        "revoke": {
+          "title": "Tokens revoke instantly",
+          "detail": "Access tokens are opaque and checked against the database on every use. One press in a member's \"authorized applications\" list and the next request fails."
+        }
+      },
+      "errors": {
+        "missing_state": "The sign-in request expired. Try again.",
+        "state_mismatch": "This sign-in did not come back from where it started, so it was stopped. Try again.",
+        "exchange_failed": "The token exchange failed. Try again shortly.",
+        "access_denied": "You pressed deny on the consent screen.",
+        "unknown": "Sign-in failed: {error}"
+      }
+    },
+    "apps": {
+      "title": "My applications",
+      "description": "Applications registered here let CAN members sign in with their own account. Redirect URIs are matched in full and exactly — think before you change one, because it decides where the authorization code is delivered.",
+      "loadFailed": "Could not read your applications: {message}",
+      "loadFailedHint": "Your session may have expired.",
+      "signInAgain": "Sign in again",
+      "count": "{count} registered",
+      "register": "Register an application",
+      "empty": "No applications yet. Register one and members can sign in to it with their CAN account.",
+      "networkError": "The network is unreachable. Try again shortly.",
+      "requestFailed": "Request failed ({status})",
+      "secret": {
+        "title": "This is the client_secret, and it is shown once",
+        "detail": "Only its hash is stored, so nobody can recover it after this box closes. Lose it and you have to rotate.",
+        "copy": "Copy",
+        "done": "Got it"
+      },
+      "form": {
+        "createTitle": "Register a new application",
+        "editTitle": "Edit application",
+        "name": "Application name",
+        "nameHint": "This is the name members see on the consent screen. It must not be mistakable for an official network application.",
+        "redirectUris": "Redirect URIs",
+        "redirectUrisHint": "One per line, matched in full and exactly. https only; use http://127.0.0.1 for local development (the port may vary), and a private scheme containing a dot for mobile.",
+        "scopes": "Scopes requested",
+        "website": "Homepage (optional)",
+        "logo": "Icon URL (optional)",
+        "publicClient": "This is a public client",
+        "publicClientHint": "Desktop, mobile and browser-only applications — the ones that cannot keep a secret. No client_secret is issued; they prove themselves with PKCE. This cannot be changed after registration.",
+        "save": "Save",
+        "create": "Register",
+        "cancel": "Cancel"
+      },
+      "card": {
+        "disabled": "Disabled",
+        "activeTokens": "{count} in use",
+        "publicClient": "Public client",
+        "copyClientId": "Copy client_id",
+        "edit": "Edit",
+        "rotate": "Rotate secret",
+        "enable": "Enable",
+        "disable": "Disable",
+        "delete": "Delete",
+        "redirectUris": "Redirect URIs",
+        "scopes": "Scopes"
+      },
+      "delete": {
+        "title": "Delete \"{name}\"?",
+        "detail": "Its tokens and every member's grant go with it, and none of that can be undone. Anyone currently signed in through it is locked out immediately. To confirm, type the application name:",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      }
+    },
+    "scopes": {
+      "openid": {
+        "title": "Confirm identity",
+        "detail": "The member's ASN ID. Every sign-in needs it."
+      },
+      "profile": {
+        "title": "Basic profile",
+        "detail": "Name, ASN ID, controller rating, registration date."
+      },
+      "email": {
+        "title": "Email address",
+        "detail": "The address and whether it is verified."
+      },
+      "divisions": {
+        "title": "Division membership",
+        "detail": "Which divisions they belong to and their position endorsements."
+      },
+      "flights:read": {
+        "title": "Flight records",
+        "detail": "Connection times, callsigns, durations."
+      },
+      "atc:read": {
+        "title": "Controlling records",
+        "detail": "Positions, durations, rating changes."
+      },
+      "offline_access": {
+        "title": "Offline access",
+        "detail": "Keeps working after the member closes the browser, until they revoke it. Do not ask for it unless you are sure."
+      }
+    }
+  }
+}

@@ -3,7 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 CAN 开发者中心。成员在这里自助注册 OAuth 应用；它接管的是
-`scripts/oauth-client.mjs` 手工干的事，读写同一张 `oauthClient` 表。
+`scripts/oauth-client.mjs` 手工干的事，读写同一张 `oauthClient` 表。它同时是
+**公开接口文档**的家（`/docs`）—— 那个页面原来在 can-web 的 `/developers`。
 Astro SSR + Vue 岛屿 + Tailwind v4，形状照 can-web。README 是给人读的那一份。
 
 上游是**两个**地址：`CAN_API_ORIGIN` 是 can-api，OIDC 的 issuer，换令牌、
@@ -38,6 +39,28 @@ can-api。令牌能改回调地址，也就是能决定授权码送到哪儿 —
 那份名单 —— 一个自助拿到 `apps:manage` 的应用，可以给成员名下**另一个**应用换
 上自己的回调地址，然后等下一次登录把授权码送过来。can-api 有一条测试专门盯着
 这件事。
+
+## 外壳和文案
+
+**三个站共用一套设计系统，这个站是最后一个接上的。** `src/styles/globals.css`
+是 can-web 那一份的镜像，`ThemeScript.astro`、`useOverlay.ts`、`ui/Icon.vue`、
+`ui/ThemeLangControls.vue`、`ui/AlertBox.vue` 都是逐字相同的副本 —— 改动要在
+can-web 那边发生，再同步过来。新页面套 `SiteLayout.astro`（站头 + 正文 +
+页脚），不要自己再拼一遍那个三明治。
+
+**颜色只用语义记号**，`bg-surface-*` / `text-ink|muted|faint` / `badge-*` /
+`AlertBox`，不要写 `bg-red-50`、`bg-slate-100` 这类固定色阶。它们不跟随深色模
+式：这个站从建站起就跟随系统深色，而 `AppManager.vue` 通篇是固定色阶，于是每
+一个提示框在深色下都是浅底深字，一直没人发现。
+
+**四种语言。** `src/lib/i18n.ts` 和另外两个站逐字相同，`NEXT_LOCALE` cookie
+在父域上共享，所以在主站选的语言到这里仍然生效。词典分两半：`header`/`footer`
+是 can-web 的镜像（改在那边再同步），`apiDocs`/`dev` 是本站自己的。
+
+**`/docs` 印的是 can-api 的地址，不是 `Astro.url.origin`。** 在 can-web 上那两
+者恰好相等，在这里差得很远 —— `platform.airwaysn.org/api/v1/atis` 是 404。而且
+是**两个**地址：同意页 `/oauth/authorize` 在 can-web，其余全在 can-api，每个端
+点用 `host` 字段说明自己归谁（`src/lib/apiDocs.ts` 的 `ApiHost`）。
 
 ## 别的
 

@@ -1,0 +1,34 @@
+---
+/**
+ * The no-flash theme init (replaces next-themes), inlined so it runs before
+ * paint.
+ *
+ * There were four copies of this — one per layout, because the three portal
+ * layouts build their own `<head>` rather than composing `BaseLayout`. They had
+ * already drifted apart cosmetically, and it is exactly the wrong script to
+ * keep four of: it has to run before the first paint and it has to agree with
+ * what `ThemeLangControls` reads, so a copy that falls behind shows up as a
+ * flash of the wrong theme on one section of the site and nowhere else.
+ *
+ * `is:inline` is required — the whole point is that it is not bundled, not
+ * deferred, and not module-scoped.
+ */
+---
+
+<script is:inline>
+  (function () {
+    try {
+      const stored = localStorage.getItem("theme");
+      const prefersDark =
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle(
+        "dark",
+        stored ? stored === "dark" : prefersDark,
+      );
+    } catch (e) {
+      // localStorage can throw in a locked-down browser; the default theme is
+      // a fine outcome and there is nowhere useful to report it this early.
+    }
+  })();
+</script>

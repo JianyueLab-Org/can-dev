@@ -1,0 +1,258 @@
+{
+  "header": {
+    "forum": "フォーラム",
+    "docs": "ドキュメント",
+    "onlineMap": "レーダー",
+    "signin": "ログイン",
+    "panel": "パイロットパネル",
+    "roster": "管制員名簿",
+    "home": "ホーム",
+    "openMenu": "メニューを開く",
+    "closeMenu": "メニューを閉じる",
+    "skipToContent": "本文へスキップ",
+    "activities": "イベント",
+    "downloads": "ダウンロード"
+  },
+  "footer": {
+    "description": "フレンドリーで、オープンで、熱意のあるフライトシミュレーションプラットフォーム",
+    "pilots": {
+      "title": "パイロット",
+      "items": {
+        "pilotPanel": "パイロットパネル",
+        "onlineMap": "オンラインマップ",
+        "flightPlan": "フライトプラン",
+        "statistics": "統計"
+      }
+    },
+    "controllers": {
+      "title": "管制員",
+      "items": {
+        "controllerPanel": "管制員パネル",
+        "professionalGuidelines": "職業準則",
+        "roster": "管制員名簿"
+      }
+    },
+    "docs": {
+      "title": "ドキュメント",
+      "items": {
+        "regulations": "規程",
+        "api": "公開 API"
+      }
+    },
+    "links": {
+      "title": "リンク",
+      "items": {
+        "forum": "フォーラム",
+        "qqGroup": "QQグループ",
+        "discord": "Discord",
+        "support": "不具合・ご要望"
+      }
+    }
+  },
+  "apiDocs": {
+    "eyebrow": "開発者向け",
+    "title": "公開 API",
+    "description": "セッションなしで応答するエンドポイントがいくつかあります。EuroScope や ATIS クライアント、ライブマップが呼んでいるものです。外部からも使えるよう、ここにまとめました。",
+    "baseUrl": "ベース URL",
+    "onThisPage": "このページの目次",
+    "englishNotice": "以下のリファレンスは英語です。パラメーター名・ヘッダー・レスポンスのフィールドは通信上もともと英語であり、訳を一つ増やすことは同期し続けるものを一つ増やすことでもあります。",
+    "conventions": {
+      "title": "はじめに",
+      "auth": {
+        "term": "API キーは不要",
+        "detail": "申請するものはありません。以下のエンドポイントはほとんどが公開で、ログ送信のみリクエストボディに ASN ID とネットワークパスワードを必要とします。`/api` 配下のそれ以外はサイト自身のセッション Cookie が必要で、公開インターフェースではありません。"
+      },
+      "envelope": {
+        "term": "レスポンスの形",
+        "detail": "JSON のレスポンスには本体に加えて `status` と `timestamp` が入り、データは通常 `data` の下にあります。例外は ATIS のテキスト生成で、EuroScope が JSON を解釈できないためプレーンテキストを返します。"
+      },
+      "errors": {
+        "term": "エラー",
+        "detail": "判断は HTTP ステータスで行ってください。エラーのボディには `error` が入りますが、人向けの文章のこともあれば、そちらで訳すための短いキーのこともあります。どちらかは各エンドポイントに明記しています。"
+      },
+      "rateLimits": {
+        "term": "レート制限",
+        "detail": "すべてのエンドポイントを固定ウィンドウで、通常は IP 単位で数えています。超過すると **429** と `Retry-After`（秒）を返しますので、すぐ再試行せず待ってください。このページの数値は稼働中の設定から読んでいるため、実際に適用されている値です。"
+      },
+      "cors": {
+        "term": "CORS",
+        "detail": "エンドポイントごとに記載しています。任意のオリジンとあるものは `Access-Control-Allow-Origin: *` を返すので、ブラウザーから直接呼べます。"
+      },
+      "versioning": {
+        "term": "バージョン",
+        "detail": "バージョンは `/api/v1` のみです。フィールドは追加されることがありますが、ここに書かれているものを Discord と QQ グループでの告知なしに改名・廃止することはありません。"
+      },
+      "oauth": {
+        "term": "統合ログイン",
+        "detail": "メンバーの代わりにデータへアクセスするアプリは、OAuth 2.1 の認可コード + PKCE を使います。メンバーを `/oauth/authorize` に送り、認可コードを `/api/oauth/token` でアクセストークンに交換し、`Authorization: Bearer` で呼び出します。ディスカバリー文書は `/.well-known/openid-configuration` にあります。アプリの登録はフィードバックフォームからご連絡ください。"
+      }
+    },
+    "labels": {
+      "authentication": "認証",
+      "rateLimit": "レート制限",
+      "cors": "CORS",
+      "pathParams": "パスパラメーター",
+      "query": "クエリパラメーター",
+      "fields": "ボディのフィールド",
+      "headers": "リクエストヘッダー",
+      "statuses": "レスポンス",
+      "example": "例",
+      "notes": "補足",
+      "required": "必須",
+      "optional": "任意",
+      "perHour": "1 時間あたり {limit} 回",
+      "perMinutes": "{minutes} 分あたり {limit} 回",
+      "noLimit": "制限なし"
+    },
+    "auth": {
+      "none": "公開",
+      "noneHint": "キーも Cookie も不要で、レート制限だけが唯一の関門です。",
+      "credentials": "ASN ID + ネットワークパスワード",
+      "credentialsHint": "リクエストボディで送ります。デスクトップクライアントが接続に使うものと同じです。",
+      "oauth": "OAuth アクセストークン",
+      "oauthHint": "統合ログインで取得したアクセストークンを `Authorization: Bearer` ヘッダーで送信します。",
+      "oauthClient": "クライアント資格情報",
+      "oauthClientHint": "アプリ登録時に発行される client_id / client_secret。パブリッククライアントはシークレットを持たず、PKCE で本人性を示します。",
+      "browser": "メンバーのログイン",
+      "browserHint": "ブラウザーのページで、メンバー本人が当サイトにログインしている必要があります。"
+    },
+    "cors": {
+      "open": "任意のオリジン",
+      "closed": "同一オリジンのみ"
+    },
+    "notPublic": {
+      "title": "ここに載せていないもの",
+      "description": "/api 配下には他にもルートがありますが、公開インターフェースではありません。見つからないことが手落ちではなく判断の結果だと分かるよう、挙げておきます。"
+    },
+    "help": {
+      "title": "質問、または公開してほしいものがありますか。",
+      "description": "報告フォームからお送りください。メンテナーに直接届きます。",
+      "cta": "不具合・ご要望"
+    }
+  },
+  "dev": {
+    "siteName": "CAN デベロッパーセンター",
+    "tagline": "ここでアプリケーションを登録すると、CAN メンバーが自分のアカウントでログインできるようになります。",
+    "nav": {
+      "home": "ホーム",
+      "apps": "マイアプリ",
+      "docs": "API リファレンス",
+      "mainSite": "メインサイトへ"
+    },
+    "auth": {
+      "signIn": "CAN アカウントでログイン",
+      "signOut": "ログアウト"
+    },
+    "home": {
+      "eyebrow": "デベロッパーセンター",
+      "title": "CAN アカウントをあなたのアプリへ",
+      "description": "Cerulean Aviation Network は標準的な OAuth 2.1 / OpenID Connect の ID プロバイダーです。メンバーは自分の ASN アカウントであなたのアプリにログインし、あなたが受け取るのはトークンであってパスワードではありません。アプリの登録、リダイレクト URI の管理、シークレットの再発行はここで行います。",
+      "manageApps": "マイアプリを管理",
+      "readDocs": "API リファレンス",
+      "features": {
+        "pkce": {
+          "title": "PKCE は必須",
+          "detail": "機密クライアントも含め、すべてのクライアントで S256 を強制します。認可コードはブラウザーのアドレスバーを通るため、そこではクライアントシークレットは何も守れません。"
+        },
+        "redirect": {
+          "title": "リダイレクト URI は完全一致",
+          "detail": "ワイルドカードも前方一致もありません。例外はデスクトップ向けの RFC 8252 ループバックアドレスのみで、ポート番号だけが無視されます。"
+        },
+        "revoke": {
+          "title": "トークンは即時失効",
+          "detail": "アクセストークンは不透明な文字列で、使うたびにデータベースを参照します。メンバーが「認可済みアプリ」で解除すれば、次のリクエストから無効です。"
+        }
+      },
+      "errors": {
+        "missing_state": "ログイン要求の有効期限が切れました。もう一度お試しください。",
+        "state_mismatch": "このログインの戻り先が一致しなかったため、安全のため中止しました。もう一度お試しください。",
+        "exchange_failed": "トークンの交換に失敗しました。しばらくしてからお試しください。",
+        "access_denied": "同意画面で拒否が選択されました。",
+        "unknown": "ログインに失敗しました：{error}"
+      }
+    },
+    "apps": {
+      "title": "マイアプリ",
+      "description": "ここで登録したアプリには、CAN メンバーが自分のアカウントでログインできます。リダイレクト URI は文字列全体の完全一致です。認可コードの送り先を決める値なので、変更前によく確認してください。",
+      "loadFailed": "アプリを読み込めませんでした：{message}",
+      "loadFailedHint": "セッションの期限が切れている可能性があります。",
+      "signInAgain": "ログインし直す",
+      "count": "アプリ {count} 件",
+      "register": "アプリを登録",
+      "empty": "まだアプリがありません。登録すると、メンバーが CAN アカウントでログインできるようになります。",
+      "networkError": "ネットワークに接続できません。しばらくしてからお試しください。",
+      "requestFailed": "リクエストが失敗しました（{status}）",
+      "secret": {
+        "title": "これが client_secret です。表示はこの一度きりです",
+        "detail": "保存しているのはハッシュだけなので、閉じたあとは誰にも復元できません。紛失した場合は再発行するしかありません。",
+        "copy": "コピー",
+        "done": "控えました"
+      },
+      "form": {
+        "createTitle": "新しいアプリを登録",
+        "editTitle": "アプリを編集",
+        "name": "アプリ名",
+        "nameHint": "同意画面でメンバーに表示される名前です。ネットワーク公式のアプリと誤解されるような名前は使えません。",
+        "redirectUris": "リダイレクト URI",
+        "redirectUrisHint": "1 行に 1 つ、文字列全体の完全一致です。https のみ。ローカル開発では http://127.0.0.1（ポートは可変）、モバイルではドットを含むプライベートスキームが使えます。",
+        "scopes": "要求するスコープ",
+        "website": "ホームページ（任意）",
+        "logo": "アイコン URL（任意）",
+        "publicClient": "パブリッククライアントである",
+        "publicClientHint": "デスクトップ、モバイル、フロントエンドのみのアプリ —— シークレットを保持できないものです。client_secret は発行されず、PKCE で自身を証明します。登録後は変更できません。",
+        "save": "保存",
+        "create": "登録",
+        "cancel": "キャンセル"
+      },
+      "card": {
+        "disabled": "停止中",
+        "activeTokens": "{count} 件が有効",
+        "publicClient": "パブリッククライアント",
+        "copyClientId": "client_id をコピー",
+        "edit": "編集",
+        "rotate": "シークレット再発行",
+        "enable": "有効化",
+        "disable": "停止",
+        "delete": "削除",
+        "redirectUris": "リダイレクト URI",
+        "scopes": "スコープ"
+      },
+      "delete": {
+        "title": "「{name}」を削除しますか？",
+        "detail": "トークンとメンバーの認可記録もまとめて削除され、元に戻せません。これでログイン中の人はただちに締め出されます。確認のため、アプリ名を入力してください：",
+        "cancel": "キャンセル",
+        "confirm": "削除"
+      }
+    },
+    "scopes": {
+      "openid": {
+        "title": "本人確認",
+        "detail": "メンバーの ASN ID を取得します。ログインには必須です。"
+      },
+      "profile": {
+        "title": "基本プロフィール",
+        "detail": "氏名、ASN ID、管制レーティング、登録日。"
+      },
+      "email": {
+        "title": "メールアドレス",
+        "detail": "メールアドレスと、その確認状況。"
+      },
+      "divisions": {
+        "title": "ディビジョン情報",
+        "detail": "所属ディビジョンとポジションの権限。"
+      },
+      "flights:read": {
+        "title": "フライト記録",
+        "detail": "接続時刻、コールサイン、飛行時間。"
+      },
+      "atc:read": {
+        "title": "管制記録",
+        "detail": "ポジション、時間、レーティングの変更。"
+      },
+      "offline_access": {
+        "title": "オフラインアクセス",
+        "detail": "メンバーがブラウザーを閉じたあとも、取り消されるまでアクセスできます。確信がなければ要求しないでください。"
+      }
+    }
+  }
+}

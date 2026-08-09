@@ -1,0 +1,457 @@
+---
+/**
+ * 公开接口文档。
+ *
+ * 从 can-web 的 `/developers` 搬过来的 —— 它文档的是 can-api，读它的人是来注
+ * 册应用的，而它是主站上唯一一个与「当一名成员」无关的页面。主站上留了一条
+ * 301 指过来（`can-web/astro.config.mjs` 的 `redirects`）。
+ *
+ * 整页从 [src/lib/apiDocs.ts](../lib/apiDocs.ts) 渲染，没有岛屿、没有客户端
+ * JS。两处不从那份数据里读，都是有意的：
+ *
+ * - **地址来自环境变量，不是 `Astro.url.origin`。** 在 can-web 上这两者恰好
+ *   相等（那个站的转发白名单让这些路径仍然在 airwaysn.org 上应答），在这里
+ *   完全不等 —— `platform.airwaysn.org/api/v1/atis` 是 404。而且不是一个地址
+ *   而是两个：同意页在 can-web，其余在 can-api。
+ * - **每条限流去查运行中的表**，所以写出来的数字就是实际生效的数字。
+ */
+import SiteLayout from "@/layouts/SiteLayout.astro";
+import { ICON_PATHS } from "@/components/icons";
+import { getLocale, useTranslations } from "@/lib/i18n";
+import { apiOrigin, webOrigin } from "@/lib/config";
+import { fetchLimits } from "@/lib/limits";
+import {
+  API_GROUPS,
+  NOT_PUBLIC,
+  withOrigin,
+  type ApiEndpoint,
+  type ApiMethod,
+  type ApiParam,
+} from "@/lib/apiDocs";
+
+const locale = getLocale(Astro.cookies);
+const t = useTranslations(locale, "apiDocs");
+
+const origins = { api: apiOrigin(), web: webOrigin() };
+const groups = withOrigin(API_GROUPS, origins);
+
+// 运行中的那张表，所以写下来的限制就是执行中的限制。
+const limits = await fetchLimits();
+
+/** The enforced limit, phrased in the reader's language. */
+function limitText(endpoint: ApiEndpoint): string {
+  if (!endpoint.limit) return t("labels.noLimit");
+  const rule = limits[endpoint.limit];
+  if (!rule) return t("labels.noLimit");
+  const minutes = Math.round(rule.windowMs / 60_000);
+  return minutes === 60
+    ? t("labels.perHour", { limit: rule.limit })
+    : t("labels.perMinutes", { limit: rule.limit, minutes });
+}
+
+/** GET reads, POST writes, HEAD is neither — colour them apart. */
+function methodBadge(method: ApiMethod): string {
+  if (method === "POST") return "badge-warning";
+  if (method === "HEAD") return "badge-neutral";
+  return "badge-info";
+}
+
+function statusBadge(code: number): string {
+  if (code < 300) return "badge-success";
+  if (code < 400) return "badge-info";
+  if (code < 500) return "badge-warning";
+  return "badge-danger";
+}
+
+/**
+ * Backticks in the reference are rendered as inline code.
+ *
+ * Writing `<code>` into every description would make the registry an HTML
+ * file; this keeps it prose. The text is escaped first, so a description can
+ * safely contain `<` or `&` — which the JSON examples and the `bytes=N-`
+ * ranges do.
+ */
+function inlineCode(text: string): string {
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return escaped
+    .replace(
+      /`([^`]+)`/g,
+      '<code class="rounded bg-surface-sunken px-1.5 py-0.5 font-mono text-[0.8125rem] text-ink">$1</code>',
+    )
+    .replace(
+      /\*\*([^*]+)\*\*/g,
+      '<strong class="font-semibold text-ink">$1</strong>',
+    );
+}
+
+const paramSections = (
+  endpoint: ApiEndpoint,
+): { label: string; items: ApiParam[] }[] =>
+  [
+    { label: t("labels.pathParams"), items: endpoint.path_params ?? [] },
+    { label: t("labels.query"), items: endpoint.query ?? [] },
+    { label: t("labels.fields"), items: endpoint.fields ?? [] },
+    { label: t("labels.headers"), items: endpoint.headers ?? [] },
+  ].filter((section) => section.items.length > 0);
+
+const conventions = [
+  "auth",
+  "oauth",
+  "envelope",
+  "errors",
+  "rateLimits",
+  "cors",
+  "versioning",
+] as const;
+---
+
+<SiteLayout title={t("title")} description={t("description")} width="wide">
+  <div class="card mb-8 overflow-hidden">
+    <div class="relative isolate px-6 py-10 sm:px-10 sm:py-12">
+      <div
+        aria-hidden="true"
+        class="absolute inset-0 -z-10 bg-gradient-to-br from-airwaysn-50 to-transparent dark:from-airwaysn-900/40"
+      >
+      </div>
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-airwaysn">
+        {t("eyebrow")}
+      </p>
+      <h1 class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+        {t("title")}
+      </h1>
+      <p class="mt-4 max-w-2xl text-lg text-muted">{t("description")}</p>
+      <div class="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span
+          class="text-xs font-semibold uppercase tracking-widest text-faint"
+        >
+          {t("baseUrl")}
+        </span>
+        <code
+          class="rounded-control border border-subtle bg-surface px-3 py-1.5 font-mono text-sm text-ink"
+          >{origins.api}</code
+        >
+      </div>
+    </div>
+  </div>
+
+  <div class="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10">
+    {/* Plain anchors — no island, so the rail costs nothing on the client. */}
+    <aside class="hidden lg:block">
+      <nav
+        aria-label={t("onThisPage")}
+        class="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pb-8"
+      >
+        <p class="text-xs font-semibold uppercase tracking-widest text-faint">
+          {t("onThisPage")}
+        </p>
+        <ul role="list" class="mt-3 space-y-4">
+          <li>
+            <a
+              href="#conventions"
+              class="block py-1 text-sm font-medium text-muted transition-colors hover:text-airwaysn"
+              >{t("conventions.title")}</a
+            >
+          </li>
+          {
+            groups.map((group) => (
+              <li>
+                <a
+                  href={`#${group.key}`}
+                  class="block py-1 text-sm font-semibold text-ink transition-colors hover:text-airwaysn"
+                >
+                  {group.name}
+                </a>
+                <ul
+                  role="list"
+                  class="mt-1 space-y-0.5 border-l border-subtle pl-3"
+                >
+                  {group.endpoints.map((endpoint) => (
+                    <li>
+                      <a
+                        href={`#${endpoint.id}`}
+                        class="block py-1 font-mono text-xs text-muted transition-colors hover:text-airwaysn"
+                      >
+                        {endpoint.path}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))
+          }
+          <li>
+            <a
+              href="#not-public"
+              class="block py-1 text-sm font-medium text-muted transition-colors hover:text-airwaysn"
+              >{t("notPublic.title")}</a
+            >
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <div class="min-w-0 space-y-10">
+      <section id="conventions" class="card scroll-mt-24 p-6 sm:p-8">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">
+          {t("conventions.title")}
+        </h2>
+        <dl class="mt-6 space-y-5">
+          {
+            conventions.map((key) => (
+              <div class="border-l-2 border-subtle pl-4">
+                <dt class="text-sm font-semibold text-ink">
+                  {t(`conventions.${key}.term`)}
+                </dt>
+                <dd
+                  class="mt-1 text-sm leading-relaxed text-muted"
+                  set:html={inlineCode(t(`conventions.${key}.detail`))}
+                />
+              </div>
+            ))
+          }
+        </dl>
+        <p
+          class="mt-6 rounded-control bg-surface-sunken px-4 py-3 text-sm text-faint"
+        >
+          {t("englishNotice")}
+        </p>
+      </section>
+
+      {
+        groups.map((group) => (
+          <section id={group.key} class="scroll-mt-24">
+            <div class="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-control bg-info-bg text-info-fg"
+              >
+                <svg
+                  class="size-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d={ICON_PATHS[group.icon]}
+                  />
+                </svg>
+              </span>
+              <div>
+                <h2 class="text-2xl font-bold tracking-tight text-ink">
+                  {group.name}
+                </h2>
+                <p
+                  class="mt-2 max-w-3xl text-sm leading-relaxed text-muted"
+                  set:html={inlineCode(group.description)}
+                />
+              </div>
+            </div>
+
+            <div class="mt-6 space-y-6">
+              {group.endpoints.map((endpoint) => (
+                <article id={endpoint.id} class="card scroll-mt-24 p-6 sm:p-8">
+                  <div class="flex flex-wrap items-center gap-2">
+                    {endpoint.methods.map((method) => (
+                      <span class={`badge ${methodBadge(method)} font-mono`}>
+                        {method}
+                      </span>
+                    ))}
+                    {/* 主机名只在它不是默认的 can-api 时印出来。同意页在
+                        can-web 上，只写路径的话读者会把它拼到 API 的地址后
+                        面，然后第一次登录就撞 404。 */}
+                    <code class="break-all font-mono text-sm font-semibold text-ink sm:text-base">
+                      {endpoint.host === "web" && (
+                        <span class="font-normal text-muted">
+                          {endpoint.baseUrl}
+                        </span>
+                      )}
+                      {endpoint.path}
+                    </code>
+                  </div>
+                  <p class="mt-3 text-base font-medium text-ink">
+                    {endpoint.summary}
+                  </p>
+
+                  {endpoint.body.map((paragraph) => (
+                    <p
+                      class="mt-3 text-sm leading-relaxed text-muted"
+                      set:html={inlineCode(paragraph)}
+                    />
+                  ))}
+
+                  <dl class="mt-5 grid gap-3 rounded-control bg-surface-sunken p-4 sm:grid-cols-3">
+                    <div>
+                      <dt class="text-xs font-semibold uppercase tracking-widest text-faint">
+                        {t("labels.authentication")}
+                      </dt>
+                      <dd class="mt-1 text-sm font-medium text-ink">
+                        {t(`auth.${endpoint.auth}`)}
+                      </dd>
+                      <dd class="mt-0.5 text-xs leading-relaxed text-faint">
+                        {t(`auth.${endpoint.auth}Hint`)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="text-xs font-semibold uppercase tracking-widest text-faint">
+                        {t("labels.rateLimit")}
+                      </dt>
+                      <dd class="mt-1 text-sm font-medium text-ink">
+                        {limitText(endpoint)}
+                      </dd>
+                      <dd class="mt-0.5 text-xs leading-relaxed text-faint">
+                        {endpoint.limitScope}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="text-xs font-semibold uppercase tracking-widest text-faint">
+                        {t("labels.cors")}
+                      </dt>
+                      <dd class="mt-1 text-sm font-medium text-ink">
+                        {endpoint.cors ? t("cors.open") : t("cors.closed")}
+                      </dd>
+                      <dd class="mt-0.5 font-mono text-xs leading-relaxed text-faint">
+                        {endpoint.cors ? "Access-Control-Allow-Origin: *" : "—"}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {paramSections(endpoint).map((section) => (
+                    <div class="mt-6">
+                      <h3 class="text-xs font-semibold uppercase tracking-widest text-faint">
+                        {section.label}
+                      </h3>
+                      <ul role="list" class="mt-3 divide-y divide-subtle">
+                        {section.items.map((param) => (
+                          <li class="py-3 first:pt-0 last:pb-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                              <code class="font-mono text-sm font-semibold text-ink">
+                                {param.name}
+                              </code>
+                              <span class="font-mono text-xs text-faint">
+                                {param.type}
+                              </span>
+                              <span
+                                class={`badge ${param.required ? "badge-danger" : "badge-neutral"}`}
+                              >
+                                {param.required
+                                  ? t("labels.required")
+                                  : t("labels.optional")}
+                              </span>
+                            </div>
+                            <p
+                              class="mt-1 text-sm leading-relaxed text-muted"
+                              set:html={inlineCode(param.description)}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+
+                  <div class="mt-6">
+                    <h3 class="text-xs font-semibold uppercase tracking-widest text-faint">
+                      {t("labels.statuses")}
+                    </h3>
+                    <ul role="list" class="mt-3 space-y-2">
+                      {endpoint.statuses.map((status) => (
+                        <li class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                          <span
+                            class={`badge ${statusBadge(status.code)} font-mono`}
+                          >
+                            {status.code}
+                          </span>
+                          <span
+                            class="min-w-0 flex-1 text-sm leading-relaxed text-muted"
+                            set:html={inlineCode(status.when)}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {endpoint.example && (
+                    <div class="mt-6">
+                      <h3 class="text-xs font-semibold uppercase tracking-widest text-faint">
+                        {t("labels.example")}
+                      </h3>
+                      <pre class="mt-3 overflow-x-auto rounded-control border border-subtle bg-surface-sunken p-4 font-mono text-xs leading-relaxed text-ink">
+                        <code>{endpoint.example.request}</code>
+                      </pre>
+                      {endpoint.example.response && (
+                        <pre class="mt-2 overflow-x-auto rounded-control border border-subtle bg-surface-sunken p-4 font-mono text-xs leading-relaxed text-muted">
+                          <code>{endpoint.example.response}</code>
+                        </pre>
+                      )}
+                    </div>
+                  )}
+
+                  {endpoint.notes && endpoint.notes.length > 0 && (
+                    <div class="mt-6">
+                      <h3 class="text-xs font-semibold uppercase tracking-widest text-faint">
+                        {t("labels.notes")}
+                      </h3>
+                      <ul role="list" class="mt-3 space-y-2">
+                        {endpoint.notes.map((note) => (
+                          <li class="flex gap-2 text-sm leading-relaxed text-muted">
+                            <span aria-hidden="true" class="text-faint">
+                              •
+                            </span>
+                            <span
+                              class="min-w-0 flex-1"
+                              set:html={inlineCode(note)}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        ))
+      }
+
+      <section id="not-public" class="card scroll-mt-24 p-6 sm:p-8">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">
+          {t("notPublic.title")}
+        </h2>
+        <p class="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
+          {t("notPublic.description")}
+        </p>
+        <ul role="list" class="mt-5 space-y-4">
+          {
+            NOT_PUBLIC.map((entry) => (
+              <li>
+                <code class="break-all font-mono text-sm font-semibold text-ink">
+                  {entry.path}
+                </code>
+                <p class="mt-1 text-sm leading-relaxed text-muted">
+                  {entry.reason}
+                </p>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section class="card p-6 sm:p-8">
+        <h2 class="text-lg font-semibold tracking-tight text-ink">
+          {t("help.title")}
+        </h2>
+        <p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+          {t("help.description")}
+        </p>
+        <a href={`${origins.web}/support`} class="btn btn-primary mt-4"
+          >{t("help.cta")}</a
+        >
+      </section>
+    </div>
+  </div>
+</SiteLayout>
