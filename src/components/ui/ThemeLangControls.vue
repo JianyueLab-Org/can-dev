@@ -15,8 +15,27 @@ const props = withDefaults(
   defineProps<{
     locale: string;
     variant?: "inline" | "floating";
+    /**
+     * Whether to offer the language menu.
+     *
+     * Off for a site with only one language to offer, where a picker whose
+     * every entry lands you back on the same page reads as broken rather than
+     * as absent.
+     *
+     * **Nothing passes `false` today.** It was added for the developer centre,
+     * which was hardcoded Chinese throughout; that site now carries the same
+     * four dictionaries as the other two, so the case it was written for is
+     * gone. Kept rather than deleted because the next single-language surface
+     * should not have to rediscover the reasoning — but if you are reading
+     * this because the prop looks unused, it is, and deleting it is fine.
+     *
+     * The theme half is never optional: a site that respects
+     * `prefers-color-scheme` but gives no way to override it is a site whose
+     * dark mode you cannot turn off.
+     */
+    languages?: boolean;
   }>(),
-  { variant: "inline" },
+  { variant: "inline", languages: true },
 );
 
 const LANGUAGES = [
@@ -175,6 +194,7 @@ const buttonClass =
     </button>
 
     <button
+      v-if="languages"
       type="button"
       :class="[buttonClass, menuOpen ? 'bg-surface-sunken text-ink' : '']"
       aria-label="Select language"
@@ -188,7 +208,7 @@ const buttonClass =
     </button>
 
     <div
-      v-if="menuOpen"
+      v-if="languages && menuOpen"
       role="menu"
       :class="[
         'absolute right-0 z-50 w-40 overflow-hidden rounded-card border border-subtle bg-surface-overlay py-1 shadow-popover',
