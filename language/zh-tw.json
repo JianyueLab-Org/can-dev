@@ -137,6 +137,7 @@
       "home": "首頁",
       "apps": "我的應用程式",
       "docs": "介面文件",
+      "ground": "地面圖",
       "mainSite": "回到主站"
     },
     "auth": {
@@ -222,6 +223,113 @@
         "detail": "連同它的權杖和成員的授權紀錄一起刪掉，不可復原。正在用它登入的人會立刻被擋在外面。確認的話，把應用程式名稱抄一遍：",
         "cancel": "取消",
         "confirm": "刪除"
+      }
+    },
+    "ground": {
+      "eyebrow": "扇區包工具",
+      "title": "地面圖預覽",
+      "description": "把 Ground 儲存庫的 json 依地面外掛（GroundMap）的畫法畫出來 —— 同一套 LOD、同一套配色、同一套描邊順序。改完一個機場直接拖進來看，不必先合併再開 EuroScope。檔案只在你自己的瀏覽器裡解析，不會上傳到任何地方。",
+      "pick": "選擇檔案",
+      "local": "檔案在瀏覽器裡解析，不會上傳。",
+      "drop": "放開就讀",
+      "busy": "讀取中…",
+      "canvasLabel": "地面圖畫布：拖曳平移，滾輪縮放",
+      "empty": {
+        "title": "把 Ground 的檔案拖進來",
+        "detail": "每機場來源檔會先在本機跑一遍 merge.py 再畫；合併產物則與管制員電腦上裝的那一份逐字相同。可以一次拖多個。",
+        "paths": {
+          "source": {
+            "path": "Ground/<FIR>/airports/<ICAO>.json",
+            "what": "每機場來源檔，手工改的就是它"
+          },
+          "ground": {
+            "path": "Sector/<FIR>/Plugins/GroundMap/ground.json",
+            "what": "合併產物，外掛直接讀的那一份"
+          },
+          "sct": {
+            "path": "Sector/<FIR>/<FIR>.sct",
+            "what": "選用：跑道頭。沒有就拿 OSM 中線近似"
+          },
+          "stands": {
+            "path": "Sector/<FIR>/Plugins/GRplugin/GRpluginStands.txt",
+            "what": "選用：OSM 沒有停機位號時從這裡補"
+          },
+          "style": {
+            "path": "Ground/<FIR>/style.json",
+            "what": "選用：配色與線寬，預設用內建的同一份"
+          },
+          "geo": {
+            "path": "Ground/NavData/*.geojson",
+            "what": "選用：管制區與近場管制區邊界"
+          }
+        }
+      },
+      "files": {
+        "title": "已讀入",
+        "clear": "清空",
+        "empty": "還沒有檔案。",
+        "add": "再加檔案"
+      },
+      "kinds": {
+        "boundaries": "管制區",
+        "ground": "合併",
+        "sct": "扇區",
+        "source": "機場",
+        "stands": "機位",
+        "style": "配色",
+        "tracon": "近場"
+      },
+      "view": {
+        "title": "視野",
+        "airport": "機場",
+        "allAirports": "全部（依視野畫）",
+        "airportHint": "選定一個機場，等於 ASR 裡的 Airport 鍵：只畫這一個場。選「全部」是 ACC 螢幕的行為 —— 視野裡有誰畫誰，其餘交給 LOD。",
+        "width": "視野寬度（浬）",
+        "zoomIn": "放大",
+        "zoomOut": "縮小",
+        "fit": "符合視窗",
+        "background": "背景",
+        "backgrounds": {
+          "dark": "EuroScope 黑",
+          "topsky": "TopSky 淺",
+          "custom": "自訂背景色"
+        }
+      },
+      "hud": {
+        "width": "視野 {nm} NM"
+      },
+      "stats": {
+        "airports": "機場",
+        "layers": "圖層",
+        "elements": "圖元"
+      },
+      "layers": {
+        "title": "圖層",
+        "hint": "對應 ASR 裡的 GroundMap_<id>。變灰的是目前視野下被 LOD 擋住的那些 —— 外掛在這個縮放級別同樣不會畫。",
+        "names": {
+          "acc": "管制區邊界",
+          "tracon": "近場管制區邊界",
+          "ad": "機場範圍",
+          "apron": "停機坪",
+          "term": "航廈",
+          "twy": "滑行道",
+          "std": "機坪停機位",
+          "rwy": "跑道",
+          "rwyctr": "跑道中線",
+          "edge": "道面邊線",
+          "mark": "滑行道中線",
+          "hld": "等待位置",
+          "rwylbl": "跑道號",
+          "twylbl": "滑行道號",
+          "stdlbl": "停機位號"
+        }
+      },
+      "notes": {
+        "runwaysFromOsm": "跑道是拿 OSM 中線的兩端撐出來的近似。裝到管制員電腦上的跑道矩形來自扇區檔的跑道頭，把 <FIR>.sct 一起拖進來就完全一致。",
+        "standNamesMissing": "這個場的停機位號 OSM 裡沒有。合併時會從 GRpluginStands.txt 補，把那份檔案也拖進來就看得到。"
+      },
+      "errors": {
+        "rejected": "這些檔案認不出來，已跳過：{names}"
       }
     },
     "scopes": {

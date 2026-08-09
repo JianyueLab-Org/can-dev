@@ -60,6 +60,8 @@ const navigation = computed(() =>
     { name: t("dev.nav.home"), href: "/" },
     ...(loggedIn.value ? [{ name: t("dev.nav.apps"), href: "/apps" }] : []),
     { name: t("dev.nav.docs"), href: "/docs" },
+    // 地面图预览不要登录：它没有上游，文件是使用者自己拖进浏览器的
+    { name: t("dev.nav.ground"), href: "/ground" },
   ].filter(Boolean),
 );
 

@@ -7,6 +7,11 @@ Cerulean Aviation Network 的开发者中心：成员在这里自助注册 OAuth
 `/docs` 是**公开接口文档** —— 网络对外开放的那几个端点，连同统一登录的完整说
 明。它原来在主站的 `airwaysn.org/developers`，那个地址现在是一条 301。
 
+`/ground` 是**地面图预览**：把 Ground 仓库的 json 按扇区包里那个地面插件
+（GroundMap）的画法画出来。不要登录，也不发一个请求 —— 文件由你自己拖进浏览
+器，在本地解析。改完一个机场的 `airports/<ICAO>.json` 直接拖进来就能看，不必
+先跑 `merge.py` 再开 EuroScope。
+
 Astro SSR（standalone Node 适配器）+ Vue 岛屿 + Tailwind v4，和 can-web、
 can-radar 共用同一套设计系统与四语言词典。
 
@@ -77,6 +82,13 @@ scope，全在 can-api 的 `internal/oauth/registry.go`，这边只把它返回�
 
 **不申请 `offline_access`。** 开发者中心是坐下来用的地方，会话跟着浏览器走就
 够了；少一种长期凭据就少一种会泄露的东西。
+
+**地面图预览是 `merge.py` 和 `GroundMap.cpp` 的第二份实现。** 它们不在这个仓
+库里（Ground / Sector），所以这两份代码只能靠自觉跟上 —— 逐字照抄，连
+`merge.py` 把 `cos(36°)` 当纬度传给抽稀函数那个怪癖也抄了。改动那边而不改这边
+的下场，是预览和管制员机器上装的那份对不上，而预览工具唯一不能犯的就是这个
+错。对得上是可以证明的：拿一份合并好的 `ground.json` 和对应的
+`airports/*.json` 比一遍，当前十个 FIR 的 117 个机场逐字节相同。
 
 ## 部署
 

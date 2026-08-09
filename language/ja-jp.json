@@ -137,6 +137,7 @@
       "home": "ホーム",
       "apps": "マイアプリ",
       "docs": "API リファレンス",
+      "ground": "地上図",
       "mainSite": "メインサイトへ"
     },
     "auth": {
@@ -222,6 +223,113 @@
         "detail": "トークンとメンバーの認可記録もまとめて削除され、元に戻せません。これでログイン中の人はただちに締め出されます。確認のため、アプリ名を入力してください：",
         "cancel": "キャンセル",
         "confirm": "削除"
+      }
+    },
+    "ground": {
+      "eyebrow": "セクターパッケージ用ツール",
+      "title": "地上図プレビュー",
+      "description": "Ground リポジトリの json を、地上図プラグイン（GroundMap）と同じ描き方で表示します —— LOD も配色も描画順も同一。空港を 1 つ直したらそのまま放り込むだけで、マージして EuroScope を起動する必要はありません。ファイルはブラウザ内で解析され、どこにもアップロードされません。",
+      "pick": "ファイルを選ぶ",
+      "local": "ブラウザ内で解析します。アップロードはしません。",
+      "drop": "離すと読み込みます",
+      "busy": "読み込み中…",
+      "canvasLabel": "地上図キャンバス：ドラッグで移動、ホイールで拡大縮小",
+      "empty": {
+        "title": "Ground のファイルをここへ",
+        "detail": "空港ごとのソースはローカルで merge.py を通してから描画し、マージ済みの成果物は管制官の環境に入るものと一字一句同じに描きます。まとめて複数入れても構いません。",
+        "paths": {
+          "source": {
+            "path": "Ground/<FIR>/airports/<ICAO>.json",
+            "what": "空港ごとのソース。手で編集するのはこれ"
+          },
+          "ground": {
+            "path": "Sector/<FIR>/Plugins/GroundMap/ground.json",
+            "what": "マージ済みの成果物。プラグインが読むのはこれ"
+          },
+          "sct": {
+            "path": "Sector/<FIR>/<FIR>.sct",
+            "what": "任意：滑走路末端。無い場合は OSM 中心線から近似します"
+          },
+          "stands": {
+            "path": "Sector/<FIR>/Plugins/GRplugin/GRpluginStands.txt",
+            "what": "任意：OSM にスポット番号が無いときの補完元"
+          },
+          "style": {
+            "path": "Ground/<FIR>/style.json",
+            "what": "任意：配色と線幅。無ければ内蔵の同一ファイルを使います"
+          },
+          "geo": {
+            "path": "Ground/NavData/*.geojson",
+            "what": "任意：ACC・進入管制区の境界"
+          }
+        }
+      },
+      "files": {
+        "title": "読み込み済み",
+        "clear": "クリア",
+        "empty": "まだ何もありません。",
+        "add": "ファイルを追加"
+      },
+      "kinds": {
+        "boundaries": "ACC",
+        "ground": "マージ",
+        "sct": "セクター",
+        "source": "空港",
+        "stands": "スポット",
+        "style": "配色",
+        "tracon": "進入"
+      },
+      "view": {
+        "title": "視野",
+        "airport": "空港",
+        "allAirports": "すべて（視野に従う）",
+        "airportHint": "空港を選ぶのは ASR の Airport キーと同じで、その 1 か所だけを描きます。「すべて」は ACC 画面の挙動 —— 視野に入ったものを描き、残りは LOD が決めます。",
+        "width": "視野幅（海里）",
+        "zoomIn": "拡大",
+        "zoomOut": "縮小",
+        "fit": "全体表示",
+        "background": "背景",
+        "backgrounds": {
+          "dark": "EuroScope 黒",
+          "topsky": "TopSky 明",
+          "custom": "背景色を指定"
+        }
+      },
+      "hud": {
+        "width": "視野 {nm} NM"
+      },
+      "stats": {
+        "airports": "空港",
+        "layers": "レイヤ",
+        "elements": "要素"
+      },
+      "layers": {
+        "title": "レイヤ",
+        "hint": "ASR の GroundMap_<id> スイッチに対応します。淡く表示されている行は現在の視野幅では LOD により非表示 —— プラグインもこの縮尺では描きません。",
+        "names": {
+          "acc": "ACC 境界",
+          "tracon": "進入管制区境界",
+          "ad": "空港範囲",
+          "apron": "エプロン",
+          "term": "ターミナル",
+          "twy": "誘導路",
+          "std": "スポット",
+          "rwy": "滑走路",
+          "rwyctr": "滑走路中心線",
+          "edge": "縁線",
+          "mark": "誘導路中心線",
+          "hld": "待機位置",
+          "rwylbl": "滑走路番号",
+          "twylbl": "誘導路名",
+          "stdlbl": "スポット番号"
+        }
+      },
+      "notes": {
+        "runwaysFromOsm": "滑走路は OSM 中心線の両端から近似した形です。実際に配布される滑走路の矩形はセクターファイルの滑走路末端から作られるので、<FIR>.sct も一緒に入れると完全に一致します。",
+        "standNamesMissing": "この空港のスポット番号は OSM にありません。マージ時は GRpluginStands.txt から補完するので、そのファイルも入れると表示されます。"
+      },
+      "errors": {
+        "rejected": "認識できずスキップしました：{names}"
       }
     },
     "scopes": {

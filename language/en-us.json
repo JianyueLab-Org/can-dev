@@ -137,6 +137,7 @@
       "home": "Home",
       "apps": "My applications",
       "docs": "API reference",
+      "ground": "Ground maps",
       "mainSite": "Main site"
     },
     "auth": {
@@ -222,6 +223,113 @@
         "detail": "Its tokens and every member's grant go with it, and none of that can be undone. Anyone currently signed in through it is locked out immediately. To confirm, type the application name:",
         "cancel": "Cancel",
         "confirm": "Delete"
+      }
+    },
+    "ground": {
+      "eyebrow": "Sector package tools",
+      "title": "Ground map preview",
+      "description": "Draws the Ground repository's json the way the GroundMap plugin draws it — same LOD, same colours, same stroking order. Edit one airport, drop the file in, and see it without merging first and opening EuroScope. Files are parsed in your own browser and never uploaded.",
+      "pick": "Choose files",
+      "local": "Parsed in your browser. Nothing is uploaded.",
+      "drop": "Drop to load",
+      "busy": "Reading…",
+      "canvasLabel": "Ground map canvas: drag to pan, scroll to zoom",
+      "empty": {
+        "title": "Drop Ground's files here",
+        "detail": "Per-airport sources are run through merge.py locally before drawing; the merged artefact is drawn byte for byte as it is installed on a controller's machine. Several files at once is fine.",
+        "paths": {
+          "source": {
+            "path": "Ground/<FIR>/airports/<ICAO>.json",
+            "what": "One airport, the file you hand-edit"
+          },
+          "ground": {
+            "path": "Sector/<FIR>/Plugins/GroundMap/ground.json",
+            "what": "The merged artefact the plugin actually reads"
+          },
+          "sct": {
+            "path": "Sector/<FIR>/<FIR>.sct",
+            "what": "Optional: runway thresholds. Without it runways are approximated from OSM"
+          },
+          "stands": {
+            "path": "Sector/<FIR>/Plugins/GRplugin/GRpluginStands.txt",
+            "what": "Optional: stand numbers, where OSM has none"
+          },
+          "style": {
+            "path": "Ground/<FIR>/style.json",
+            "what": "Optional: colours and line widths; the built-in copy is used otherwise"
+          },
+          "geo": {
+            "path": "Ground/NavData/*.geojson",
+            "what": "Optional: ACC and TRACON boundaries"
+          }
+        }
+      },
+      "files": {
+        "title": "Loaded",
+        "clear": "Clear",
+        "empty": "Nothing loaded yet.",
+        "add": "Add files"
+      },
+      "kinds": {
+        "boundaries": "ACC",
+        "ground": "merged",
+        "sct": "sector",
+        "source": "airport",
+        "stands": "stands",
+        "style": "style",
+        "tracon": "TRACON"
+      },
+      "view": {
+        "title": "View",
+        "airport": "Airport",
+        "allAirports": "All (by view)",
+        "airportHint": "Picking one airport is the ASR's Airport key: only that field is drawn. \"All\" is what an ACC screen does — whatever is in view, with LOD deciding the rest.",
+        "width": "View width (NM)",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "fit": "Fit",
+        "background": "Background",
+        "backgrounds": {
+          "dark": "EuroScope black",
+          "topsky": "TopSky light",
+          "custom": "Custom background colour"
+        }
+      },
+      "hud": {
+        "width": "View {nm} NM"
+      },
+      "stats": {
+        "airports": "Airports",
+        "layers": "Layers",
+        "elements": "Elements"
+      },
+      "layers": {
+        "title": "Layers",
+        "hint": "These are the ASR's GroundMap_<id> switches. Dimmed rows are hidden by LOD at this view width — the plugin would not draw them at this zoom either.",
+        "names": {
+          "acc": "ACC boundaries",
+          "tracon": "TRACON boundaries",
+          "ad": "Aerodrome",
+          "apron": "Aprons",
+          "term": "Terminals",
+          "twy": "Taxiways",
+          "std": "Stands",
+          "rwy": "Runways",
+          "rwyctr": "Runway centrelines",
+          "edge": "Edge lines",
+          "mark": "Taxiway centrelines",
+          "hld": "Holding positions",
+          "rwylbl": "Runway labels",
+          "twylbl": "Taxiway labels",
+          "stdlbl": "Stand labels"
+        }
+      },
+      "notes": {
+        "runwaysFromOsm": "Runways are approximated from the ends of the OSM centreline. The rectangles that ship to controllers come from the sector file's thresholds — drop <FIR>.sct in as well and the two match exactly.",
+        "standNamesMissing": "OSM has no stand numbers for this field. The merge takes them from GRpluginStands.txt; drop that file in to see them."
+      },
+      "errors": {
+        "rejected": "Not recognised, skipped: {names}"
       }
     },
     "scopes": {

@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CAN 开发者中心。成员在这里自助注册 OAuth 应用；它接管的是
 `scripts/oauth-client.mjs` 手工干的事，读写同一张 `oauthClient` 表。它同时是
-**公开接口文档**的家（`/docs`）—— 那个页面原来在 can-web 的 `/developers`。
+**公开接口文档**的家（`/docs`，原来在 can-web 的 `/developers`）和**地面图预
+览**的家（`/ground`，见下）。
 Astro SSR + Vue 岛屿 + Tailwind v4，形状照 can-web。README 是给人读的那一份。
 
 上游是**两个**地址：`CAN_API_ORIGIN` 是 can-api，OIDC 的 issuer，换令牌、
@@ -18,6 +19,9 @@ userinfo、吊销和 `/api/v1/dev/clients` 都在那儿；`CAN_WEB_ORIGIN` 只�
 bun run dev        # :4322（4321 留给 can-web，两个常常同时开着）
 bun run lint       # format:check + astro check —— CI 跑的就是这个
 bun run build && bun run start
+
+# 地面图那两份移植有没有漂（要本地有 Ground 和 Sector 两个仓库；不在 CI 里）
+bun run scripts/verify-ground-port.ts
 ```
 
 没有测试套件。门禁就是 `bun run lint` 加一次 `bun run build`。
@@ -39,6 +43,30 @@ can-api。令牌能改回调地址，也就是能决定授权码送到哪儿 —
 那份名单 —— 一个自助拿到 `apps:manage` 的应用，可以给成员名下**另一个**应用换
 上自己的回调地址，然后等下一次登录把授权码送过来。can-api 有一条测试专门盯着
 这件事。
+
+## `/ground` —— 站上唯一没有上游的一页
+
+**它是 `merge.py` 和 `GroundMap.cpp` 的第二份实现。** `src/lib/groundMap.ts` 是
+`Ground/tools/merge.py` 的浏览器版，`src/lib/groundRender.ts` 是
+`Sector/RJJJ/Plugins/GroundMap/src/GroundMap.cpp` 的 canvas 版。两份源头都不在
+这个仓库里，也没有任何 CI 会替我们发现它们对不上 —— 所以两边都是**逐字照抄，
+连怪癖一起抄**：merge.py 把 `cos(36°)` 当纬度传给抽稀函数，这边也这么传；
+Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也乘回去、也用 `butt`。
+在这里"顺手改正确一点"，预览就和管制员机器上装的那份对不上了，而那是一个预览
+工具唯一不能犯的错。
+
+对得上是**可以证明的**，改完跑一次 `bun run scripts/verify-ground-port.ts`：它
+拿 `Ground/<FIR>/airports/*.json` 加 `<FIR>.sct`、`GRpluginStands.txt` 跑一遍
+`buildAirportFromSource`，和 `Sector/<FIR>/Plugins/GroundMap/ground.json` 里对
+应的机场逐字节比较，漂了就非零退出。写下这段时十个 FIR、137 处检查（117 个机
+场加 20 个 world 图层）全部相同。两个参数的 `undefined` 和 `[]` 不是一回事：
+`undefined` 是"没有扇区文件，跑道用 OSM 近似"，`[]` 是"扇区文件在，但它没有这
+个机场的跑道行"（ZL02、ZL03 那种只在站位表里的场，产物里本来就没有跑道层）。
+
+**不登录、不上传、没有后端路由**，这三件事是一件事。中间件的 `PROTECTED` 里没
+有它：改扇区包的人不一定注册过 OAuth 应用。文件在浏览器里解析：地面数据跟着扇
+区包走，不属于这个站，而这个站是公开的 —— 一个"传上来我帮你渲染"的按钮等于让
+还没发布的扇区数据落到服务器上。
 
 ## 外壳和文案
 

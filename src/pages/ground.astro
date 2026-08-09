@@ -1,0 +1,43 @@
+---
+/**
+ * 地面图预览。
+ *
+ * 站上第三件东西，和前两件不一样：它**没有上游**。注册应用要问 can-api，接口
+ * 文档要印 can-api 的地址，这一页一个请求都不发 —— 文件由使用者拖进浏览器，
+ * `lib/groundMap.ts` 在本地跑一遍 merge.py，`lib/groundRender.ts` 按地面插件
+ * 的画法画出来。
+ *
+ * 所以它也不要登录：中间件的 `PROTECTED` 里没有它，是有意的。改扇区包的人不
+ * 一定注册过 OAuth 应用，而这页对他们没有任何秘密可泄。
+ *
+ * 岛屿只拿 `dev.ground` 这一小本词典，不是整本 `dev` —— props 会跟着 HTML 一
+ * 起序列化出去，整本里还压着十几 KB 的接口文档文案。
+ */
+import SiteLayout from "@/layouts/SiteLayout.astro";
+import GroundPreview from "@/components/GroundPreview.vue";
+import { getLocale, getMessages, useTranslations } from "@/lib/i18n";
+
+const locale = getLocale(Astro.cookies);
+const t = useTranslations(locale, "dev");
+const messages = getMessages(locale, "dev.ground");
+---
+
+<SiteLayout
+  title={t("ground.title")}
+  description={t("ground.description")}
+  width="wide"
+>
+  <header class="mb-6">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-airwaysn">
+      {t("ground.eyebrow")}
+    </p>
+    <h1 class="mt-2 text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+      {t("ground.title")}
+    </h1>
+    <p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+      {t("ground.description")}
+    </p>
+  </header>
+
+  <GroundPreview messages={messages} client:load />
+</SiteLayout>
