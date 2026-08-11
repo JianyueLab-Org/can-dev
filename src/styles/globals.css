@@ -818,18 +818,34 @@ html.theme-transitioning::view-transition-new(root) {
 }
 
 /* For a dialog centred by `left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2`.
-   A keyframe's `transform` REPLACES the element's, so plain .animate-panel-in
-   would drop the centring translate and throw the dialog down and to the right
-   for the length of the animation. The translate has to be carried in the
-   keyframe itself. */
+
+   This keyframe animates `scale` and NOTHING ELSE. Do not put the centring
+   translate back in — that is what was here, and in Tailwind v4 it is a bug.
+
+   The reasoning that put it there was right for v3, where `-translate-x-1/2`
+   compiled to `transform: translate(…)`; a keyframe's `transform` replaces the
+   element's, so the animation would have dropped the centring for its own
+   duration. v4 compiles the same utility to the **independent `translate`
+   property** instead (`translate: var(--tw-translate-x) var(--tw-translate-y)`
+   — check the built CSS if you doubt it). The independent properties and
+   `transform` do not replace each other, they *compose*: translate applies
+   first, then transform. So carrying the translate in both places moves the
+   dialog by 100% of its own size instead of 50% — and with
+   `animation-fill-mode: both` the `to` frame sticks, so it stays wrong after
+   the animation ends.
+
+   On screen that reads as a dialog whose right edge sits on the viewport's
+   horizontal centre and whose bottom edge sits on the vertical one, with its
+   top half cut off above the window. It is easy to mistake for a cropped
+   screenshot. */
 @keyframes panel-in-centered {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.97);
+    scale: 0.97;
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    scale: 1;
   }
 }
 .animate-panel-in-centered {
