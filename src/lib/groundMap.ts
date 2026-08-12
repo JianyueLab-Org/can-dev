@@ -212,9 +212,12 @@ export const LAYER_TABLE: {
   { key: "edge", style: "edgeline", kind: "line", lod: [0, 8] },
   { key: "mark", style: "taxiline", kind: "line", lod: [0, 6] },
   { key: "hld", style: "holding", kind: "line", lod: [0, 5] },
-  { key: "rwylbl", style: "runwaylabel", kind: "text", lod: [0, 15] },
+  // 标牌的上限跟着它所标注的几何走，不让任何东西无名地画出来：机位号原来
+  // 2 NM 就消失而机位中线画到 3 NM，而 96 个 GMC 屏幕里有 15 个开屏就宽于
+  // 2 NM，一载入全部机位号已经是隐藏的。跑道号跟着它所在的中线。
+  { key: "rwylbl", style: "runwaylabel", kind: "text", lod: [0, 25] },
   { key: "twylbl", style: "twylabel", kind: "text", lod: [0, 6] },
-  { key: "stdlbl", style: "standlabel", kind: "text", lod: [0, 2] },
+  { key: "stdlbl", style: "standlabel", kind: "text", lod: [0, 3] },
 ];
 
 const GEOM_KEYS = [
@@ -235,6 +238,8 @@ const TOL_M = 3.0;
 const WORLD_TOL_M = 60.0;
 const TWY_LABEL_SPACING_M = 550;
 const STD_LABEL_SPACING_M = 25;
+// 站位表里的机位离 OSM 已经放好的标牌这么近，就是同一个机位
+const STD_NAME_MERGE_M = 20;
 const DEFAULT_RWY_WIDTH = 45.0;
 const DEFAULT_TWY_WIDTH = 23.0;
 /** merge.py 全程按 1 度纬度 = 111000 米算，这里也是 —— 换个数就对不上了。 */
@@ -740,16 +745,36 @@ export function buildAirportFromSource(
     ]);
   }
 
-  // 机位号：OSM 只有少数中国机场有，其余靠旧地面插件的站位表
-  if (!texts.stdlbl?.length) {
-    const rows = stands ?? [];
-    if (rows.length) {
-      for (const s of rows) {
-        label("stdlbl", { t: s.name, p: [r7(s.lat), r7(s.lon)] });
-      }
-    } else if (L.std?.length) {
-      notes.standNamesMissing = true;
+  // 机位号：OSM 只有少数中国机场有，其余靠旧地面插件的站位表。按机位合并，不是
+  // 全有或全无 —— 以前只要 OSM 给出一个机位名，整份站位表就全被丢掉，ZGGG 于是
+  // 画了 370 个机位却只有 21 个号。
+  //
+  // 两个来源基本是同一次测量，所以按名字去重：ZGSZ 全部 363 个名字和坐标完全一
+  // 致，ZGGG 那 21 个 OSM 名字也都能在站位表里 70 m 内找到 —— 位置上够不着，硬
+  // 按位置去重会连隔壁机位一起吞掉。再加一个很紧的位置兜底，管的是两边命名体系
+  // 不同的少数场（ZHHH 的 P1..P13 对站位表的数字号），那里「别在已有标牌上再压
+  // 一个」比「哪个名字胜出」更重要。
+  const rows = stands ?? [];
+  if (rows.length) {
+    const named = new Set((texts.stdlbl ?? []).map((it) => it.t));
+    const anchors = (texts.stdlbl ?? []).map((it) => it.p);
+    for (const s of rows) {
+      if (named.has(s.name)) continue;
+      if (
+        anchors.some(
+          ([py, px]) =>
+            Math.hypot(
+              (s.lat - py) * M_PER_DEG,
+              (s.lon - px) * M_PER_DEG * kx,
+            ) < STD_NAME_MERGE_M,
+        )
+      )
+        continue;
+      label("stdlbl", { t: s.name, p: [r7(s.lat), r7(s.lon)] });
     }
+  }
+  if (!texts.stdlbl?.length && L.std?.length) {
+    notes.standNamesMissing = true;
   }
 
   const layers: MapLayer[] = [];
