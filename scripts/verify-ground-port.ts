@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildAirportFromSource,
+  parseEse,
   buildWorldLayer,
   parseSct,
   parseStands,
@@ -73,6 +74,9 @@ for (const [fir, sctName] of Object.entries(FIRS)) {
     : {};
   const standsPath = join(SECTOR, fir, "Plugins/GRplugin/GRpluginStands.txt");
   const stands = existsSync(standsPath) ? parseStands(read(standsPath)) : {};
+  // 等待点名称和跑道长度只在 .ese 的 [FREETEXT] 里
+  const esePath = join(SECTOR, fir, sctName.replace(/\.sct$/, ".ese"));
+  const freetext = existsSync(esePath) ? parseEse(read(esePath)) : {};
 
   const files = existsSync(airportsDir)
     ? readdirSync(airportsDir)
@@ -90,6 +94,7 @@ for (const [fir, sctName] of Object.entries(FIRS)) {
       els,
       runways[icao] ?? [],
       stands[icao] ?? [],
+      freetext[icao] ?? [],
     );
     const want = truth.airports?.[icao];
     checked++;

@@ -96,22 +96,23 @@ export const DEFAULT_STYLE_DOC: Record<string, unknown> = {
   version: 2,
   colors: {
     field: [122, 122, 122],
-    apron: [150, 150, 150],
+    apron: [135, 135, 135],
     "apron-edge": [96, 104, 128],
-    terminal: [90, 90, 90],
-    runway: [74, 74, 74],
+    terminal: [77, 77, 77],
+    runway: [84, 84, 84],
     "runway-mark": [235, 235, 235],
-    pavement: [178, 178, 178],
+    pavement: [109, 109, 109],
     "twy-edge": [74, 86, 124],
-    "twy-centre": [232, 232, 232],
+    "twy-centre": [200, 200, 200],
     "twy-line": [214, 186, 74],
     "edge-line": [196, 196, 196],
-    stand: [166, 166, 166],
-    "stand-centre": [225, 225, 225],
+    stand: [135, 135, 135],
+    "stand-centre": [170, 170, 170],
     holding: [255, 120, 0],
     black: [0, 0, 0],
     white: [245, 245, 245],
     "label-bg": [18, 18, 18],
+    orange: [255, 184, 108],
     "rwy-centre": [240, 240, 240],
     grass: [92, 104, 78],
     building: [84, 84, 84],
@@ -138,9 +139,26 @@ export const DEFAULT_STYLE_DOC: Record<string, unknown> = {
     edgeline: { line: "edge-line", "line-width": 1.0 },
     stand: { line: "stand-centre", "line-width": 1.6 },
     holding: { line: "holding", "line-width": 2.5 },
-    twylabel: { text: "white", "text-bg": "label-bg", "font-size": 11.5 },
-    standlabel: { text: "white", "font-size": 10.0 },
-    runwaylabel: { text: "black", "text-bg": "white", "font-size": 13.0 },
+    twylabel: {
+      text: "white",
+      "text-bg": "black",
+      "text-outline": "white",
+      "font-size": 12.0,
+    },
+    standlabel: { text: "white", "font-size": 11.0 },
+    runwaylabel: {
+      text: "white",
+      "text-bg": "black",
+      "text-outline": "white",
+      "font-size": 16.0,
+    },
+    holdinglabel: {
+      text: "orange",
+      "text-bg": "black",
+      "text-outline": "orange",
+      "font-size": 12.0,
+    },
+    runavaillabel: { text: "orange", "text-bg": "black", "font-size": 11.0 },
     runwaycentre: { line: "rwy-centre", "line-width": 1.6, dash: true },
     grass: { fill: "grass" },
     building: { fill: "building", line: "bldg-edge", "line-width": 1.0 },
@@ -216,7 +234,11 @@ export const LAYER_TABLE: {
   // 2 NM 就消失而机位中线画到 3 NM，而 96 个 GMC 屏幕里有 15 个开屏就宽于
   // 2 NM，一载入全部机位号已经是隐藏的。跑道号跟着它所在的中线。
   { key: "rwylbl", style: "runwaylabel", kind: "text", lod: [0, 25] },
+  // 跑道长度，来自 .ese —— 和 rwylbl 标的是同一处几何，且稀疏（每机场约 3 个），
+  // 所以共用它的上限
+  { key: "runlbl", style: "runavaillabel", kind: "text", lod: [0, 25] },
   { key: "twylbl", style: "twylabel", kind: "text", lod: [0, 6] },
+  { key: "hldlbl", style: "holdinglabel", kind: "text", lod: [0, 5] },
   { key: "stdlbl", style: "standlabel", kind: "text", lod: [0, 3] },
 ];
 
@@ -232,7 +254,7 @@ const GEOM_KEYS = [
   "mark",
   "hld",
 ] as const;
-const TEXT_KEYS = ["rwylbl", "twylbl", "stdlbl"] as const;
+const TEXT_KEYS = ["rwylbl", "runlbl", "twylbl", "hldlbl", "stdlbl"] as const;
 
 const TOL_M = 3.0;
 const WORLD_TOL_M = 60.0;
@@ -403,6 +425,13 @@ export interface SctRunway {
   lo2: number;
 }
 
+export interface FreetextLabel {
+  kind: string; // GATE / TXL / HP / RWY / RUN
+  text: string;
+  lat: number;
+  lon: number;
+}
+
 export interface StandRow {
   name: string;
   lat: number;
@@ -447,6 +476,37 @@ export function parseSct(text: string): Record<string, SctRunway[]> {
 }
 
 /** 旧地面插件的站位表 —— OSM 没有机位号时，merge.py 从这里补。 */
+/**
+ * `.ese` 的 `[FREETEXT]` 标签，按 `<ICAO>-<KIND>` 分组。
+ *
+ * 上游中国扇区包自己的地面标牌就放在这里，两个仓库都从没读过它。HP（等待点）和
+ * RUN（跑道长度）没有别的来源 —— OSM 的 851 个 holding position 只有 28 个带名字，
+ * 也完全不含跑道长度，而这里有 4202 和 395 条。
+ */
+export function parseEse(text: string): Record<string, FreetextLabel[]> {
+  const out: Record<string, FreetextLabel[]> = {};
+  let cur = "";
+  for (const raw of text.split(/\r?\n/)) {
+    const t = raw.replace(/\s+$/, "");
+    if (t.startsWith("[") && t.endsWith("]")) {
+      cur = t.trim();
+      continue;
+    }
+    if (cur !== "[FREETEXT]" || !t.trim()) continue;
+    const p = t.split(":");
+    if (p.length < 4) continue;
+    const grp = p[2];
+    if (grp.length < 6 || grp[4] !== "-") continue;
+    const lat = dms(p[0]);
+    const lon = dms(p[1]);
+    const label = p.slice(3).join(":").trim();
+    if (lat === null || lon === null || !label) continue;
+    const icao = grp.slice(0, 4);
+    (out[icao] ??= []).push({ kind: grp.slice(5), text: label, lat, lon });
+  }
+  return out;
+}
+
 export function parseStands(text: string): Record<string, StandRow[]> {
   const out: Record<string, StandRow[]> = {};
   for (const raw of text.split(/\r?\n/)) {
@@ -492,6 +552,7 @@ export function buildAirportFromSource(
   els: SourceFeature[],
   runways?: SctRunway[],
   stands?: StandRow[],
+  freetext?: FreetextLabel[],
 ): AirportBuild {
   const notes: BuildNotes = {
     runwaysFromOsm: false,
@@ -777,6 +838,21 @@ export function buildAirportFromSource(
     notes.standNamesMissing = true;
   }
 
+  // 等待点名称与跑道长度，来自 .ese 的 [FREETEXT]。这两个没有别的来源：OSM 的 851
+  // 个 holding position 只有 28 个带名字，且完全不含跑道长度，而扇区文件有 4202 和
+  // 395 条。两者都对应原版 DxRender 早就定义好的文字样式（橙字黑底，`holding` 与
+  // `run-avail`），所以这是把大陆屏幕原来画得出、GroundMap 从来没画的标牌补回来。
+  for (const [kind, key] of [
+    ["HP", "hldlbl"],
+    ["RUN", "runlbl"],
+  ] as const) {
+    for (const f of freetext ?? []) {
+      if (f.kind === kind) {
+        label(key, { t: f.text, p: [r7(f.lat), r7(f.lon)] });
+      }
+    }
+  }
+
   const layers: MapLayer[] = [];
   for (const key of GEOM_KEYS) {
     const geom = L[key];
@@ -794,7 +870,7 @@ export function buildAirportFromSource(
     const items = texts[key];
     if (!items?.length) continue;
     const spacing =
-      key === "rwylbl"
+      key === "rwylbl" || key === "runlbl"
         ? 5.0
         : key === "twylbl"
           ? TWY_LABEL_SPACING_M
@@ -949,7 +1025,8 @@ export type FileKind =
   | "boundaries"
   | "tracon"
   | "sct"
-  | "stands";
+  | "stands"
+  | "ese";
 
 /**
  * 拖进来的是什么？**只看内容，不看扩展名** —— `.json` 这一个后缀底下装着四种
@@ -959,6 +1036,8 @@ export type FileKind =
 export function classify(_name: string, text: string): FileKind | null {
   if (/\[RUNWAY\]/.test(text) && /\[AIRPORT\]/.test(text)) return "sct";
   if (/^STAND:/m.test(text)) return "stands";
+  // .ese 认 [FREETEXT]/[POSITIONS]；它没有 [RUNWAY]/[AIRPORT]，和 .sct 不会撞
+  if (/\[FREETEXT\]/.test(text) || /\[POSITIONS\]/.test(text)) return "ese";
 
   let doc: unknown;
   try {

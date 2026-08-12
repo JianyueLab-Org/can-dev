@@ -32,6 +32,7 @@ import {
   icaoFromName,
   parseSct,
   parseStands,
+  parseEse,
   parseStyleSheet,
   type FileKind,
   type GroundDoc,
@@ -39,6 +40,7 @@ import {
   type SctRunway,
   type SourceFeature,
   type StandRow,
+  type FreetextLabel,
 } from "@/lib/groundMap";
 import {
   docBounds,
@@ -76,7 +78,9 @@ const LAYER_ORDER = [
   "mark",
   "hld",
   "rwylbl",
+  "runlbl",
   "twylbl",
+  "hldlbl",
   "stdlbl",
 ];
 
@@ -91,6 +95,7 @@ const sources = ref(new Map<string, SourceFeature[]>());
 const merged = ref<GroundDoc[]>([]);
 const sct = ref<Record<string, SctRunway[]> | null>(null);
 const stands = ref<Record<string, StandRow[]> | null>(null);
+const ese = ref<Record<string, FreetextLabel[]> | null>(null);
 const styleDoc = ref<Record<string, unknown> | null>(null);
 const geo = ref<{ boundaries?: unknown; tracon?: unknown }>({});
 const rejected = ref<string[]>([]);
@@ -123,6 +128,7 @@ const built = computed(() => {
       els,
       sct.value ? (sct.value[icao] ?? []) : undefined,
       stands.value ? (stands.value[icao] ?? []) : undefined,
+      ese.value ? (ese.value[icao] ?? []) : undefined,
     );
     if (b.airport) airports[icao] = b.airport;
     notes.runwaysFromOsm ||= b.notes.runwaysFromOsm;
@@ -229,6 +235,11 @@ async function ingest(list: File[]) {
         const rw = parseSct(text);
         sct.value = rw;
         detail = String(Object.keys(rw).length);
+      } else if (kind === "ese") {
+        // [FREETEXT] 里的等待点名称和跑道长度，没有别的来源
+        const ft = parseEse(text);
+        ese.value = ft;
+        detail = String(Object.keys(ft).length);
       } else if (kind === "stands") {
         const st = parseStands(text);
         stands.value = st;
@@ -264,6 +275,7 @@ function clearAll() {
   merged.value = [];
   sct.value = null;
   stands.value = null;
+  ese.value = null;
   styleDoc.value = null;
   geo.value = {};
   rejected.value = [];
