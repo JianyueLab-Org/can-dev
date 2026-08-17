@@ -169,87 +169,94 @@ onBeforeUnmount(() => window.removeEventListener("scroll", onScroll));
         </button>
       </div>
     </nav>
+  </header>
 
-    <!-- 手机抽屉。和另外两个站一样，刻意不用 Teleport：sticky 的站头已经占着
-         顶层堆叠上下文，而 Teleport 过不了 Astro 的 Vue SSR 那一遍。 -->
+  <!-- Mobile menu. A **sibling** of <header>, never a child, and not teleported.
+
+       <header> carries `bg-chrome`, which sets a backdrop-filter — and an
+       element with a backdrop-filter becomes the containing block for its
+       `position: fixed` descendants. Nested inside, `fixed inset-0` resolved
+       against the 64px header rather than the viewport, so on a phone the
+       backdrop was a thin strip under the bar and the panel had nowhere to
+       go. It looked like the menu simply failed to render, which is how it
+       was reported. Safari is strictest about it; every engine does it.
+
+       A sibling is enough — Vue 3 allows several root nodes — and it keeps
+       the original reason for not teleporting: Teleport does not survive
+       Astro's Vue SSR pass cleanly. -->
+  <div
+    v-if="mobileMenuOpen"
+    class="lg:hidden"
+    role="dialog"
+    aria-modal="true"
+    :aria-label="t('openMenu')"
+  >
     <div
-      v-if="mobileMenuOpen"
-      class="lg:hidden"
-      role="dialog"
-      aria-modal="true"
-      :aria-label="t('openMenu')"
+      class="animate-overlay-in fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm"
+      @click="mobileMenuOpen = false"
+    ></div>
+    <div
+      ref="mobilePanel"
+      tabindex="-1"
+      class="animate-drawer-in-right fixed inset-y-0 right-0 z-50 flex w-full max-w-xs flex-col overflow-y-auto overscroll-contain border-l border-subtle bg-surface px-6 py-5 shadow-popover"
     >
-      <div
-        class="animate-overlay-in fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm"
-        @click="mobileMenuOpen = false"
-      ></div>
-      <div
-        ref="mobilePanel"
-        tabindex="-1"
-        class="animate-drawer-in-right fixed inset-y-0 right-0 z-50 flex w-full max-w-xs flex-col overflow-y-auto overscroll-contain border-l border-subtle bg-surface px-6 py-5 shadow-popover"
-      >
-        <div class="flex items-center justify-between">
-          <a href="/" class="-m-1.5 flex items-center gap-2.5 p-1.5">
-            <img alt="" src="/logo.png" class="h-8 w-auto" />
-            <span class="text-sm font-semibold text-ink">
-              {{ t("dev.siteName") }}
-            </span>
-          </a>
-          <button
-            type="button"
-            class="-mr-2 inline-flex size-10 items-center justify-center rounded-control text-muted hover:bg-surface-sunken hover:text-ink"
-            @click="mobileMenuOpen = false"
-          >
-            <span class="sr-only">{{ t("closeMenu") }}</span>
-            <Icon name="xMark" class="size-6" />
-          </button>
-        </div>
+      <div class="flex items-center justify-between">
+        <a href="/" class="-m-1.5 flex items-center gap-2.5 p-1.5">
+          <img alt="" src="/logo.png" class="h-8 w-auto" />
+          <span class="text-sm font-semibold text-ink">
+            {{ t("dev.siteName") }}
+          </span>
+        </a>
+        <button
+          type="button"
+          class="-mr-2 inline-flex size-10 items-center justify-center rounded-control text-muted hover:bg-surface-sunken hover:text-ink"
+          @click="mobileMenuOpen = false"
+        >
+          <span class="sr-only">{{ t("closeMenu") }}</span>
+          <Icon name="xMark" class="size-6" />
+        </button>
+      </div>
 
-        <div class="mt-6 flex flex-col gap-1">
-          <a
-            v-for="item in navigation"
-            :key="item.href"
-            :href="item.href"
-            :class="[
-              'rounded-control px-3 py-2.5 text-base font-semibold transition-colors',
-              isActive(item.href)
-                ? 'bg-surface-sunken text-can'
-                : 'text-ink hover:bg-surface-sunken',
-            ]"
-          >
-            {{ item.name }}
-          </a>
-          <a
-            :href="siteOrigin"
-            class="rounded-control px-3 py-2.5 text-base font-semibold text-ink transition-colors hover:bg-surface-sunken"
-          >
-            {{ t("dev.nav.mainSite") }}
-          </a>
-        </div>
+      <div class="mt-6 flex flex-col gap-1">
+        <a
+          v-for="item in navigation"
+          :key="item.href"
+          :href="item.href"
+          :class="[
+            'rounded-control px-3 py-2.5 text-base font-semibold transition-colors',
+            isActive(item.href)
+              ? 'bg-surface-sunken text-can'
+              : 'text-ink hover:bg-surface-sunken',
+          ]"
+        >
+          {{ item.name }}
+        </a>
+        <a
+          :href="siteOrigin"
+          class="rounded-control px-3 py-2.5 text-base font-semibold text-ink transition-colors hover:bg-surface-sunken"
+        >
+          {{ t("dev.nav.mainSite") }}
+        </a>
+      </div>
 
-        <div class="mt-6 border-t border-subtle pt-6">
-          <template v-if="loggedIn">
-            <p class="px-3 pb-3 text-sm text-faint">{{ memberName }}</p>
-            <form method="POST" action="/auth/logout">
-              <button type="submit" class="btn btn-ghost w-full px-4 py-2.5">
-                {{ t("dev.auth.signOut") }}
-              </button>
-            </form>
-          </template>
-          <a
-            v-else
-            href="/auth/login"
-            class="btn btn-primary w-full px-4 py-2.5"
-          >
-            {{ t("dev.auth.signIn") }}
-            <Icon name="arrowRight" class="size-4" />
-          </a>
-        </div>
+      <div class="mt-6 border-t border-subtle pt-6">
+        <template v-if="loggedIn">
+          <p class="px-3 pb-3 text-sm text-faint">{{ memberName }}</p>
+          <form method="POST" action="/auth/logout">
+            <button type="submit" class="btn btn-ghost w-full px-4 py-2.5">
+              {{ t("dev.auth.signOut") }}
+            </button>
+          </form>
+        </template>
+        <a v-else href="/auth/login" class="btn btn-primary w-full px-4 py-2.5">
+          {{ t("dev.auth.signIn") }}
+          <Icon name="arrowRight" class="size-4" />
+        </a>
+      </div>
 
-        <div class="mt-auto pt-6">
-          <ThemeLangControls :locale="locale" />
-        </div>
+      <div class="mt-auto pt-6">
+        <ThemeLangControls :locale="locale" />
       </div>
     </div>
-  </header>
+  </div>
 </template>
