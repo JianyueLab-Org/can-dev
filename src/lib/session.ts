@@ -23,7 +23,7 @@ const SESSION_COOKIE = "can_dev_session";
 const PENDING_COOKIE = "can_dev_pending";
 
 export interface Session {
-  /** ASN ID。 */
+  /** CAN ID。 */
   username: string;
   name: string | null;
   accessToken: string;

@@ -60,7 +60,7 @@
       "title": "Before you start",
       "auth": {
         "term": "No API key",
-        "detail": "There is nothing to apply for. Most endpoints below are open; the log upload takes an ASN ID and network password in the request body. Everything else under `/api` needs the website's own session cookie and is not a public interface."
+        "detail": "There is nothing to apply for. Most endpoints below are open; the log upload takes an CAN ID and network password in the request body. Everything else under `/api` needs the website's own session cookie and is not a public interface."
       },
       "envelope": {
         "term": "Response shape",
@@ -107,7 +107,7 @@
     "auth": {
       "none": "Open",
       "noneHint": "No key and no cookie — the rate limit is the only gate.",
-      "credentials": "ASN ID + network password",
+      "credentials": "CAN ID + network password",
       "credentialsHint": "Sent in the request body; the same credentials the desktop clients connect with.",
       "oauth": "OAuth access token",
       "oauthHint": "Send an access token obtained through unified sign-in in the `Authorization: Bearer` header.",
@@ -147,7 +147,7 @@
     "home": {
       "eyebrow": "Developer centre",
       "title": "Put CAN accounts into your application",
-      "description": "Cerulean Aviation Network is a standard OAuth 2.1 / OpenID Connect identity provider. Members sign in to your application with their own ASN account, and what you receive is a token — never their password. Register applications, manage redirect URIs and rotate secrets here.",
+      "description": "Cerulean Aviation Network is a standard OAuth 2.1 / OpenID Connect identity provider. Members sign in to your application with their own CAN account, and what you receive is a token — never their password. Register applications, manage redirect URIs and rotate secrets here.",
       "manageApps": "Manage my applications",
       "readDocs": "API reference",
       "features": {
@@ -335,11 +335,11 @@
     "scopes": {
       "openid": {
         "title": "Confirm identity",
-        "detail": "The member's ASN ID. Every sign-in needs it."
+        "detail": "The member's CAN ID. Every sign-in needs it."
       },
       "profile": {
         "title": "Basic profile",
-        "detail": "Name, ASN ID, controller rating, registration date."
+        "detail": "Name, CAN ID, controller rating, registration date."
       },
       "email": {
         "title": "Email address",

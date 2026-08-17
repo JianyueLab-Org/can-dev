@@ -21,7 +21,7 @@ export default defineConfig({
    *
    * Astro 在 SSR 下默认开启 `checkOrigin`：它从 `Host` 头推导出本站的 origin，
    * 再和浏览器发来的 `Origin` 头比对，对不上就 403。而这个站跑在 TLS 终止的反
-   * 代后面 —— Astro 推出来的是 `http://platform.airwaysn.org`，浏览器发的是
+   * 代后面 —— Astro 推出来的是 `http://platform.ceruleanavi.net`，浏览器发的是
    * `https://…`，**永远对不上**。can-web 因为同一个原因早就关掉了它。
    *
    * 关掉不等于没有检查：写操作的 Origin 由 `src/lib/guard.ts` 比对**显式的**

@@ -33,13 +33,13 @@ function required(name: string): string {
  * 址 —— 留着它只会让人以为改一个值就够了。
  */
 export const apiOrigin = () =>
-  (process.env.CAN_API_ORIGIN || "https://api.airwaysn.org").replace(
+  (process.env.CAN_API_ORIGIN || "https://api.ceruleanavi.net").replace(
     /\/+$/,
     "",
   );
 
 export const webOrigin = () =>
-  (process.env.CAN_WEB_ORIGIN || "https://airwaysn.org").replace(/\/+$/, "");
+  (process.env.CAN_WEB_ORIGIN || "https://ceruleanavi.net").replace(/\/+$/, "");
 
 /** 这个部署自己的对外地址，回调地址就是从它拼出来的。 */
 export const origin = () =>

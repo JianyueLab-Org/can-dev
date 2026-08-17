@@ -60,7 +60,7 @@
       "title": "开始之前",
       "auth": {
         "term": "不需要 API Key",
-        "detail": "没有需要申请的东西。下面大部分接口直接开放；日志上传要在请求体里带上 ASN ID 和网络密码。`/api` 下的其他路由都需要网站自己的会话 Cookie，不属于对外接口。"
+        "detail": "没有需要申请的东西。下面大部分接口直接开放；日志上传要在请求体里带上 CAN ID 和网络密码。`/api` 下的其他路由都需要网站自己的会话 Cookie，不属于对外接口。"
       },
       "envelope": {
         "term": "返回结构",
@@ -107,7 +107,7 @@
     "auth": {
       "none": "开放",
       "noneHint": "不需要密钥，也不需要 Cookie，频率限制是唯一的门槛。",
-      "credentials": "ASN ID + 网络密码",
+      "credentials": "CAN ID + 网络密码",
       "credentialsHint": "放在请求体里，就是桌面客户端连线用的那一组。",
       "oauth": "OAuth 访问令牌",
       "oauthHint": "在 `Authorization: Bearer` 头里带上通过统一登录取得的 access 令牌。",
@@ -147,7 +147,7 @@
     "home": {
       "eyebrow": "开发者中心",
       "title": "把 CAN 账号接进你的应用",
-      "description": "Cerulean Aviation Network 是一个标准的 OAuth 2.1 / OpenID Connect 身份提供方。成员用自己的 ASN 账号登录你的应用，你拿到的是一枚令牌，而不是他的密码。在这里注册应用、管理回调地址和密钥。",
+      "description": "Cerulean Aviation Network 是一个标准的 OAuth 2.1 / OpenID Connect 身份提供方。成员用自己的 CAN 账号登录你的应用，你拿到的是一枚令牌，而不是他的密码。在这里注册应用、管理回调地址和密钥。",
       "manageApps": "管理我的应用",
       "readDocs": "接口文档",
       "features": {
@@ -335,11 +335,11 @@
     "scopes": {
       "openid": {
         "title": "确认身份",
-        "detail": "拿到成员的 ASN ID。登录都需要它。"
+        "detail": "拿到成员的 CAN ID。登录都需要它。"
       },
       "profile": {
         "title": "基本资料",
-        "detail": "姓名、ASN ID、管制等级、注册时间。"
+        "detail": "姓名、CAN ID、管制等级、注册时间。"
       },
       "email": {
         "title": "邮箱地址",
