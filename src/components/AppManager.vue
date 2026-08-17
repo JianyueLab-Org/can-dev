@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { createTranslator } from "@/lib/i18n";
-import { useOverlay } from "@/lib/useOverlay";
-import AlertBox from "@/components/ui/AlertBox.vue";
+import { AlertBox, useOverlay } from "@jianyuelab-org/can-ui";
 
 /**
  * 「我的应用」的全部交互。

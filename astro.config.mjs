@@ -32,5 +32,15 @@ export default defineConfig({
    */
   security: { checkOrigin: false },
 
-  vite: { plugins: [tailwindcss()] },
+  vite: {
+    plugins: [tailwindcss()],
+
+    /**
+     * can-ui 发的是**源码**（`.vue` / `.ts` / `.css`）而不是构建产物 —— 六个
+     * 站是同一套 Astro + Vue + Tailwind v4 工具链，包里再压一个编译步骤只会
+     * 碍事。代价是必须告诉 Vite 不要把它当外部依赖：不加这一行，SSR 会去
+     * `require` 一个 `.vue` 文件，首屏直接 500。
+     */
+    ssr: { noExternal: ["@jianyuelab-org/can-ui"] },
+  },
 });

@@ -22,8 +22,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { createTranslator } from "@/lib/i18n";
-import AlertBox from "@/components/ui/AlertBox.vue";
-import Icon from "@/components/ui/Icon.vue";
+import { AlertBox, Icon } from "@jianyuelab-org/can-ui";
 import {
   buildAirportFromSource,
   buildWorldLayer,
