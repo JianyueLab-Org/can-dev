@@ -7,6 +7,7 @@
       "dependencies": {
         "@astrojs/node": "^11",
         "@astrojs/vue": "^7",
+        "@jianyuelab-org/can-ui": "^0.2.1",
         "astro": "^7.2.0",
         "vue": "^3.5.24",
       },
@@ -273,6 +274,8 @@
     "@img/sharp-win32-ia32": ["@img/sharp-win32-ia32@0.35.3", "", { "os": "win32", "cpu": "ia32" }, "sha512-r53mXsBN6lFUDiST764SvgwUdHAqM4rPAiDzAmf4fLoB6X/rkfyTrLCg6+g17wJJiCmB3JYgHuUldCWUIRFSXw=="],
 
     "@img/sharp-win32-x64": ["@img/sharp-win32-x64@0.35.3", "", { "os": "win32", "cpu": "x64" }, "sha512-D4y1vNeZrIIJCN+uHaWVtH86B+aCrdMYYjicy9pXHvbGZeGYLLSd3wdVuC37FxVXlU1ARsk84eKWfWMXGYEqvA=="],
+
+    "@jianyuelab-org/can-ui": ["@jianyuelab-org/can-ui@0.2.1", "https://npm.pkg.github.com/download/@jianyuelab-org/can-ui/0.2.1/7f3a4b3b2102cbfc9c23f1a9c102338c6f3c27c1", { "peerDependencies": { "astro": "^6.0.0 || ^7.0.0", "tailwindcss": "^4.0.0", "vue": "^3.5.0" } }, "sha512-X8RN9PSvRL1WE8KTSfUviyWex8iR8z1dV3iF4rCY7R/PVe3Z3WeMoCwoGQDkLrfmh0NZ3QEDj8m52qvCH46nSg=="],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 
