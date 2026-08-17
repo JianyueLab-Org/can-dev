@@ -9,8 +9,8 @@
  * 矩，写在这里是为了让第三个站不要自己再发明一次。
  */
 import "@/styles/globals.css";
-import ThemeScript from "@/components/ThemeScript.astro";
-import ThemeLangControls from "@/components/ui/ThemeLangControls.vue";
+import ThemeScript from "@jianyuelab-org/can-ui/components/ThemeScript.astro";
+import { ThemeLangControls } from "@jianyuelab-org/can-ui";
 import { getLocale, useTranslations } from "@/lib/i18n";
 
 interface Props {
