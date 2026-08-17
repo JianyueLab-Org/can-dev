@@ -19,8 +19,8 @@
  *
  * - **`{origin}` is no longer this site's own origin.** On can-web the two
  *   happened to coincide, because the legacy allow-list proxy in
- *   `src/pages/api/[...path].ts` still answers these paths on `airwaysn.org`.
- *   Here they do not coincide at all: `platform.airwaysn.org/api/v1/atis` is a
+ *   `src/pages/api/[...path].ts` still answers these paths on `ceruleanavi.net`.
+ *   Here they do not coincide at all: `platform.ceruleanavi.net/api/v1/atis` is a
  *   404. `withOrigin` therefore takes **two** origins and each endpoint says
  *   which one serves it — see `ApiHost`.
  * - **Nothing addresses the reader as "this site".** The prose below names
@@ -58,7 +58,7 @@ export type LimitKey = string;
  * Go, and can-api's discovery document points `authorization_endpoint` back at
  * it (RFC 8414 permits a different origin).
  *
- * Getting this wrong is not cosmetic: printing `api.airwaysn.org/oauth/authorize`
+ * Getting this wrong is not cosmetic: printing `api.ceruleanavi.net/oauth/authorize`
  * would send every integrator's first sign-in attempt to a 404.
  */
 export type ApiHost = "api" | "web";
@@ -68,7 +68,7 @@ export type ApiMethod = "GET" | "HEAD" | "POST";
 /** How a caller proves who they are. */
 export type ApiAuth =
   | "none"
-  /** ASN ID + network password in the body — what the desktop clients hold. */
+  /** CAN ID + network password in the body — what the desktop clients hold. */
   | "credentials"
   /** An OAuth access token in `Authorization: Bearer`. */
   | "oauth"
@@ -149,7 +149,7 @@ const ATIS: ApiEndpoint = {
   path: "/api/v1/atis",
   summary: "Turn a METAR into a line of spoken ATIS text.",
   body: [
-    'This is the URL a controller pastes into EuroScope\'s "ATIS maker URL" field. EuroScope substitutes its own macros into the query string, GETs it, and speaks or displays the plain text that comes back. Build the URL on https://airwaysn.org/controllers/atis rather than by hand.',
+    'This is the URL a controller pastes into EuroScope\'s "ATIS maker URL" field. EuroScope substitutes its own macros into the query string, GETs it, and speaks or displays the plain text that comes back. Build the URL on https://ceruleanavi.net/controllers/atis rather than by hand.',
     "It is a formatter, not a weather service: give it a METAR and it gives you the ATIS. `icao` alone also works — the METAR is then fetched for you — which makes the same URL usable from a script that has no weather source of its own.",
   ],
   auth: "none",
@@ -359,7 +359,7 @@ const TRACK: ApiEndpoint = {
       name: "cid",
       type: "integer",
       required: true,
-      description: "The pilot's ASN ID, 1–10 digits.",
+      description: "The pilot's CAN ID, 1–10 digits.",
     },
     {
       name: "limit",
@@ -569,7 +569,7 @@ const LOGS: ApiEndpoint = {
   limitScope:
     "per member (plus a wider per-IP bucket, checked before the body is read)",
   fields: [
-    { name: "cid", type: "string", required: true, description: "ASN ID." },
+    { name: "cid", type: "string", required: true, description: "CAN ID." },
     {
       name: "password",
       type: "string",
@@ -613,7 +613,7 @@ const LOGS: ApiEndpoint = {
     },
     {
       code: 401,
-      when: "ASN ID or password is wrong. One message for both cases, deliberately.",
+      when: "CAN ID or password is wrong. One message for both cases, deliberately.",
     },
     {
       code: 413,
@@ -1018,7 +1018,7 @@ export const API_GROUPS: ApiGroup[] = [
     key: "oauth",
     name: "Unified sign-in",
     description:
-      "Sign a member in with their ASN account, and act for them afterwards. Standard OAuth 2.1 authorization code + PKCE with OpenID Connect on top, so an off-the-shelf client library configured from the discovery document will work without anything bespoke. Applications are registered by hand for now — ask through the feedback form.",
+      "Sign a member in with their CAN account, and act for them afterwards. Standard OAuth 2.1 authorization code + PKCE with OpenID Connect on top, so an off-the-shelf client library configured from the discovery document will work without anything bespoke. Applications are registered by hand for now — ask through the feedback form.",
     icon: "key",
     endpoints: [
       OIDC_DISCOVERY,
@@ -1061,7 +1061,7 @@ export const API_GROUPS: ApiGroup[] = [
  * page so their absence reads as a decision.
  *
  * Every entry names the component it belongs to rather than saying "this
- * site". The reader is on `platform.airwaysn.org`, the routes are can-api's,
+ * site". The reader is on `platform.ceruleanavi.net`, the routes are can-api's,
  * and the panels that call them are can-web's — three different things that
  * "this" cannot distinguish.
  */
@@ -1069,12 +1069,12 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
   {
     path: "/api/v1/route",
     reason:
-      "Moved. Route resolution lives on the radar's own site — https://radar.airwaysn.org/api/v1/route — with the same shape, the same rate limit and still no authentication. It went with the map because the navigation database it reads is what makes it expensive, and nothing else needs it.",
+      "Moved. Route resolution lives on the radar's own site — https://radar.ceruleanavi.net/api/v1/route — with the same shape, the same rate limit and still no authentication. It went with the map because the navigation database it reads is what makes it expensive, and nothing else needs it.",
   },
   {
     path: "/api/v1/pilot/*, /api/v1/activity/*, /api/v1/super/*, /api/v1/atc/*",
     reason:
-      "Portal plumbing. Most need a member's session cookie; the few reads that do not — the activity feed and the ATC reservation board — exist to draw a panel on airwaysn.org, their shapes follow whatever that panel needs that week, and they are not a contract with anyone outside the network's own repositories.",
+      "Portal plumbing. Most need a member's session cookie; the few reads that do not — the activity feed and the ATC reservation board — exist to draw a panel on ceruleanavi.net, their shapes follow whatever that panel needs that week, and they are not a contract with anyone outside the network's own repositories.",
   },
   {
     path: "/api/v1/public/auth",
@@ -1084,7 +1084,7 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
   {
     path: "/api/email/*",
     reason:
-      "Sign-up, verification and password reset for airwaysn.org's own forms.",
+      "Sign-up, verification and password reset for ceruleanavi.net's own forms.",
   },
   {
     path: "/api/v1/dev/clients",
@@ -1099,9 +1099,9 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
 ];
 
 export interface ApiOrigins {
-  /** can-api — `https://api.airwaysn.org`. */
+  /** can-api — `https://api.ceruleanavi.net`. */
   api: string;
-  /** can-web — `https://airwaysn.org`. Serves the consent screen only. */
+  /** can-web — `https://ceruleanavi.net`. Serves the consent screen only. */
   web: string;
 }
 

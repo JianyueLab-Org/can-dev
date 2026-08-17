@@ -86,7 +86,7 @@ can-web 那边发生，再同步过来。新页面套 `SiteLayout.astro`（站�
 是 can-web 的镜像（改在那边再同步），`apiDocs`/`dev` 是本站自己的。
 
 **`/docs` 印的是 can-api 的地址，不是 `Astro.url.origin`。** 在 can-web 上那两
-者恰好相等，在这里差得很远 —— `platform.airwaysn.org/api/v1/atis` 是 404。而且
+者恰好相等，在这里差得很远 —— `platform.ceruleanavi.net/api/v1/atis` 是 404。而且
 是**两个**地址：同意页 `/oauth/authorize` 在 can-web，其余全在 can-api，每个端
 点用 `host` 字段说明自己归谁（`src/lib/apiDocs.ts` 的 `ApiHost`）。
 

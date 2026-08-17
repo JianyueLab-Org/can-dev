@@ -5,7 +5,7 @@ Cerulean Aviation Network 的开发者中心：成员在这里自助注册 OAuth
 读写的是同一张 `oauthClient` 表。
 
 `/docs` 是**公开接口文档** —— 网络对外开放的那几个端点，连同统一登录的完整说
-明。它原来在主站的 `airwaysn.org/developers`，那个地址现在是一条 301。
+明。它原来在主站的 `ceruleanavi.net/developers`，那个地址现在是一条 301。
 
 `/ground` 是**地面图预览**：把 Ground 仓库的 json 按扇区包里那个地面插件
 （GroundMap）的画法画出来。不要登录，也不发一个请求 —— 文件由你自己拖进浏览
@@ -25,9 +25,9 @@ can-radar 共用同一套设计系统与四语言词典。
 # 在 can-web 仓库，需要 DATABASE_URL
 bun run scripts/oauth-client.mjs create can-dev \
   --name "CAN 开发者中心" \
-  --redirect https://platform.airwaysn.org/auth/callback \
+  --redirect https://platform.ceruleanavi.net/auth/callback \
   --scopes "openid profile apps:manage" \
-  --trusted --website https://platform.airwaysn.org
+  --trusted --website https://platform.ceruleanavi.net
 ```
 
 打印出来的 `client_secret` 只出现这一次。回调地址要和 `PUBLIC_ORIGIN` 拼出来
@@ -54,14 +54,14 @@ bun run build && bun run start
 
 ## 环境变量
 
-| 变量                | 说明                                                 |
-| ------------------- | ---------------------------------------------------- |
-| `CAN_API_ORIGIN`    | can-api，默认 `https://api.airwaysn.org`             |
-| `CAN_WEB_ORIGIN`    | can-web，只用来拼同意页，默认 `https://airwaysn.org` |
-| `CAN_CLIENT_ID`     | 默认 `can-dev`                                       |
-| `CAN_CLIENT_SECRET` | 注册时打印的那一次                                   |
-| `PUBLIC_ORIGIN`     | 本部署的对外地址，回调地址由它拼出                   |
-| `SESSION_SECRET`    | 会话 cookie 的加密密钥，`openssl rand -base64 32`    |
+| 变量                | 说明                                                    |
+| ------------------- | ------------------------------------------------------- |
+| `CAN_API_ORIGIN`    | can-api，默认 `https://api.ceruleanavi.net`             |
+| `CAN_WEB_ORIGIN`    | can-web，只用来拼同意页，默认 `https://ceruleanavi.net` |
+| `CAN_CLIENT_ID`     | 默认 `can-dev`                                          |
+| `CAN_CLIENT_SECRET` | 注册时打印的那一次                                      |
+| `PUBLIC_ORIGIN`     | 本部署的对外地址，回调地址由它拼出                      |
+| `SESSION_SECRET`    | 会话 cookie 的加密密钥，`openssl rand -base64 32`       |
 
 ## 几件值得知道的事
 

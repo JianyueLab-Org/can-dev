@@ -16,9 +16,9 @@
 #
 #   bun run scripts/oauth-client.mjs create can-dev \
 #     --name "CAN 开发者中心" \
-#     --redirect https://platform.airwaysn.org/auth/callback \
+#     --redirect https://platform.ceruleanavi.net/auth/callback \
 #     --scopes "openid profile apps:manage" \
-#     --trusted --website https://platform.airwaysn.org
+#     --trusted --website https://platform.ceruleanavi.net
 #
 # 那个脚本写的是 oauthClient 表，而 can-api 读的是同一个库，所以已经注册过的这
 # 一行不用重来 —— 换的是主机，不是凭据。
@@ -64,11 +64,11 @@ spec:
             # RFC 8414 允许 authorization_endpoint 落在别的源上，can-api 的
             # discovery 文档正是这么写的。
             - name: CAN_API_ORIGIN
-              value: https://api.airwaysn.org
+              value: https://api.ceruleanavi.net
             - name: CAN_WEB_ORIGIN
-              value: https://airwaysn.org
+              value: https://ceruleanavi.net
             - name: PUBLIC_ORIGIN
-              value: https://platform.airwaysn.org
+              value: https://platform.ceruleanavi.net
             - name: CAN_CLIENT_ID
               value: can-dev
           envFrom:
@@ -127,7 +127,7 @@ metadata:
 spec:
   ingressClassName: cloudflare-tunnel
   rules:
-    - host: platform.airwaysn.org
+    - host: platform.ceruleanavi.net
       http:
         paths:
           - backend:

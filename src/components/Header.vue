@@ -25,7 +25,7 @@ const props = withDefaults(
     /**
      * 主站的地址。
      *
-     * 开发者中心跑在 platform.airwaysn.org，是一个**独立的源**；回主站的链接
+     * 开发者中心跑在 platform.ceruleanavi.net，是一个**独立的源**；回主站的链接
      * 留成相对路径的话，会打在本站域名上然后 404 —— can-radar 拆出去的时候
      * 踩的就是这个，这里照它的办法解决。
      */
@@ -35,7 +35,7 @@ const props = withDefaults(
     memberName: null,
     pathname: "",
     locale: "zh-cn",
-    siteOrigin: "https://airwaysn.org",
+    siteOrigin: "https://ceruleanavi.net",
   },
 );
 
@@ -102,7 +102,7 @@ onBeforeUnmount(() => window.removeEventListener("scroll", onScroll));
       class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8"
     >
       <!-- 方形标记 + 文字，**不是** logo-full.png。那张图里的字是
-           "Airway Simulation Network" —— 网络的旧名字。把它挂在这儿，站头就成
+           "Cerulean Aviation Network" —— 网络的旧名字。把它挂在这儿，站头就成
            了「旧品牌 + 新站名」并排，而且同一个名字说了两遍。文字用词条，所以
            它跟着语言走。 -->
       <a href="/" class="-m-1.5 flex shrink-0 items-center gap-2.5 p-1.5">
@@ -121,7 +121,7 @@ onBeforeUnmount(() => window.removeEventListener("scroll", onScroll));
           :class="[
             'rounded-control px-3 py-2 text-sm font-semibold transition-colors',
             isActive(item.href)
-              ? 'bg-surface-sunken text-airwaysn'
+              ? 'bg-surface-sunken text-can'
               : 'text-muted hover:bg-surface-sunken hover:text-ink',
           ]"
         >
@@ -213,7 +213,7 @@ onBeforeUnmount(() => window.removeEventListener("scroll", onScroll));
             :class="[
               'rounded-control px-3 py-2.5 text-base font-semibold transition-colors',
               isActive(item.href)
-                ? 'bg-surface-sunken text-airwaysn'
+                ? 'bg-surface-sunken text-can'
                 : 'text-ink hover:bg-surface-sunken',
             ]"
           >
