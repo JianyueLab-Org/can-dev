@@ -137,8 +137,7 @@
       "home": "ホーム",
       "apps": "マイアプリ",
       "docs": "API リファレンス",
-      "ground": "地上図",
-      "mainSite": "メインサイトへ"
+      "ground": "地上図"
     },
     "auth": {
       "signIn": "CAN アカウントでログイン",
