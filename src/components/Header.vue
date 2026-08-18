@@ -12,7 +12,14 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { createTranslator } from "@/lib/i18n";
-import { Icon, ThemeLangControls, useOverlay } from "@jianyuelab-org/can-ui";
+import {
+  Icon,
+  NetworkMenu,
+  ThemeLangControls,
+  sectionHeadings,
+  useOverlay,
+  visibleSites,
+} from "@jianyuelab-org/can-ui";
 
 const props = withDefaults(
   defineProps<{
@@ -22,20 +29,11 @@ const props = withDefaults(
     memberName?: string | null;
     pathname?: string;
     locale?: string;
-    /**
-     * 主站的地址。
-     *
-     * 开发者中心跑在 platform.ceruleanavi.net，是一个**独立的源**；回主站的链接
-     * 留成相对路径的话，会打在本站域名上然后 404 —— can-radar 拆出去的时候
-     * 踩的就是这个，这里照它的办法解决。
-     */
-    siteOrigin?: string;
   }>(),
   {
     memberName: null,
     pathname: "",
     locale: "zh-cn",
-    siteOrigin: "https://ceruleanavi.net",
   },
 );
 
@@ -46,6 +44,17 @@ const scrolled = ref(false);
 const mobilePanel = useOverlay(mobileMenuOpen);
 
 const loggedIn = computed(() => !!props.memberName);
+
+/** 「全网」那个词、和抽屉里铺开的那份清单，都来自 can-ui。 */
+const networkLabel = computed(() => sectionHeadings(props.locale).menuLabel);
+const networkSites = computed(() =>
+  visibleSites({
+    locale: props.locale,
+    current: "dev",
+    signedIn: loggedIn.value,
+    excludeCurrent: true,
+  }),
+);
 
 /**
  * 「我的应用」只在登录后出现。
@@ -127,15 +136,15 @@ onBeforeUnmount(() => window.removeEventListener("scroll", onScroll));
         >
           {{ item.name }}
         </a>
-        <a
-          :href="siteOrigin"
-          class="rounded-control px-3 py-2 text-sm font-semibold text-muted transition-colors hover:bg-surface-sunken hover:text-ink"
-        >
-          {{ t("dev.nav.mainSite") }}
-        </a>
       </div>
 
       <div class="ml-auto flex items-center gap-2">
+        <!-- 从前这里是一条孤零零的「主站」链接，也是走出开发者中心的唯一一条路。
+             换成 can-ui 的「全网」菜单：主站仍在其中（那一条是公开的），管制员中
+             心、考试中心、EFB、文档也终于在了。 -->
+        <div class="hidden sm:block">
+          <NetworkMenu :locale="locale" current="dev" :signed-in="loggedIn" />
+        </div>
         <div class="hidden sm:block">
           <ThemeLangControls :locale="locale" />
         </div>
@@ -231,12 +240,24 @@ onBeforeUnmount(() => window.removeEventListener("scroll", onScroll));
         >
           {{ item.name }}
         </a>
-        <a
-          :href="siteOrigin"
-          class="rounded-control px-3 py-2.5 text-base font-semibold text-ink transition-colors hover:bg-surface-sunken"
-        >
-          {{ t("dev.nav.mainSite") }}
-        </a>
+
+        <!-- 全网。桌面上是一个下拉；在抽屉里铺开，因为一个弹层从抽屉里弹出来只
+             会被抽屉自己盖住。数据是同一份 `visibleSites`。 -->
+        <template v-if="networkSites.length">
+          <div
+            class="mt-4 px-3 pb-1 text-[11px] font-semibold uppercase tracking-widest text-faint"
+          >
+            {{ networkLabel }}
+          </div>
+          <a
+            v-for="site in networkSites"
+            :key="site.key"
+            :href="site.href"
+            class="rounded-control px-3 py-2.5 text-base font-semibold text-ink transition-colors hover:bg-surface-sunken"
+          >
+            {{ site.name }}
+          </a>
+        </template>
       </div>
 
       <div class="mt-6 border-t border-subtle pt-6">

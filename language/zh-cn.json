@@ -137,8 +137,7 @@
       "home": "首页",
       "apps": "我的应用",
       "docs": "接口文档",
-      "ground": "地面图",
-      "mainSite": "返回主站"
+      "ground": "地面图"
     },
     "auth": {
       "signIn": "用 CAN 账号登录",

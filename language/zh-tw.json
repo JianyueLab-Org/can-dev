@@ -137,8 +137,7 @@
       "home": "首頁",
       "apps": "我的應用程式",
       "docs": "介面文件",
-      "ground": "地面圖",
-      "mainSite": "回到主站"
+      "ground": "地面圖"
     },
     "auth": {
       "signIn": "用 CAN 帳號登入",

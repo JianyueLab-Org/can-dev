@@ -137,8 +137,7 @@
       "home": "Home",
       "apps": "My applications",
       "docs": "API reference",
-      "ground": "Ground maps",
-      "mainSite": "Main site"
+      "ground": "Ground maps"
     },
     "auth": {
       "signIn": "Sign in with CAN",

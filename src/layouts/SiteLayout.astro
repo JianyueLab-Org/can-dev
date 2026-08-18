@@ -13,7 +13,7 @@
  */
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import Header from "@/components/Header.vue";
-import Footer from "@/components/Footer.astro";
+import SiteFooter from "@jianyuelab-org/can-ui/components/SiteFooter.vue";
 import { getLocale, getMessages } from "@/lib/i18n";
 
 interface Props {
@@ -54,6 +54,14 @@ const mainWidth = width === "wide" ? "max-w-7xl" : "max-w-5xl";
       <slot />
     </main>
 
-    <Footer />
+    {
+      /* 本仓库那份 Footer.astro 删掉了。它是 can-web 页脚的手抄副本，两份已经各
+         自长歪，而且**两份都带着同一条坏链接** —— `https://github.com/Cerulean
+         Aviation Network/`，URL 里带两个空格，改名时全局替换的残骸。
+
+         它原来那一栏「首页 / 应用 / 文档」是本站自己的页面，页眉上已经全有；页脚
+         再抄一遍不会让它们更好找，只会让**只在页脚出现**的那几条被淹掉。 */
+    }
+    <SiteFooter locale={locale} current="dev" signedIn={!!session} />
   </div>
 </BaseLayout>
