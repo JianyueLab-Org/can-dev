@@ -11,8 +11,22 @@ import { readSession } from "@/lib/session";
  * **`/api/*` 不在保护范围里**，和 can-web 一样：那些路由自己检查会话（见
  * `requireSession`）。中间件重定向到登录页对一个 fetch 调用是没有意义的，它
  * 需要的是 401。
+ *
+ * ## 为什么 `/docs` 在这里
+ *
+ * 接口文档从前是公开的。它现在要登录 —— 读它的人是来注册应用的，而注册应用本
+ * 来就需要一个成员账号，所以这道门槛不挡任何真正要用它的人。
+ *
+ * **首页不在这个名单里，这是有意的，而且它是这次改动的另一半。** 一个未登录的
+ * 访客仍然要有一页能说明这个站是什么、并把他送去登录 —— 否则「开发者中心」在全
+ * 网菜单里就成了一条谁也点不动的链接。can-ui 的站点注册表因此把这一条从
+ * `/docs` 改指首页；两处要一起看，只改一边会让菜单指向登录墙（改回 `/docs`）或
+ * 者让文档重新暴露（从这里拿掉）。
+ *
+ * `/ground` 同理留在外面，理由写在 `Header.vue` 的导航里：它没有上游，文件是使
+ * 用者自己拖进浏览器的。
  */
-const PROTECTED = ["/apps"];
+const PROTECTED = ["/apps", "/docs"];
 
 function withSecurityHeaders(response: Response): Response {
   response.headers.set("X-Content-Type-Options", "nosniff");

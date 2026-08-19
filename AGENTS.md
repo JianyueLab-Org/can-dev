@@ -4,9 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CAN 开发者中心。成员在这里自助注册 OAuth 应用；它接管的是
 `scripts/oauth-client.mjs` 手工干的事，读写同一张 `oauthClient` 表。它同时是
-**公开接口文档**的家（`/docs`，原来在 can-web 的 `/developers`）和**地面图预
-览**的家（`/ground`，见下）。
+**接口文档**的家（`/docs`，原来在 can-web 的 `/developers`）和**地面图预览**的
+家（`/ground`，见下）。
 Astro SSR + Vue 岛屿 + Tailwind v4，形状照 can-web。README 是给人读的那一份。
+
+**`/docs` 要登录，首页和 `/ground` 不要。** 文档从前是公开的；读它的人是来注册
+应用的，而注册应用本来就需要一个成员账号，所以这道门槛不挡真正要用它的人。首页
+留在门外是这件事的**另一半**：未登录的访客要有一页能说明这个站是什么、并把他送
+去登录，否则「开发者中心」在全网菜单里就是一条谁也点不动的链接。can-ui 的站点注
+册表因此把那一条从 `/docs` 改指首页 —— 两处要一起看，只改一边不是把菜单指向登录
+墙，就是让文档重新暴露。
 
 上游是**两个**地址：`CAN_API_ORIGIN` 是 can-api，OIDC 的 issuer，换令牌、
 userinfo、吊销和 `/api/v1/dev/clients` 都在那儿；`CAN_WEB_ORIGIN` 只剩同意页
