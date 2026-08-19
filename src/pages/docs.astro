@@ -23,7 +23,7 @@
 import SiteLayout from "@/layouts/SiteLayout.astro";
 import { ICON_PATHS } from "@jianyuelab-org/can-ui";
 import { getLocale, useTranslations } from "@/lib/i18n";
-import { apiOrigin, webOrigin } from "@/lib/config";
+import { apiOrigin, fsdOrigin, webOrigin } from "@/lib/config";
 import { fetchLimits } from "@/lib/limits";
 import {
   API_GROUPS,
@@ -37,7 +37,7 @@ import {
 const locale = getLocale(Astro.cookies);
 const t = useTranslations(locale, "apiDocs");
 
-const origins = { api: apiOrigin(), web: webOrigin() };
+const origins = { api: apiOrigin(), web: webOrigin(), fsd: fsdOrigin() };
 const groups = withOrigin(API_GROUPS, origins);
 
 // 运行中的那张表，所以写下来的限制就是执行中的限制。
@@ -139,6 +139,12 @@ const conventions = [
           >{origins.api}</code
         >
       </div>
+      {
+        /* 这一行印的是 can-api。同意页和实时数据源在别的主机上，各自的卡片里会印
+          出自己的地址 —— 但那要读到那张卡片才看得见，而拼地址的动作往往发生在
+          读到之前。 */
+      }
+      <p class="mt-2 max-w-2xl text-sm text-faint">{t("baseUrlHint")}</p>
     </div>
   </div>
 
@@ -267,11 +273,14 @@ const conventions = [
                         {method}
                       </span>
                     ))}
-                    {/* 主机名只在它不是默认的 can-api 时印出来。同意页在
-                        can-web 上，只写路径的话读者会把它拼到 API 的地址后
-                        面，然后第一次登录就撞 404。 */}
+                    {/* 主机名只在它不是默认的 can-api 时印出来 —— 但**只要**
+                        不是就一定印。同意页在 can-web 上，实时数据源在
+                        can-fsd 上；只写路径的话读者会把它拼到 API 的地址后面，
+                        然后第一次登录撞 404，第一次拉数据也撞 404。判的是
+                        「不等于 api」而不是逐个列举，这样以后再多一个源，忘了
+                        改这一行也不会静悄悄地印错。 */}
                     <code class="break-all font-mono text-sm font-semibold text-ink sm:text-base">
-                      {endpoint.host === "web" && (
+                      {endpoint.host && endpoint.host !== "api" && (
                         <span class="font-normal text-muted">
                           {endpoint.baseUrl}
                         </span>
@@ -301,6 +310,21 @@ const conventions = [
                       <dd class="mt-0.5 text-xs leading-relaxed text-faint">
                         {t(`auth.${endpoint.auth}Hint`)}
                       </dd>
+                      {/* 需要的 scope 紧贴着鉴权方式，因为「要一个令牌」和
+                          「要一个带 flights:read 的令牌」是两个要求，而 403 是
+                          后者给的。 */}
+                      {endpoint.scopes && endpoint.scopes.length > 0 && (
+                        <dd class="mt-2 flex flex-wrap items-center gap-1.5">
+                          <span class="text-xs font-semibold uppercase tracking-widest text-faint">
+                            {t("labels.scopes")}
+                          </span>
+                          {endpoint.scopes.map((scope) => (
+                            <code class="rounded bg-surface px-1.5 py-0.5 font-mono text-xs text-ink">
+                              {scope}
+                            </code>
+                          ))}
+                        </dd>
+                      )}
                     </div>
                     <div>
                       <dt class="text-xs font-semibold uppercase tracking-widest text-faint">

@@ -89,6 +89,7 @@
     },
     "labels": {
       "authentication": "Authentication",
+      "scopes": "Scopes",
       "rateLimit": "Rate limit",
       "cors": "CORS",
       "pathParams": "Path parameters",
@@ -128,7 +129,8 @@
       "title": "Questions, or something you need opened?",
       "description": "Send a note through the report form — it reaches the maintainer directly.",
       "cta": "Issues & ideas"
-    }
+    },
+    "baseUrlHint": "Most endpoints live here. The consent screen is on can-web and the live datafeed on can-fsd; those print their own hostname beside the path."
   },
   "dev": {
     "siteName": "CAN Developer Centre",
@@ -360,6 +362,29 @@
         "title": "Offline access",
         "detail": "Keeps working after the member closes the browser, until they revoke it. Do not ask for it unless you are sure."
       }
+    },
+    "noAccess": {
+      "eyebrow": "One step short",
+      "title": "This account is not a developer yet",
+      "summary": "The developer centre is for registering and managing OAuth applications, and a network administrator has to grant access to it one member at a time. It is not automatic, and it has nothing to do with controlling rating — an OBS can be a developer, and an administrator need not be.",
+      "signedInAs": "Signed in as {name} (CAN ID {id}). Quote that ID when you ask.",
+      "howTitle": "How to ask",
+      "steps": {
+        "who": {
+          "title": "Check that you actually need it",
+          "detail": "Only registering an application that signs members in with their CAN account needs developer access. The live datafeed, the server directory, the roster and the leaderboards are all open endpoints — no sign-in, and nothing on this page applies to them."
+        },
+        "ask": {
+          "title": "Say what it is for, through the feedback form",
+          "detail": "Describe what you are building, roughly what the application looks like and which data it will read. Include the CAN ID above — access is granted against that ID."
+        },
+        "then": {
+          "title": "Sign out and back in once it is granted",
+          "detail": "This site caches whether you are a developer in your session, for at most an hour. Signing out and in again applies a fresh grant immediately rather than making you wait for it."
+        }
+      },
+      "contact": "Open the feedback form",
+      "ground": "Try the ground map preview instead"
     }
   }
 }

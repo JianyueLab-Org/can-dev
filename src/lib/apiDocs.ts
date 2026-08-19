@@ -52,16 +52,24 @@ export type LimitKey = string;
 /**
  * Which origin actually serves an endpoint.
  *
- * Almost everything is can-api's. The exception is the consent screen
- * `/oauth/authorize`, which is a **page** — it carries the main site's chrome,
- * language and session, so it stayed on can-web when the data layer moved into
- * Go, and can-api's discovery document points `authorization_endpoint` back at
- * it (RFC 8414 permits a different origin).
+ * Most of this reference is can-api's, and there are two exceptions.
+ *
+ * The consent screen `/oauth/authorize` is a **page** — it carries the main
+ * site's chrome, language and session, so it stayed on can-web when the data
+ * layer moved into Go, and can-api's discovery document points
+ * `authorization_endpoint` back at it (RFC 8414 permits a different origin).
+ *
+ * The live datafeed is **can-fsd's**, served by the FSD daemon itself. It is
+ * not proxied and never has been: the daemon builds the document from the
+ * connections it is holding, so putting can-api in front of it would add a hop
+ * to a document that changes every second and own nothing. It is also the one
+ * group here that does not use the `{status, data, timestamp}` envelope.
  *
  * Getting this wrong is not cosmetic: printing `api.ceruleanavi.net/oauth/authorize`
- * would send every integrator's first sign-in attempt to a 404.
+ * would send every integrator's first sign-in attempt to a 404, and
+ * `api.ceruleanavi.net/v1/data.json` is a 404 for every traffic display.
  */
-export type ApiHost = "api" | "web";
+export type ApiHost = "api" | "web" | "fsd";
 
 export type ApiMethod = "GET" | "HEAD" | "POST";
 
@@ -104,6 +112,17 @@ export interface ApiEndpoint {
   /** Prose, one string per paragraph. */
   body: string[];
   auth: ApiAuth;
+  /**
+   * The OAuth scopes a token must carry, when `auth` is `oauth`.
+   *
+   * Separate from `auth` because "a Bearer token" and "a Bearer token carrying
+   * `flights:read`" are different requirements and the second one is what
+   * actually returns 403. can-api's default is that a route accepts **no**
+   * token at all — every scope-reachable route is an explicit exception, so
+   * listing the scope is also how a reader can tell that a route is reachable
+   * by an application at all rather than only by a member in a browser.
+   */
+  scopes?: string[];
   /** True when the route sends `Access-Control-Allow-Origin: *`. */
   cors: boolean;
   /**
@@ -1013,6 +1032,537 @@ const OAUTH_REVOKE: ApiEndpoint = {
   ],
 };
 
+/* ------------------------------------------------------------------ *
+ * Live network datafeed — can-fsd
+ *
+ * The one group in this reference that is not can-api's. It is served by the
+ * FSD daemon itself, on its own hostname, and it does **not** use the
+ * `{status, data, timestamp}` envelope every can-api route wraps its payload
+ * in — these documents are the payload. A client that unwraps `data` here gets
+ * `undefined`.
+ * ------------------------------------------------------------------ */
+
+const DATAFEED: ApiEndpoint = {
+  id: "datafeed",
+  methods: ["GET"],
+  path: "/v1/data.json",
+  host: "fsd",
+  summary: "Everyone connected to the network right now.",
+  body: [
+    "One document describing the whole network at this instant: `general` (a summary), `pilots`, `controllers` and `atis`. It is what the live map draws and what every third-party traffic display should read. Built fresh per request — there is no cache and the response carries `Cache-Control: no-store`.",
+    "The same document is served at `/api/v1/data/data.json`. That is a byte-identical alias, added so new consumers can stay under one namespace; `/v1/data.json` is the original path and is what the existing clients fetch, so neither is going away.",
+    "**A pilot's `latitude`/`longitude` are JSON numbers while a controller's are JSON strings.** That is not a bug and must not be normalised: it is inherited from the Python server this replaced, both readers depend on it, and it is pinned by a golden-file test in can-fsd. Parse a controller's position with `parseFloat`.",
+  ],
+  auth: "none",
+  cors: true,
+  limitScope: "—",
+  statuses: [
+    { code: 200, when: "The feed. Every array is present, possibly empty." },
+  ],
+  example: {
+    request: "curl '{origin}/v1/data.json'",
+    response: `{
+  "general": {
+    "version": "CAN BETA TEST",
+    "update": "2026-08-19 10:31:02",
+    "update_timestamp": 1787136662,
+    "pilots": 2, "atc": 1, "socket": 3, "user": 3
+  },
+  "pilots": [
+    {
+      "cid": "1234", "callsign": "CCA1501", "name": "Someone",
+      "visual_range": 40, "logon_time": "2026-08-19 09:14:22",
+      "send_time": 1787136661.42,
+      "latitude": 40.0741, "longitude": 116.5908,
+      "altitude": 11200, "groundspeed": 310, "transponder": 2000,
+      "heading": 118.4, "pitch": -0.7, "bank": 0.2,
+      "vertical_speed": 1800, "ground_track": 119.1,
+      "tracked_by": "ZBAA_APP",
+      "track": { "owner": "ZBAA_APP", "status": "owned" },
+      "flight_plan": {
+        "flight_rules": "I", "aircraft": "A320", "cruise_tas": "450",
+        "departure": "ZBAA", "depatime": "0900",
+        "cruising_altitude": "36000", "arrival": "ZSPD",
+        "alternate": "ZSNJ", "remarks": "", "route": "ELKUR A593 SASAN",
+        "raw_data": ""
+      }
+    }
+  ],
+  "controllers": [
+    {
+      "cid": "5678", "callsign": "ZBAA_APP", "name": "Someone Else",
+      "frequency": "120.500", "facility": 5, "type": 2, "rating": 4,
+      "server": "CAN BETA TEST", "visual_range": 150,
+      "text_atis": ["ZBAA APPROACH ONLINE"],
+      "logon_time": "2026-08-19 08:02:11", "send_time": 1787136659.10,
+      "latitude": "40.0801", "longitude": "116.5847"
+    }
+  ],
+  "atis": []
+}`,
+  },
+  notes: [
+    "**The contract is one-directional: adding a key is free, renaming or retyping one is not.** can-fsd's `datafeed_test.go` walks a committed golden document and asserts the live feed still carries every key at the same JSON type. That is what let `track`, `vertical_speed` and `ground_track` be added without touching a single reader. When a field genuinely has to change, add the replacement, move the readers, then drop the original.",
+    "Position and attitude keys (`latitude`, `longitude`, `altitude`, `groundspeed`, `transponder`, `heading`, `pitch`, `bank`) are **absent** until the pilot's first position packet arrives, rather than present and zero. `vertical_speed` and `ground_track` are derived and appear only once the aircraft has been seen to move.",
+    "`text_atis` is always an array — never `null` — even for a controller who has posted nothing.",
+    "`general.version` is the **network's name**, taken from can-fsd's config (`\"CAN BETA TEST\"` today), and it is also each controller's `server` field. It is not a protocol or API version, and it is not the FSD banner, which must keep saying `VATSIM FSD` or older EuroScope builds drop the connection.",
+    "`general.socket` and `general.user` always report the same number. They were separate counters in the Python server; a connection is only registered once here. The keys stay for compatibility.",
+    "`update` and every `logon_time` are `YYYY-MM-DD HH:MM:SS` in **UTC with no zone marker**. Parse them as UTC; the server converts explicitly rather than relying on its own `TZ`.",
+    "`tracked_by` is the callsign of the controller holding the radar track, and `track` is the full server-owned state (`owner`, `handoff_peer`, `status` of `owned` / `pending_handoff` / `handoff_accepted`). A client must read these rather than decide locally — two workstations disagreeing about who holds an aircraft is the bug this prevents.",
+    "There is no rate limit here, because can-fsd runs no limiter. That is not an invitation: the document is rebuilt on every request. Poll no faster than once a second, and prefer `/v1/events` below, which exists precisely so you do not have to poll at all.",
+  ],
+};
+
+const DATAFEED_EVENTS: ApiEndpoint = {
+  id: "datafeed-events",
+  methods: ["GET"],
+  path: "/v1/events",
+  host: "fsd",
+  summary: "The same feed as a live stream — snapshot, then only what changed.",
+  body: [
+    "Server-Sent Events. On connect you get one `snapshot` event carrying the whole document `/v1/data.json` would have returned; after that, one `update` per second carrying **only** the entries that changed and the callsigns that went away. A network where nothing moved sends nothing.",
+    "It is built from the identical `BuildDatafeed` output, diffed — so the stream and `data.json` are one contract and not two, and a field added to one is a field added to both. Also served at `/api/v1/data/events`.",
+    "**Treat `snapshot` as the only event that replaces whole state.** In an `update`, each entry under `changed` fully replaces the previous value for that callsign, and each string under `removed` is a callsign that disconnected. Nothing else is implied — there is no ordering guarantee beyond that, and none is needed, because every entry is self-contained per callsign.",
+  ],
+  auth: "none",
+  cors: true,
+  limitScope: "—",
+  statuses: [
+    { code: 200, when: "`text/event-stream`, held open." },
+    {
+      code: 404,
+      when: "An older can-fsd that predates the stream. Fall back to polling `/v1/data.json` — a client should do this automatically rather than fail.",
+    },
+    {
+      code: 500,
+      when: "The response writer cannot stream (a proxy that buffers). Rare, and not something a client can retry into working.",
+    },
+  ],
+  example: {
+    request: "curl -N '{origin}/v1/events'",
+    response: `event: snapshot
+data: {"general":{…},"pilots":[…],"controllers":[…],"atis":[]}
+
+event: update
+data: {"update":1787136663,"pilots":{"changed":[{"cid":"1234","callsign":"CCA1501",…}]}}
+
+event: update
+data: {"update":1787136665,"pilots":{"removed":["CCA1501"]}}
+
+: keepalive`,
+  },
+  notes: [
+    "**A subscriber that falls behind is dropped, not buffered.** The per-connection queue is 16 events deep and a subscriber that has not drained it within a tick is disconnected, so one slow reader cannot stall the broker for everyone. Reconnect and take the fresh `snapshot` as the new truth; do not try to stitch it onto what you had.",
+    "A comment line `: keepalive` arrives every 15 seconds. It is not an event — it exists so idle connections survive proxies that time out silent streams.",
+    "Empty groups are omitted from an `update` rather than sent as empty arrays, so a quiet network produces a small event. Absent means *nothing changed in that collection*, which is not the same as *that collection is now empty*.",
+    "The response carries `X-Accel-Buffering: no` so a reverse proxy does not hold the stream. If you deploy your own proxy in front of a consumer, do the same.",
+    "The broker is idle while nobody is watching and rebuilds the feed when the first subscriber connects, so the first `snapshot` is always current rather than whatever the last tick left behind.",
+  ],
+};
+
+const DATAFEED_STATUS: ApiEndpoint = {
+  id: "datafeed-status",
+  methods: ["GET"],
+  path: "/api/v1/data/status.json",
+  host: "fsd",
+  summary: "How many clients are connected, and what the network calls itself.",
+  body: [
+    "Two fields and nothing else: `version` (the network name, the same string `general.version` carries) and `online` (the number of connected clients, pilots and controllers together). For a status badge, a bot, or a health page that wants a number without pulling the whole feed.",
+    "Note this is **not** wrapped in the `{status, data, timestamp}` envelope — like everything else can-fsd serves, the object is the payload.",
+  ],
+  auth: "none",
+  cors: true,
+  limitScope: "—",
+  statuses: [{ code: 200, when: "The counts." }],
+  example: {
+    request: "curl '{origin}/api/v1/data/status.json'",
+    response: `{ "version": "CAN BETA TEST", "online": 3 }`,
+  },
+  notes: [
+    "`online` counts connections, not people: one member connected as a pilot and as an observer is two.",
+    "There is no equivalent on the legacy `/v1/…` prefix — this endpoint was added with the namespaced aliases.",
+  ],
+};
+
+/* ------------------------------------------------------------------ *
+ * Member data
+ *
+ * The routes an application can reach **on a member's behalf**, with an
+ * access token carrying the named scope. Everything else under
+ * `/api/v1/pilot/*` is cookie-only and is listed at the foot of this page:
+ * the default is no token access, and each of these three is an explicit
+ * exception made because the data is the member's own and an EFB or a logbook
+ * genuinely needs it.
+ *
+ * The one deliberately never opened is `/api/v1/pilot/data`, which returns the
+ * cleartext FSD network password. An app allowed to read a flight log must not
+ * thereby be able to connect to the network as that member.
+ * ------------------------------------------------------------------ */
+
+const PILOT_FLIGHTS: ApiEndpoint = {
+  id: "pilot-flights",
+  methods: ["GET"],
+  path: "/api/v1/pilot/flights",
+  summary: "The member's own flight log, with totals already computed.",
+  body: [
+    "Every flight session the network recorded for the token's owner, newest first, plus a `summary` block and a `callsigns` rollup. The totals are computed server-side so two clients cannot disagree about what a member's hours are.",
+    "Scoped to the token's own member and not addressable by CAN ID — a per-session log is more identifying than the aggregate totals `/api/v1/pilot/{id}` already shares between members.",
+  ],
+  auth: "oauth",
+  scopes: ["flights:read"],
+  cors: false,
+  limitScope: "—",
+  statuses: [
+    {
+      code: 200,
+      when: "The log. `flights` is empty for a member who has never connected.",
+    },
+    { code: 401, when: "No credential, or the token is invalid or expired." },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `flights:read`.",
+    },
+  ],
+  example: {
+    request:
+      "curl -H 'Authorization: Bearer can_at_…' '{origin}/api/v1/pilot/flights'",
+    response: `{
+  "status": 200,
+  "data": {
+    "flights": [
+      {
+        "id": 8812, "callsign": "CCA1501",
+        "logonTime": "2026-08-19T09:14:22Z", "logoffTime": null,
+        "durationMs": 4600000, "formattedDuration": "1:16:40",
+        "live": true
+      }
+    ],
+    "summary": {
+      "totalFlights": 41, "totalDurationMs": 512400000,
+      "formattedTotalTime": "142:20:00",
+      "longestDurationMs": 27180000, "formattedLongest": "7:33:00",
+      "callsignCount": 9
+    },
+    "callsigns": [
+      { "callsign": "CCA1501", "count": 12, "durationMs": 138000000,
+        "formattedDuration": "38:20:00" }
+    ]
+  },
+  "timestamp": "2026-08-19T10:31:02Z"
+}`,
+  },
+  notes: [
+    "**Durations are milliseconds.** `durationMs` on a closed session comes straight from the column can-fsd writes, which is milliseconds; reading it as seconds renders a two-hour flight as eighty-three days. `formattedDuration` is the same value already rendered, for display.",
+    "`live: true` means the session is still open, and its `durationMs` is measured against *now* rather than a logoff time — so it grows between two calls. `logoffTime` is `null` for exactly those rows.",
+    "`callsigns` is sorted longest-total first, then by callsign, so equal totals do not reorder between two requests.",
+  ],
+};
+
+const PILOT_ATC: ApiEndpoint = {
+  id: "pilot-atc",
+  methods: ["GET"],
+  path: "/api/v1/pilot/atc",
+  summary: "The member's own controller sessions.",
+  body: [
+    "The same shape as the flight log, for time spent controlling: `sessions` plus a `summary`. Each session carries the callsign, the position's `facility` and `type` codes, and the rating the member held **at the time** — which is why the rating is on the row rather than only on the account.",
+  ],
+  auth: "oauth",
+  scopes: ["atc:read"],
+  cors: false,
+  limitScope: "—",
+  statuses: [
+    {
+      code: 200,
+      when: "The sessions. Empty for a member who has never controlled.",
+    },
+    { code: 401, when: "No credential, or the token is invalid or expired." },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `atc:read`.",
+    },
+  ],
+  example: {
+    request:
+      "curl -H 'Authorization: Bearer can_at_…' '{origin}/api/v1/pilot/atc'",
+    response: `{
+  "status": 200,
+  "data": {
+    "sessions": [
+      {
+        "id": 1204, "callsign": "ZBAA_APP",
+        "rating": { "id": 4, "long": "Controller 1", "short": "C1", "zh": "一级管制员" },
+        "facility": 5, "type": 2,
+        "logonTime": "2026-08-19T08:02:11Z", "logoffTime": "2026-08-19T10:14:03Z",
+        "durationMs": 7912000, "formattedDuration": "2:11:52",
+        "live": false
+      }
+    ],
+    "summary": {
+      "totalSessions": 63, "totalDurationMs": 402000000,
+      "formattedTotalTime": "111:40:00"
+    }
+  },
+  "timestamp": "2026-08-19T10:31:02Z"
+}`,
+  },
+  notes: [
+    "`rating` here is the **expanded object** `{id, long, short, zh}`, not a bare integer. Several fields across this API carry a rating and they are not all the same shape — read `id` and do arithmetic on that, never on the object.",
+    "Durations are milliseconds, and `live: true` behaves exactly as it does in the flight log above.",
+  ],
+};
+
+const PILOT_DIVISIONS: ApiEndpoint = {
+  id: "pilot-divisions",
+  methods: ["GET"],
+  path: "/api/v1/pilot/divisions",
+  summary:
+    "Which divisions the member belongs to, and what they may still join.",
+  body: [
+    "A member has one **home** division — where they trained, and which cannot be changed from the member side — and any number of **visiting** ones. They are returned as two separate fields rather than one list with a flag, because they are two different things to a reader.",
+    "The response also carries the rules as already-evaluated booleans: `canSetHome`, `canAddVisiting` and `minVisitingRating`. Those come from the same rule the write enforces, so a UI that enables its button from these cannot offer an action that then fails.",
+  ],
+  auth: "oauth",
+  scopes: ["divisions"],
+  cors: false,
+  limitScope: "—",
+  statuses: [
+    {
+      code: 200,
+      when: "The memberships. `home` is `null` for a member who has not joined one.",
+    },
+    { code: 401, when: "No credential, or the token is invalid or expired." },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `divisions`.",
+    },
+  ],
+  example: {
+    request:
+      "curl -H 'Authorization: Bearer can_at_…' '{origin}/api/v1/pilot/divisions'",
+    response: `{
+  "status": 200,
+  "data": {
+    "rating": 4,
+    "home": {
+      "id": 91, "region": 1,
+      "regionName": { "short": "PRC", "zh": "中国大陆" },
+      "del": true, "gnd": true, "twr": true, "app": false, "ctr": false,
+      "instructor": false, "director": false, "status": true, "home": true
+    },
+    "visiting": [],
+    "canSetHome": false,
+    "canAddVisiting": true,
+    "minVisitingRating": 3
+  },
+  "timestamp": "2026-08-19T10:31:02Z"
+}`,
+  },
+  notes: [
+    "**Joining is one-way.** Setting a home division succeeds exactly once and there is no leave or remove action anywhere in this API; a transfer goes through an instructor. `canSetHome` is therefore false forever after the first success.",
+    "The seat flags (`del`/`gnd`/`twr`/`app`/`ctr`), `instructor`, `director` and `status` are instructor-granted and are read-only here. The member-side write can only ever set the region and the home flag.",
+    "`rating` in this payload is the bare integer, unlike the expanded object on `/api/v1/pilot/atc`. Both shapes exist in this API and neither is going to change — check which one you are holding.",
+  ],
+};
+
+/* ------------------------------------------------------------------ *
+ * Network directory
+ *
+ * Unauthenticated reads that describe the network rather than a member. All
+ * four are already public pages' backing data or values a client needs before
+ * it can sign in, so none of them carries a session, and all four are safe to
+ * cache.
+ * ------------------------------------------------------------------ */
+
+const SERVERS: ApiEndpoint = {
+  id: "servers",
+  methods: ["GET"],
+  path: "/api/v1/servers",
+  summary: "Where the network's FSD, voice and datafeed servers are.",
+  body: [
+    "The addresses a client needs in order to connect, grouped by kind: `fsd`, `audio` and `datafeed`. Ask for this instead of compiling a hostname in — that is exactly what this endpoint exists to replace, and a client that reads it turns the network's next move into a row edit rather than a release.",
+    "Unauthenticated, and it has to be: a client must learn where FSD is *before* it can sign in, so the order does not reverse. It is also reachable at `https://ceruleanavi.net/api/v1/servers` through the main site's allow-list proxy, which is the hostname to prefer from mainland China.",
+  ],
+  auth: "none",
+  cors: false,
+  limitScope: "—",
+  statuses: [
+    {
+      code: 200,
+      when: "The directory. Every kind is present as a key, possibly with an empty array.",
+    },
+  ],
+  example: {
+    request: "curl '{origin}/api/v1/servers'",
+    response: `{
+  "status": 200,
+  "data": {
+    "fsd": [
+      { "id": 1, "kind": "fsd", "name": "Tokyo",
+        "host": "fsd.ceruleanavi.net", "port": 6809, "location": "JP" }
+    ],
+    "audio": [
+      { "id": 2, "kind": "audio", "name": "Tokyo",
+        "host": "audio.ceruleanavi.net", "port": 64738, "location": "JP" }
+    ],
+    "datafeed": [
+      { "id": 3, "kind": "datafeed", "name": "Primary",
+        "url": "https://data.ceruleanavi.net" }
+    ]
+  },
+  "timestamp": "2026-08-19T10:31:02Z"
+}`,
+  },
+  notes: [
+    "**Fields that do not apply to a kind are absent, not `null`.** An `fsd` or `audio` entry has `host` and `port` and no `url`; a `datafeed` entry has `url` and neither. A client reading `port` off a datafeed row has misunderstood the kind, and an absent key says so louder than a null.",
+    "**A `datafeed` entry's `url` is an origin, not a path.** The feed publishes two paths under it (`/v1/data.json` and `/v1/events`) and different clients want different ones, so storing a complete URL could only ever satisfy one of them. Append the path you need.",
+    'Retired servers are omitted from this list but are not deleted upstream — the row survives so that "where is your client pointed" stays answerable when somebody cannot connect.',
+    "Cached for an hour (`Cache-Control: public, max-age=3600`). Respect it; the list changes a few times a year.",
+  ],
+};
+
+const META_LIMITS: ApiEndpoint = {
+  id: "meta-limits",
+  methods: ["GET"],
+  path: "/api/v1/meta/limits",
+  summary: "The rate-limit table this service is actually enforcing.",
+  body: [
+    "Every bucket in the service, by key, with its `limit` and its `windowMs`. Published so a client can back off correctly instead of finding the edge by trial — these numbers are discoverable by anyone willing to collect a 429 anyway.",
+    'This page is drawn from it: every "per hour" figure printed beside an endpoint above is fetched from here at render time rather than written down, so a documented limit cannot drift from the enforced one.',
+  ],
+  auth: "none",
+  cors: true,
+  limitScope: "—",
+  statuses: [{ code: 200, when: "The table." }],
+  example: {
+    request: "curl '{origin}/api/v1/meta/limits'",
+    response: `{
+  "status": 200,
+  "data": {
+    "limits": {
+      "atis":           { "limit": 120, "windowMs": 3600000 },
+      "clientDownload": { "limit": 40,  "windowMs": 3600000 },
+      "signIn":         { "limit": 10,  "windowMs": 900000 }
+    }
+  },
+  "timestamp": "2026-08-19T10:31:02Z"
+}`,
+  },
+  notes: [
+    "The keys are lower-camel and are the same keys this page uses. A key vanishing is a limit that no longer exists, not a value of zero — treat a missing key as unlimited, which is what this page renders.",
+    "Cached for an hour. The table only changes when can-api is redeployed.",
+    "A limit being listed does not say what the bucket is *keyed by* — per IP, per member, per client. That varies per endpoint and is written beside each one above.",
+  ],
+};
+
+const ROSTER: ApiEndpoint = {
+  id: "atc-roster",
+  methods: ["GET"],
+  path: "/api/v1/atc/roster",
+  summary: "The network's controller roster, by division.",
+  body: [
+    "What `ceruleanavi.net/roster` draws: every member holding a controller position, grouped by numeric region code. Unauthenticated, because the roster is a public page linked from the site header — it used to sit behind a staff guard, which meant a signed-out visitor got a 401 on a page the footer advertised.",
+    "It is a **separate handler over a separate query** from the staff roster, not the same one with the guard removed. The staff version's payload also carries every member's email address; keeping them apart is what makes it impossible to publish that by loosening one condition.",
+  ],
+  auth: "none",
+  cors: false,
+  limitScope: "—",
+  statuses: [
+    { code: 200, when: "The roster, keyed by region code as a string." },
+  ],
+  example: {
+    request: "curl '{origin}/api/v1/atc/roster'",
+    response: `{
+  "status": 200,
+  "data": {
+    "byRegion": {
+      "1": [
+        { "id": "1234", "name": "Someone", "rating": 4, "status": true,
+          "permission": { "del": true, "gnd": true, "twr": true,
+                          "app": false, "ctr": false,
+                          "instructor": false, "home": true } }
+      ]
+    }
+  },
+  "timestamp": "2026-08-19T10:31:02Z"
+}`,
+  },
+  notes: [
+    "**Everything absent here is absent on purpose.** This renders for an anonymous caller, so there is no email address, no join date and no account state — adding a field to this shape publishes it to the world.",
+    "`status` is the division row's active flag, which is what splits each region into serving and non-serving members. It is **not** an online indicator: this route never sees who is connected. For that, read the datafeed.",
+    "Regions with nobody in them are absent rather than present and empty, so the set of keys is the set of divisions with members.",
+    "`rating` here is the bare integer.",
+  ],
+};
+
+const LEADERBOARD: ApiEndpoint = {
+  id: "leaderboard",
+  methods: ["GET"],
+  path: "/api/v1/leaderboard",
+  summary:
+    "Monthly and all-time rankings for flight time, control time and points.",
+  body: [
+    "Five boards in one response: monthly flight time, monthly control time, all-time flight time, all-time control time and all-time points. Unauthenticated, like the page it draws.",
+    "Ranking is standard competition ranking — equal totals share a rank and the next one skips — and only **finished** sessions are counted, so a board does not change under a reader because somebody is still connected.",
+  ],
+  auth: "none",
+  cors: false,
+  limit: "leaderboard",
+  limitScope: "per IP",
+  query: [
+    {
+      name: "month",
+      type: "YYYY-MM",
+      description:
+        "Which month the two monthly boards cover. Defaults to the current UTC month. A month that does not parse is a 400 rather than a silent fallback.",
+    },
+    {
+      name: "limit",
+      type: "integer",
+      description:
+        "Rows per board, minimum 1, default 20, silently capped at 100.",
+    },
+  ],
+  statuses: [
+    { code: 200, when: "The boards." },
+    { code: 400, when: "`invalidMonth` or `invalidLimit`." },
+    { code: 429, when: "Rate limited." },
+  ],
+  example: {
+    request: "curl '{origin}/api/v1/leaderboard?month=2026-08&limit=5'",
+    response: `{
+  "status": 200,
+  "data": {
+    "month": "2026-08",
+    "monthStart": "2026-08-01T00:00:00Z",
+    "monthEnd": "2026-09-01T00:00:00Z",
+    "limit": 5,
+    "generatedAt": "2026-08-19T10:31:02Z",
+    "award": { "places": 3, "topPoints": 30, "minimumMs": 3600000 },
+    "boards": {
+      "monthlyFlight": [
+        { "rank": 1, "id": "1234", "name": "Someone", "rating": 4,
+          "sessions": 12, "durationMs": 138000000,
+          "formattedDuration": "38:20:00", "award": 30 }
+      ],
+      "monthlyAtc": [],
+      "allTimeFlight": [],
+      "allTimeAtc": [],
+      "allTimePoints": [
+        { "rank": 1, "id": "1234", "name": "Someone", "rating": 4, "points": 480 }
+      ]
+    }
+  },
+  "timestamp": "2026-08-19T10:31:02Z"
+}`,
+  },
+  notes: [
+    "`monthStart`/`monthEnd` say which UTC window the monthly boards were actually computed over. A page labelling a month in local time needs this to tell a timezone bug from an empty month.",
+    "**Only the monthly boards carry `award` on their rows.** The all-time ones must not — nothing is awarded for an all-time placing, and a client that reads the key uniformly would announce prizes nobody is getting.",
+    "The `award` block is the ladder itself (`places`, `topPoints`, `minimumMs`), published so a client can write its footnote from the rule rather than from a translated copy of the numbers.",
+    "Cached for five minutes. Five aggregate scans stand behind one request, on a page linked from the site header.",
+  ],
+};
+
 export const API_GROUPS: ApiGroup[] = [
   {
     key: "oauth",
@@ -1047,6 +1597,30 @@ export const API_GROUPS: ApiGroup[] = [
     endpoints: [TRACK],
   },
   {
+    key: "datafeed",
+    name: "Live network datafeed",
+    description:
+      "Who is connected right now, served by the FSD daemon on its own hostname (`fsd.ceruleanavi.net`) rather than by can-api. Two faces of one document: fetch `data.json` for a snapshot, or hold `/v1/events` open and receive only what changed. Neither needs a credential, and neither uses the `{status, data, timestamp}` envelope the rest of this page describes — here the document *is* the payload.",
+    icon: "signal",
+    endpoints: [DATAFEED, DATAFEED_EVENTS, DATAFEED_STATUS],
+  },
+  {
+    key: "member-data",
+    name: "Member data",
+    description:
+      "What an application may read **on a member's behalf** after they sign in through the flow above. Each route names the scope it requires, and a token without it gets 403 rather than an empty result. can-api's default is that no route accepts a token at all — these three are deliberate exceptions, chosen because the data is the member's own and a flight bag or a logbook cannot work without it.",
+    icon: "userCircle",
+    endpoints: [PILOT_FLIGHTS, PILOT_ATC, PILOT_DIVISIONS],
+  },
+  {
+    key: "network",
+    name: "Network directory",
+    description:
+      "Unauthenticated reads that describe the network rather than a member: where its servers are, what it is enforcing, who its controllers are and who is at the top of the boards. All four back a public page or answer a question a client has to ask before it can sign in, and all four are cacheable — the cache headers say for how long.",
+    icon: "globeAlt",
+    endpoints: [SERVERS, META_LIMITS, ROSTER, LEADERBOARD],
+  },
+  {
     key: "clients",
     name: "Desktop clients",
     description:
@@ -1072,9 +1646,19 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
       "Moved. Route resolution lives on the radar's own site — https://radar.ceruleanavi.net/api/v1/route — with the same shape, the same rate limit and still no authentication. It went with the map because the navigation database it reads is what makes it expensive, and nothing else needs it.",
   },
   {
-    path: "/api/v1/pilot/*, /api/v1/activity/*, /api/v1/super/*, /api/v1/atc/*",
+    path: "The rest of /api/v1/pilot/*, plus /api/v1/activity/*, /api/v1/super/* and the rest of /api/v1/atc/*",
     reason:
-      "Portal plumbing. Most need a member's session cookie; the few reads that do not — the activity feed and the ATC reservation board — exist to draw a panel on ceruleanavi.net, their shapes follow whatever that panel needs that week, and they are not a contract with anyone outside the network's own repositories.",
+      "Portal plumbing. Most need a member's session cookie and refuse an access token outright; the few reads that do not — the activity feed and the ATC reservation board — exist to draw a panel on ceruleanavi.net, their shapes follow whatever that panel needs that week, and they are not a contract with anyone outside the network's own repositories. The exceptions are documented above: the three member routes an application can reach with a scope, and the public roster.",
+  },
+  {
+    path: "/api/v1/pilot/data",
+    reason:
+      "A member's own record — and it returns the cleartext FSD network password, which is why it is the one route that is deliberately never opened to an access token however narrow. An application allowed to read a flight log must not thereby be able to connect to the network as that member. Reachable with the session cookie only, from ceruleanavi.net itself.",
+  },
+  {
+    path: "/api/v1/internal/flightplan (can-fsd)",
+    reason:
+      "Not can-api's at all: it is on the FSD daemon, beside the datafeed, and it is how can-api pushes a plan filed on the website into an already-connected pilot's live session. A shared secret is its whole protection, so the daemon advertises only GET and OPTIONS for cross-origin requests — a browser's preflight for it fails by design, and a member's session can never be ridden into it.",
   },
   {
     path: "/api/v1/public/auth",
@@ -1103,6 +1687,16 @@ export interface ApiOrigins {
   api: string;
   /** can-web — `https://ceruleanavi.net`. Serves the consent screen only. */
   web: string;
+  /**
+   * can-fsd — `https://fsd.ceruleanavi.net`. Serves the datafeed only.
+   *
+   * Read from configuration rather than hardcoded for the same reason the
+   * other two are: the network has already moved hostname once, and the
+   * endpoint that tells a client where things are (`/api/v1/servers`) exists
+   * precisely so it can move again. A reference that printed a compiled-in
+   * address would be the one place that did not follow.
+   */
+  fsd: string;
 }
 
 export interface ResolvedEndpoint extends ApiEndpoint {
@@ -1133,7 +1727,13 @@ export function withOrigin(
   return groups.map((group) => ({
     ...group,
     endpoints: group.endpoints.map((endpoint) => {
-      const baseUrl = endpoint.host === "web" ? origins.web : origins.api;
+      // Indexed rather than a chain of ternaries, and that is what makes it
+      // safe to extend: `ApiHost` and the keys of `ApiOrigins` are the same
+      // three strings, so adding a fourth host to one without the other stops
+      // compiling here. A ternary chain ending in `: origins.api` would
+      // instead have printed can-api's hostname for it, which is the failure
+      // this whole type exists to prevent.
+      const baseUrl = origins[endpoint.host ?? "api"];
       const swap = (value: string) => value.replaceAll("{origin}", baseUrl);
       return {
         ...endpoint,

@@ -41,6 +41,20 @@ export const apiOrigin = () =>
 export const webOrigin = () =>
   (process.env.CAN_WEB_ORIGIN || "https://ceruleanavi.net").replace(/\/+$/, "");
 
+/**
+ * 第三个上游：can-fsd，实时数据源住的地方。
+ *
+ * 只有接口文档用得到它 —— 这个站不读数据源，它只是**印出**那几条地址。而正因为
+ * 只是印出来，它更需要是个变量：数据源是 FSD 守护进程自己在服务的，不经过
+ * can-api 转发，所以文档上那个主机名是读者唯一能拿到的东西。写死一个域名，等于
+ * 让这一页成为搬家时唯一不跟着走的那一处 —— 而这个网络已经搬过一次域名了。
+ */
+export const fsdOrigin = () =>
+  (process.env.CAN_FSD_ORIGIN || "https://fsd.ceruleanavi.net").replace(
+    /\/+$/,
+    "",
+  );
+
 /** 这个部署自己的对外地址，回调地址就是从它拼出来的。 */
 export const origin = () =>
   (process.env.PUBLIC_ORIGIN || "http://127.0.0.1:4322").replace(/\/+$/, "");

@@ -11,6 +11,12 @@ import type { Session } from "./session";
  * 1. **有没有会话。** 没有就 401，而不是重定向 —— 调用方是页面里的 fetch，它
  *    要的是一个能判断的状态码。
  *
+ * 1.5 **是不是开发者。** 不是就 403。这一条和中间件那一条是同一个判断在两种调
+ *    用方式下的两种说法：页面拿到重定向，fetch 拿到状态码。两处都不是边界 ——
+ *    这些路由转手去调 can-api 的 `/api/v1/dev/clients`，那边每次请求都重读
+ *    `user.developer`，所以即使这里漏了，写也不会发生。它在这里是为了让失败发
+ *    生在近处、并且带着一句本站自己的话，而不是把一个上游的 403 原样冒出来。
+ *
  * 2. **写操作的 Origin。** 会话 cookie 是 SameSite=Lax，跨站的表单 POST 带不
  *    上它；但这道检查不白做：Lax 对**顶层导航**的 GET 是放行的，而且一旦将来
  *    有人把某个写操作改成 GET，或者浏览器的 Lax 语义再变一次，这里是唯一还站
@@ -33,6 +39,19 @@ export function requireSession(context: APIContext): Guarded {
       response: Response.json(
         { error: "unauthorized", message: "请先登录。" },
         { status: 401 },
+      ),
+    };
+  }
+
+  if (session.developer !== true) {
+    return {
+      ok: false,
+      response: Response.json(
+        {
+          error: "not_a_developer",
+          message: "这个账号还不是开发者，请联系网络管理员申请。",
+        },
+        { status: 403 },
       ),
     };
   }
