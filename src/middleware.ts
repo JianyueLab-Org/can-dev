@@ -25,6 +25,18 @@ import { readSession } from "@/lib/session";
  *
  * `/ground` 同理留在外面，理由写在 `Header.vue` 的导航里：它没有上游，文件是使
  * 用者自己拖进浏览器的。
+ *
+ * ## 登录之外还有一道：开发者
+ *
+ * `user.developer` 上线之后，这两条路径要的不只是「登录了」，而是「登录了、并且
+ * 是开发者」。不是的人被送去 `/no-access`，那一页解释怎么申请 —— 而不是送去登录
+ * 页，因为他已经登录了，再让他登一次只会转圈。
+ *
+ * **这道判断是门面，不是边界。** 它读的是会话 cookie 里那份缓存（见
+ * `lib/session.ts`），最多旧一小时；真正的边界在 can-api，`/api/v1/dev/clients`
+ * 每次请求都重读数据库。所以一个刚被撤销的人可能还看得见 `/apps` 的骨架，但那
+ * 一页拉不到任何数据，本站的 `/api/clients/*` 也会 403（见 `lib/guard.ts`）。
+ * 拿掉这里不会让任何东西泄漏，只会让人看见一个 403 而不是一句解释。
  */
 const PROTECTED = ["/apps", "/docs"];
 
@@ -49,6 +61,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return withSecurityHeaders(
       context.redirect(`/auth/login?next=${encodeURIComponent(path)}`, 302),
     );
+  }
+
+  // 登录了，但不是开发者。`=== true` 而不是取反：这一位在旧会话里是 undefined，
+  // 而「读不出来」必须和「false」走同一条路。
+  if (guarded && session && session.developer !== true) {
+    return withSecurityHeaders(context.redirect("/no-access", 302));
   }
 
   return withSecurityHeaders(await next());

@@ -49,7 +49,15 @@ export const GET: APIRoute = async ({ cookies, url, redirect }) => {
       // 比令牌自己早 30 秒过期：一个「刚好还没过期」的令牌发出去，会在
       // can-web 那边变成 401，而这里表现为一次莫名其妙的失败。
       expiresAt: Date.now() + Math.max(0, tokens.expires_in - 30) * 1000,
+      developer: who.developer,
     });
+
+    // 不是开发者的人**照样发会话**，然后送去 /no-access。
+    //
+    // 直接拒绝登录看着更干脆，代价是那一页只能说「你不能用这个站」，说不出
+    // 「你是 1234，去找管理员报这个号」—— 而后者正是他接下来要做的事。会话在
+    // 这里也确实没有别的用处：can-api 会拒掉每一次调用。
+    if (!who.developer) return redirect("/no-access", 302);
 
     return redirect(safeNext(pending.next), 302);
   } catch {

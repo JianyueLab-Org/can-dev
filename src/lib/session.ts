@@ -29,6 +29,19 @@ export interface Session {
   accessToken: string;
   /** epoch 毫秒。到点就当没登录，而不是拿一个必然被拒的令牌去打一次 API。 */
   expiresAt: number;
+  /**
+   * 这个成员是不是开发者 —— 登录时从 userinfo 的 `developer` claim 抄下来的。
+   *
+   * **这是一份缓存，不是权威。** 权威在 can-api：`/api/v1/dev/clients` 每次请求
+   * 都重读 `user.developer`，所以撤销立刻生效。这里存一份，是为了每次翻页决定画
+   * 哪几条导航时不必再打一次 userinfo —— 会话最长活一小时（跟着令牌走），所以
+   * 这份副本最多旧一小时，而旧掉的后果是菜单上多了一条点进去会被拦的链接。
+   *
+   * 可选（`?`）而不是必填，是为了**旧 cookie**：这一列上线之前签发的会话里没有
+   * 这个字段，解出来是 `undefined`。判断一律写成 `session.developer === true`，
+   * 于是旧会话按「不是开发者」处理 —— 安全的那个方向，而且下一次登录就自愈。
+   */
+  developer?: boolean;
 }
 
 export interface Pending {

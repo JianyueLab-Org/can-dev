@@ -94,15 +94,33 @@ export async function exchangeCode(
   return body as unknown as TokenResponse;
 }
 
-/** 令牌代表的是谁。用 OIDC 的 userinfo，而不是自己解 id_token。 */
+/**
+ * 令牌代表的是谁。用 OIDC 的 userinfo，而不是自己解 id_token。
+ *
+ * `developer` 是 can-api 在 `profile` scope 下多给的一条非标准 claim：这个成员
+ * 能不能用这个站。它放在 claim 里而不是另开一条接口，是因为登录流程本来就要打
+ * 这一次 userinfo —— 多一次往返只为读一个布尔值不值得。
+ *
+ * **它是渲染依据，不是边界。** 真正把门的是 can-api 的 `withAppsManage`，那边
+ * 每次请求都重读数据库那一列。这里读到的是登录那一刻的值，会随会话一起旧掉；
+ * 旧掉的后果是菜单多显示了一条链接，而不是多了一次成功的写。
+ *
+ * 缺字段时按 `false` 算（`?? false`），而不是按 true。老版本 can-api 不送这条
+ * claim，而在「不确定」和「放行」之间，这个站宁可让人看见一句解释。
+ */
 export async function userinfo(
   accessToken: string,
-): Promise<{ sub: string; name?: string | null }> {
+): Promise<{ sub: string; name?: string | null; developer: boolean }> {
   const response = await fetch(new URL("/api/oauth/userinfo", apiOrigin()), {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok) throw new Error(`userinfo 失败：${response.status}`);
-  return (await response.json()) as { sub: string; name?: string | null };
+  const claims = (await response.json()) as {
+    sub: string;
+    name?: string | null;
+    developer?: boolean;
+  };
+  return { ...claims, developer: claims.developer ?? false };
 }
 
 /* ------------------------------------------------------------------ *

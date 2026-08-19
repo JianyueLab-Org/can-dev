@@ -1,0 +1,124 @@
+---
+import SiteLayout from "@/layouts/SiteLayout.astro";
+import { AlertBox } from "@jianyuelab-org/can-ui";
+import { getLocale, useTranslations } from "@/lib/i18n";
+import { webOrigin } from "@/lib/config";
+
+/**
+ * 「这个账号还不是开发者」。
+ *
+ * 中间件把已登录但没有 `user.developer` 的人送到这里（见 `src/middleware.ts`），
+ * 登录回调也是 —— 那两条路的终点必须是同一页，否则一个人会因为「怎么来的」不同
+ * 而看到不同的解释。
+ *
+ * ## 为什么这一页不在 PROTECTED 里
+ *
+ * 因为它是那道门的**出口**。把它保护起来，一个被挡下来的人就会被弹到这里、再被
+ * 弹走，来回转圈 —— 保护一张只说「你进不去」的页面，保护不了任何东西。
+ *
+ * 它对未登录的访客也开着，理由是一样的：那种情况本来就到不了这里（中间件会先把
+ * 他送去登录页），而为一个到不了的状态加一道判断，只会多一条没人走过的分支。未
+ * 登录时这一页少显示一行 CAN ID，其余照旧。
+ *
+ * ## 这一页刻意不做的事
+ *
+ * **不提供任何「申请」按钮。** 授权是 ADM 在 can-portal 上一个人一个人发的，这
+ * 里做一个表单意味着造一条新的申请队列 —— 而这个网络已经有反馈渠道了。写清楚去
+ * 哪儿说、说什么（报上 CAN ID），比多一个入口有用。
+ *
+ * **不判断也不显示为什么。** can-api 不告诉这个站「这个人是被拒了还是没申请
+ * 过」，因为那两件事在数据库里是同一个 false。写一句猜出来的原因，比不写更糟。
+ */
+const locale = getLocale(Astro.cookies);
+const t = useTranslations(locale, "dev");
+
+const session = Astro.locals.session;
+const steps = ["who", "ask", "then"] as const;
+
+// 主站的地址来自配置，和文档页那条「问题与建议」是同一个来源 —— 硬编码一个域名
+// 就是让这一页成为下次搬家时漏掉的那一处。
+const supportUrl = `${webOrigin()}/support`;
+---
+
+<SiteLayout title={t("noAccess.title")} description={t("noAccess.summary")}>
+  <section class="card overflow-hidden">
+    <div class="relative isolate px-6 py-10 sm:px-10 sm:py-12">
+      <div
+        aria-hidden="true"
+        class="absolute inset-0 -z-10 bg-gradient-to-br from-warning-bg to-transparent"
+      >
+      </div>
+
+      <p
+        class="text-xs font-semibold uppercase tracking-[0.2em] text-warning-fg"
+      >
+        {t("noAccess.eyebrow")}
+      </p>
+      <h1 class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+        {t("noAccess.title")}
+      </h1>
+      <p class="mt-4 max-w-2xl text-lg leading-relaxed text-muted">
+        {t("noAccess.summary")}
+      </p>
+
+      {
+        session && (
+          <div class="mt-6">
+            <AlertBox variant="info">
+              {t("noAccess.signedInAs", {
+                name: session.name ?? session.username,
+                id: session.username,
+              })}
+            </AlertBox>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <section class="mt-8">
+    <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">
+      {t("noAccess.howTitle")}
+    </h2>
+    <ol role="list" class="mt-4 space-y-4">
+      {
+        steps.map((step, index) => (
+          <li class="card flex gap-4 p-5">
+            <span
+              aria-hidden="true"
+              class="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-sunken font-mono text-sm font-semibold text-ink"
+            >
+              {index + 1}
+            </span>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-ink">
+                {t(`noAccess.steps.${step}.title`)}
+              </p>
+              <p class="mt-1 text-sm leading-relaxed text-muted">
+                {t(`noAccess.steps.${step}.detail`)}
+              </p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="mt-8 flex flex-wrap items-center gap-3">
+    <a class="btn btn-primary px-5 py-2.5" href={supportUrl}>
+      {t("noAccess.contact")}
+    </a>
+    <a class="btn btn-ghost px-5 py-2.5" href="/ground">
+      {t("noAccess.ground")}
+    </a>
+    {
+      session && (
+        <form method="POST" action="/auth/logout">
+          <button type="submit" class="btn btn-ghost px-5 py-2.5">
+            {t("auth.signOut")}
+          </button>
+        </form>
+      )
+    }
+  </section>
+</SiteLayout>
