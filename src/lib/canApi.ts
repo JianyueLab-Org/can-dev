@@ -17,6 +17,21 @@ import {
  * 这个文件是**唯一**知道 client_secret 的地方，而且它只在服务端跑。
  */
 
+/**
+ * 每一次服务端出站请求的上限。
+ *
+ * **一条都不能省。** 这三条 fetch 从前一条超时都没有，而这个站是 SSR 的：一次
+ * 不响应的 can-api 不会变成一个错误页，它会让 `/auth/callback` 停在登录中途、
+ * 让每个岛屿的取数各占住一条连接不放。`replicas: 2`、队列没有上限，于是上游抖
+ * 一下的后果是**这个站自己**先耗光连接。
+ *
+ * 5 秒和 can-efb / can-controller / can-portal 的 `server/canApi.ts` 一致
+ * （can-radar 的会话查询是 2.5 秒，can-exam 的转发是 8 秒，三条反代是 15 秒）。
+ * 这个仓库自己的 `lib/limits.ts` 早就写了 3 秒并在注释里讲了理由 —— 那份理由
+ * 一直适用于这里，只是没人搬过来。
+ */
+const TIMEOUT_MS = 5000;
+
 /* ------------------------------------------------------------------ *
  * PKCE + 授权
  * ------------------------------------------------------------------ */
@@ -80,6 +95,7 @@ export async function exchangeCode(
       client_secret: clientSecret(),
       code_verifier: verifier,
     }),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   });
 
   const body = (await response.json().catch(() => ({}))) as Record<
@@ -113,6 +129,7 @@ export async function userinfo(
 ): Promise<{ sub: string; name?: string | null; developer: boolean }> {
   const response = await fetch(new URL("/api/oauth/userinfo", apiOrigin()), {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`userinfo 失败：${response.status}`);
   const claims = (await response.json()) as {
@@ -171,6 +188,8 @@ async function call<T>(
       ...(init.body ? { "Content-Type": "application/json" } : {}),
       ...init.headers,
     },
+    // 放在展开之后：调用方谁都没传 signal，而这一条不该被一次顺手的 init 覆盖掉。
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   });
 
   const body = (await response.json().catch(() => ({}))) as Record<

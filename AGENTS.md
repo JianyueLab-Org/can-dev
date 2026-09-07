@@ -24,14 +24,24 @@ userinfo、吊销和 `/api/v1/dev/clients` 都在那儿；`CAN_WEB_ORIGIN` 只�
 
 ```bash
 bun run dev        # :4322（4321 留给 can-web，两个常常同时开着）
-bun run lint       # format:check + astro check —— CI 跑的就是这个
+bun run lint       # format:check + astro check + bun test —— CI 跑的就是这个
 bun run build && bun run start
 
 # 地面图那两份移植有没有漂（要本地有 Ground 和 Sector 两个仓库；不在 CI 里）
 bun run scripts/verify-ground-port.ts
 ```
 
-没有测试套件。门禁就是 `bun run lint` 加一次 `bun run build`。
+门禁是 `bun run lint` 加一次 `bun run build`。
+
+**测试只有一份，而且刻意只有一份**（`src/lib/logout.test.ts`，`bun test`，只多一个
+`@types/bun` 让 `astro check` 认得 `bun:test`）。判据和 can-efb 那边一样 —— 「错了
+会不会被屏幕出卖」。`/auth/logout` 的 Origin 检查不会：站内登出照常工作，坏掉的是
+别人网页上一个隐藏表单能把访客登出，而受害者只会以为自己的会话过期了。它同时是这
+个站里**唯一**一条不经过 `requireSession()` 的写操作，也就是唯一一条没有别的守卫
+兜底的。
+
+测试文件放在 `src/lib/` 而不是挨着被测的路由：`src/pages/` 下每一个 `.ts` 都是一条
+路由，一个 `logout.test.ts` 会变成 `/auth/logout.test`。
 
 ## 三条不能动的规矩
 

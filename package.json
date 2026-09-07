@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "astro check",
-    "lint": "bun run format:check && bun run typecheck"
+    "test": "bun test",
+    "lint": "bun run format:check && bun run typecheck && bun test"
   },
   "dependencies": {
     "@astrojs/node": "^11",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/bun": "^1.4.1",
     "@types/node": "^26.1.2",
     "prettier": "3.6.2",
     "prettier-plugin-astro": "^0.14.1",

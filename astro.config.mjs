@@ -27,8 +27,14 @@ export default defineConfig({
    * 关掉不等于没有检查：写操作的 Origin 由 `src/lib/guard.ts` 比对**显式的**
    * `PUBLIC_ORIGIN` 来判，那个值不是从请求头推的，所以反代动不了它。
    *
-   * 这一条缺席时最先撞上的是登出（`/auth/logout` 是 POST，而且它上面没有守卫，
-   * 所以 403 看着毫无来由）。
+   * 这一条缺席时最先撞上的是登出（`/auth/logout` 是 POST，而当时它上面没有守
+   * 卫，所以 403 看着毫无来由）。
+   *
+   * **那条路由现在自己带着检查了。** 关掉 `checkOrigin` 却没有把它补回来，曾
+   * 经让登出成为这个站里唯一一条谁都能从站外触发的写操作：跨站表单 POST 不触
+   * 发预检，SameSite=Lax 只挡住 cookie（于是吊销那一段被跳过），而清 cookie
+   * 那一步是无条件的 —— 响应照样带着删除会话的 Set-Cookie。见
+   * `src/pages/auth/logout.ts` 顶上那段。
    */
   security: { checkOrigin: false },
 
