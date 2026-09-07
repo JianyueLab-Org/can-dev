@@ -444,18 +444,21 @@ const CLIENTS_LATEST: ApiEndpoint = {
       name: "client",
       type: "string",
       description:
-        "One of `audio-for-can`, `atis-for-can`, `msfs-for-can`, `xpc-for-can`. Adds `client` and `update_available` to the answer.",
+        "One of `audio-for-can`, `atis-for-can`, `msfs-for-can`, `xpc-for-can`. Adds two top-level keys to the answer: `client` (the name you asked about, as a **string**) and `update` (an object — `available`, `current`, `latest`).",
     },
     {
       name: "version",
       type: "string",
       description:
-        "The version you are running, e.g. `2.0.1`. Without it `update_available` is `true` whenever the package exists.",
+        "The version you are running, e.g. `2.0.1`. Omitting it compares against an empty version, so `update.available` is `true` whenever a release exists.",
     },
   ],
   statuses: [
     { code: 200, when: "The release document." },
-    { code: 400, when: "`client` is not one of the four names." },
+    {
+      code: 404,
+      when: '`client` is not one of the four names — `{"error": "unknown_client"}`.',
+    },
     { code: 429, when: "Rate limited." },
     {
       code: 503,
@@ -466,10 +469,8 @@ const CLIENTS_LATEST: ApiEndpoint = {
     request:
       "curl '{origin}/api/v1/clients/latest?client=atis-for-can&version=2.0.0'",
     response: `{
-  "status": 200,
-  "timestamp": "2026-08-01T10:31:02.884Z",
   "version": "v2.0.3",
-  "published_at": "2026-07-31T08:35:28Z",
+  "publishedAt": "2026-07-31T08:35:28Z",
   "notes": "https://github.com/JianyueLab-Org/airwaysn_audio/releases/tag/v2.0.3",
   "clients": {
     "audio-for-can": { "name": "audio-for-can", "version": "v2.0.3", "size": 64583682, "download": "…", "origin": "…" },
@@ -481,13 +482,15 @@ const CLIENTS_LATEST: ApiEndpoint = {
       "origin": "https://github.com/JianyueLab-Org/airwaysn_audio/releases/download/v2.0.3/atis-for-can-v2.0.3.zip"
     }
   },
-  "client": { "name": "atis-for-can", "version": "v2.0.3", "size": 58094371, "download": "…", "origin": "…" },
-  "update_available": true
+  "client": "atis-for-can",
+  "update": { "available": true, "current": "2.0.0", "latest": "v2.0.3" }
 }`,
   },
   notes: [
     "`download` points at our own relay; `origin` is the GitHub asset, for anyone who can reach it. Prefer `download`.",
-    'A package missing from a release (one of the four builds failed) is simply absent from `clients`, and asking about it answers `update_available: false` with a `reason` — "no update" is the honest answer when there is nothing to hand out.',
+    "**This endpoint has no `{status, data, timestamp}` envelope.** Most of can-api wraps its answer; this one writes the document at the top level, and the field names are `publishedAt` (camelCase) and `notes`. Read the keys above literally.",
+    "**`client` is a string and `update` is an object.** They replaced an earlier `client` object plus an `update_available` boolean, and the four shipped desktop clients still read the old shape — so they are the ones that are wrong, not this page. There is no `reason` field anywhere in the answer.",
+    "**A package missing from a release still gets an `update` answer.** When one of the four builds fails it is simply absent from `clients`, but `update.available` is computed from the release version regardless — so check that `clients[name]` exists before following a download, rather than trusting `available` alone.",
     "Cached for 5 minutes at the edge, so a release reaches members within minutes without every client startup reaching GitHub.",
   ],
 };
@@ -1103,7 +1106,8 @@ const DATAFEED: ApiEndpoint = {
   },
   notes: [
     "**The contract is one-directional: adding a key is free, renaming or retyping one is not.** can-fsd's `datafeed_test.go` walks a committed golden document and asserts the live feed still carries every key at the same JSON type. That is what let `track`, `vertical_speed` and `ground_track` be added without touching a single reader. When a field genuinely has to change, add the replacement, move the readers, then drop the original.",
-    "Position and attitude keys (`latitude`, `longitude`, `altitude`, `groundspeed`, `transponder`, `heading`, `pitch`, `bank`) are **absent** until the pilot's first position packet arrives, rather than present and zero. `vertical_speed` and `ground_track` are derived and appear only once the aircraft has been seen to move.",
+    "Position and attitude keys (`latitude`, `longitude`, `altitude`, `groundspeed`, `transponder`, `heading`, `pitch`, `bank`) are **absent** until the pilot's first position packet arrives, rather than present and zero.",
+    '`vertical_speed` and `ground_track` are derived, but they are **not** absent until the aircraft moves — they are written in the same block as the coordinates, so they appear exactly when those do and read `0` while the aircraft is stationary. Do not treat a missing key as "unknown" for these two: a parked aircraft reports `ground_track: 0`, which is due north, and a client that draws it will point every stationary aircraft at the top of the screen. Use `groundspeed` to decide whether the track means anything.',
     "`text_atis` is always an array — never `null` — even for a controller who has posted nothing.",
     "`general.version` is the **network's name**, taken from can-fsd's config (`\"CAN BETA TEST\"` today), and it is also each controller's `server` field. It is not a protocol or API version, and it is not the FSD banner, which must keep saying `VATSIM FSD` or older EuroScope builds drop the connection.",
     "`general.socket` and `general.user` always report the same number. They were separate counters in the Python server; a connection is only registered once here. The keys stay for compatibility.",
