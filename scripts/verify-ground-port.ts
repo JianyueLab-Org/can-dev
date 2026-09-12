@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildAirportFromSource,
+  decodeGroundText,
   parseEse,
   buildWorldLayer,
   parseSct,
@@ -48,7 +49,9 @@ const FIRS: Record<string, string> = {
   PRC_FSS: "FSS.sct",
 };
 
-const read = (p: string) => readFileSync(p, "utf8");
+// 同上：扇区包里的 .sct 和一半的站位表是 GBK，"utf8" 会把机位名读成 U+FFFD，
+// 而那正是这个脚本要抓的那类漂移
+const read = (p: string) => decodeGroundText(readFileSync(p));
 const json = (p: string) => JSON.parse(read(p));
 
 function firstDiff(a: string, b: string): string {

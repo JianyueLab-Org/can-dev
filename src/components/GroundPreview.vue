@@ -27,6 +27,7 @@ import {
   buildAirportFromSource,
   buildWorldLayer,
   classify,
+  decodeGroundText,
   DEFAULT_STYLE_DOC,
   icaoFromName,
   parseSct,
@@ -209,7 +210,8 @@ async function ingest(list: File[]) {
   const bad: string[] = [];
   for (const file of list) {
     try {
-      const text = await file.text();
+      // 不是 file.text()：那是写死的 UTF-8，一半的 GRpluginStands.txt 是 GBK
+      const text = decodeGroundText(await file.arrayBuffer());
       const kind = classify(file.name, text);
       if (!kind) {
         bad.push(file.name);

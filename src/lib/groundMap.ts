@@ -448,6 +448,36 @@ function dms(s: string): number {
   return "SW".includes(s[0]) ? -v : v;
 }
 
+/**
+ * 把一个 EuroScope 数据文件的字节解出来 —— `common.read_text()` 的浏览器版。
+ *
+ * 这些文件里没有一个字说自己是什么编码，而这棵树里混着两种：十个大陆 .sct 和
+ * 九份 `GRpluginStands.txt` 里的五份是 GBK，RJJJ.ese 和剩下的站位表是 UTF-8。
+ * 站位名和等待点名会被抄进 ground.json，所以这里的文本**就是产物本身**，必须
+ * 真的解对。
+ *
+ * 一律按 UTF-8 读（`file.text()` 和 `readFileSync(p, "utf8")` 都是这么干的）
+ * 会把每个 GBK 名字变成 U+FFFD，扇区包里有六个名字就是这么发出去的（ZBSJ
+ * 试车机位、ZULS 隔离机位、ZHHH 东航机坪试车位 ×3、ZSYA 隔离机位、ZSFZ 直01-03）。
+ *
+ * 先试严格 UTF-8，因为两种里只有它能被**证明**：GBK 几乎接受任意字节串，先试
+ * 它会把每个 UTF-8 文件都变成乱码。最后那次有损解码是兜底，让坏文件退化成以前
+ * 的样子而不是让整个合并失败 —— 顺序和退路都和 common.py 一字不差。
+ */
+export function decodeGroundText(raw: ArrayBuffer | Uint8Array): string {
+  const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+  // Encoding Standard 的 "gbk" 走的是 GB18030 解码器，和 Python 的 cp936 只在
+  // 一个未分配码位上不同，落不到站位名上。
+  for (const enc of ["utf-8", "gbk"]) {
+    try {
+      return new TextDecoder(enc, { fatal: true }).decode(bytes);
+    } catch {
+      // 换下一种
+    }
+  }
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
 /** 扇区文件的 `[RUNWAY]` 段：跑道头才是 merge.py 画跑道矩形用的那两个点。 */
 export function parseSct(text: string): Record<string, SctRunway[]> {
   const out: Record<string, SctRunway[]> = {};

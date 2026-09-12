@@ -28,7 +28,7 @@ bun run lint       # format:check + astro check + bun test —— CI 跑的就�
 bun run build && bun run start
 
 # 地面图那两份移植有没有漂（要本地有 Ground 和 Sector 两个仓库；不在 CI 里）
-bun run scripts/verify-ground-port.ts
+bun run verify:ground
 ```
 
 门禁是 `bun run lint` 加一次 `bun run build`。
@@ -72,13 +72,20 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 在这里"顺手改正确一点"，预览就和管制员机器上装的那份对不上了，而那是一个预览
 工具唯一不能犯的错。
 
-对得上是**可以证明的**，改完跑一次 `bun run scripts/verify-ground-port.ts`：它
+对得上是**可以证明的**，改完跑一次 `bun run verify:ground`：它
 拿 `Ground/<FIR>/airports/*.json` 加 `<FIR>.sct`、`GRpluginStands.txt` 跑一遍
 `buildAirportFromSource`，和 `Sector/<FIR>/Plugins/GroundMap/ground.json` 里对
 应的机场逐字节比较，漂了就非零退出。写下这段时十个 FIR、137 处检查（117 个机
 场加 20 个 world 图层）全部相同。两个参数的 `undefined` 和 `[]` 不是一回事：
 `undefined` 是"没有扇区文件，跑道用 OSM 近似"，`[]` 是"扇区文件在，但它没有这
 个机场的跑道行"（ZL02、ZL03 那种只在站位表里的场，产物里本来就没有跑道层）。
+
+**文件编码也是移植的一部分**，而且是这个校验唯一一次真的抓到东西的地方。十个大
+陆 `.sct` 和九份 `GRpluginStands.txt` 里的五份是 GBK，剩下的是 UTF-8，文件里没有
+一个字说自己是哪种。`decodeGroundText()` 是 `common.read_text()` 的逐行移植：先
+严格 UTF-8（两种里只有它能被证明），再 GBK，最后才有损兜底。一律 `file.text()` 或
+`readFileSync(p, "utf8")` 会把每个 GBK 机位名变成 U+FFFD —— 两边同时这么错的时候
+这个脚本是绿的，只有这边解对了它才会指出产物没重新合并。
 
 **不登录、不上传、没有后端路由**，这三件事是一件事。中间件的 `PROTECTED` 里没
 有它：改扇区包的人不一定注册过 OAuth 应用。文件在浏览器里解析：地面数据跟着扇

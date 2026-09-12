@@ -15,6 +15,7 @@
     "format:check": "prettier --check .",
     "typecheck": "astro check",
     "test": "bun test",
+    "verify:ground": "bun run scripts/verify-ground-port.ts",
     "lint": "bun run format:check && bun run typecheck && bun test"
   },
   "dependencies": {
