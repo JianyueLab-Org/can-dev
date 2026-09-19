@@ -200,6 +200,7 @@
         "scopes": "申请的权限",
         "website": "主页（可选）",
         "logo": "图标地址（可选）",
+        "privacyPolicy": "隐私政策 URL（可选）",
         "publicClient": "这是公共客户端",
         "publicClientHint": "桌面端、移动端、纯前端应用 —— 存不住密钥的那些。不发 client_secret，靠 PKCE 证明自己。注册后不可更改。",
         "save": "保存",

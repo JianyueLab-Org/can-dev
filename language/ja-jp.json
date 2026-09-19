@@ -200,6 +200,7 @@
         "scopes": "要求するスコープ",
         "website": "ホームページ（任意）",
         "logo": "アイコン URL（任意）",
+        "privacyPolicy": "プライバシーポリシー URL（任意）",
         "publicClient": "パブリッククライアントである",
         "publicClientHint": "デスクトップ、モバイル、フロントエンドのみのアプリ —— シークレットを保持できないものです。client_secret は発行されず、PKCE で自身を証明します。登録後は変更できません。",
         "save": "保存",

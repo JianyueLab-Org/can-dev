@@ -27,6 +27,7 @@ interface ManagedClient {
   scopes: string[];
   logoUrl: string | null;
   websiteUrl: string | null;
+  privacyPolicyUrl: string | null;
   disabled: boolean;
   createdAt: string;
   activeTokens?: number;
@@ -56,6 +57,7 @@ const blank = () => ({
   scopes: ["openid", "profile"] as string[],
   websiteUrl: "",
   logoUrl: "",
+  privacyPolicyUrl: "",
   isPublic: false,
 });
 const form = ref(blank());
@@ -78,6 +80,7 @@ function openEdit(client: ManagedClient) {
     scopes: [...client.scopes],
     websiteUrl: client.websiteUrl ?? "",
     logoUrl: client.logoUrl ?? "",
+    privacyPolicyUrl: client.privacyPolicyUrl ?? "",
     isPublic: client.isPublic,
   };
   editing.value = client.id;
@@ -132,6 +135,7 @@ async function submit() {
     scopes: form.value.scopes,
     websiteUrl: form.value.websiteUrl || null,
     logoUrl: form.value.logoUrl || null,
+    privacyPolicyUrl: form.value.privacyPolicyUrl || null,
     ...(editing.value ? {} : { isPublic: form.value.isPublic }),
   };
 
@@ -320,6 +324,18 @@ function copy(text: string) {
               >{{ t("form.logo") }}</label
             >
             <input id="f-logo" v-model="form.logoUrl" class="input" />
+          </div>
+          <div>
+            <label
+              class="mb-1 block text-sm font-medium text-ink"
+              for="f-privacy"
+              >{{ t("form.privacyPolicy") }}</label
+            >
+            <input
+              id="f-privacy"
+              v-model="form.privacyPolicyUrl"
+              class="input"
+            />
           </div>
         </div>
 

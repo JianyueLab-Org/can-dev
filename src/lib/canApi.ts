@@ -153,6 +153,7 @@ export interface ManagedClient {
   trusted: boolean;
   logoUrl: string | null;
   websiteUrl: string | null;
+  privacyPolicyUrl: string | null;
   disabled: boolean;
   createdAt: string;
   updatedAt: string;

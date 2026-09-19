@@ -22,3 +22,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Claude Code local state (worktrees included). Same rule as can-api.
+.claude/
+
+# Throwaway scripts and command output.
+.temp/
