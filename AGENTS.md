@@ -65,7 +65,7 @@ can-api。令牌能改回调地址，也就是能决定授权码送到哪儿 —
 
 **它是 `merge.py` 和 `GroundMap.cpp` 的第二份实现。** `src/lib/groundMap.ts` 是
 `Ground/tools/merge.py` 的浏览器版，`src/lib/groundRender.ts` 是
-`Sector/RJJJ/Plugins/GroundMap/src/GroundMap.cpp` 的 canvas 版。两份源头都不在
+`Sector/tools/RJJJ/GroundMap/GroundMap.cpp` 的 canvas 版。两份源头都不在
 这个仓库里，也没有任何 CI 会替我们发现它们对不上 —— 所以两边都是**逐字照抄，
 连怪癖一起抄**：merge.py 把 `cos(36°)` 当纬度传给抽稀函数，这边也这么传；
 Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也乘回去、也用 `butt`。
