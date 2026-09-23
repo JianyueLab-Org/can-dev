@@ -1,5 +1,5 @@
 /**
- * 画地面图 —— `Sector/RJJJ/Plugins/GroundMap/src/GroundMap.cpp` 的 canvas 版。
+ * 画地面图 —— `Sector/tools/RJJJ/GroundMap/GroundMap.cpp` 的 canvas 版。
  *
  * 插件在 EuroScope 里用 Direct2D 画，这里用 2D canvas 画同一份 ground.json，
  * **画法一比一照抄**：一样的 LOD 判据（视野宽度海里）、一样的三遍描边（先全部
