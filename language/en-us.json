@@ -200,6 +200,7 @@
         "scopes": "Scopes requested",
         "website": "Homepage (optional)",
         "logo": "Icon URL (optional)",
+        "privacyPolicy": "Privacy policy URL (optional)",
         "publicClient": "This is a public client",
         "publicClientHint": "Desktop, mobile and browser-only applications — the ones that cannot keep a secret. No client_secret is issued; they prove themselves with PKCE. This cannot be changed after registration.",
         "save": "Save",
