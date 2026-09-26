@@ -325,10 +325,11 @@ const METAR: ApiEndpoint = {
   id: "metar",
   methods: ["GET"],
   path: "/api/v1/metar",
-  summary: "The raw METAR for one station.",
+  summary: "The raw METAR and/or TAF for one station.",
   body: [
-    "A bare weather lookup for desktop clients and scripts that want the report text itself rather than the ATIS formatter's rendition of it. Same sources as /api/v1/atis: VATSIM METAR first, NOAA as fallback.",
-    '`metar` is `null` rather than an error status when neither source has a report — the caller can then tell "no report for this station" from "the service is down", which a non-2xx would blur.',
+    "A bare weather lookup for desktop clients and scripts that want the report text itself rather than the ATIS formatter's rendition of it. METAR sources, in order: NOAA, etops, VATSIM. TAF sources: NOAA, then etops.",
+    "Reports are cached per station for 10 minutes.",
+    'A report is an empty string rather than an error status when no source has one — the caller can then tell "no report for this station" from "the service is down", which a non-2xx would blur.',
   ],
   auth: "none",
   cors: true,
@@ -341,20 +342,31 @@ const METAR: ApiEndpoint = {
       required: true,
       description: "Four letters, e.g. `ZSPD`.",
     },
+    {
+      name: "type",
+      type: "string",
+      required: false,
+      description:
+        "`metar` (default), `taf` or `all`. The reply carries a `metar` and/or `taf` key to match.",
+    },
   ],
   statuses: [
     {
       code: 200,
-      when: '`{"icao": "ZSPD", "metar": "ZSPD ..."}` — or `metar: null` when no source has a report.',
+      when: '`{"icao": "ZSPD", "metar": "METAR ZSPD ..."}` — or an empty string when no source has a report.',
     },
-    { code: 400, when: "`icao` is missing or not four letters." },
+    {
+      code: 400,
+      when: "`icao` is missing or not four letters, or `type` is not `metar`, `taf` or `all`.",
+    },
     { code: 429, when: "Rate limited." },
   ],
   example: {
-    request: "curl '{origin}/api/v1/metar?icao=ZSPD'",
+    request: "curl '{origin}/api/v1/metar?icao=ZSPD&type=all'",
     response: `{
   "icao": "ZSPD",
-  "metar": "ZSPD 071300Z 13004MPS 9999 SCT015 BKN020 24/22 Q1014 NOSIG"
+  "metar": "METAR ZSPD 071300Z 13004MPS 9999 SCT015 BKN020 24/22 Q1014 NOSIG",
+  "taf": "TAF ZSPD 071100Z 0712/0818 14004MPS 9999 SCT020"
 }`,
   },
 };
