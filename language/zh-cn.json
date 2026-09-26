@@ -1,53 +1,8 @@
 {
   "header": {
-    "forum": "论坛",
-    "docs": "文档",
-    "onlineMap": "雷达",
-    "signin": "登录",
-    "panel": "飞行员面板",
-    "roster": "管制员名册",
-    "home": "首页",
     "openMenu": "打开菜单",
     "closeMenu": "关闭菜单",
-    "skipToContent": "跳到主要内容",
-    "activities": "活动",
-    "downloads": "下载"
-  },
-  "footer": {
-    "description": "友好，开放，有热情的模拟飞行连飞平台",
-    "pilots": {
-      "title": "飞行员",
-      "items": {
-        "pilotPanel": "飞行员面板",
-        "onlineMap": "在线地图",
-        "flightPlan": "飞行计划",
-        "statistics": "统计"
-      }
-    },
-    "controllers": {
-      "title": "管制员",
-      "items": {
-        "controllerPanel": "管制员面板",
-        "professionalGuidelines": "职业准则",
-        "roster": "管制员名册"
-      }
-    },
-    "docs": {
-      "title": "文档",
-      "items": {
-        "regulations": "规章制度",
-        "api": "开放 API"
-      }
-    },
-    "links": {
-      "title": "链接",
-      "items": {
-        "forum": "论坛",
-        "qqGroup": "QQ群",
-        "discord": "Discord",
-        "support": "问题与建议"
-      }
-    }
+    "skipToContent": "跳到主要内容"
   },
   "apiDocs": {
     "eyebrow": "开发者",

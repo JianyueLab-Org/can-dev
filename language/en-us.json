@@ -1,53 +1,8 @@
 {
   "header": {
-    "forum": "Forum",
-    "docs": "Docs",
-    "onlineMap": "Radar",
-    "signin": "Sign In",
-    "panel": "Pilots Panel",
-    "roster": "ATC Roster",
-    "home": "Home",
     "openMenu": "Open main menu",
     "closeMenu": "Close menu",
-    "skipToContent": "Skip to main content",
-    "activities": "Activities",
-    "downloads": "Downloads"
-  },
-  "footer": {
-    "description": "A Friendly, Open, and Enthusiastic Flight Simulation Platform",
-    "pilots": {
-      "title": "Pilots",
-      "items": {
-        "pilotPanel": "Pilots Panel",
-        "onlineMap": "Online Map",
-        "flightPlan": "Flight Plan",
-        "statistics": "Statistics"
-      }
-    },
-    "controllers": {
-      "title": "ATC",
-      "items": {
-        "controllerPanel": "ATC Panel",
-        "professionalGuidelines": "Professional Guidelines",
-        "roster": "ATC Roster"
-      }
-    },
-    "docs": {
-      "title": "Documents",
-      "items": {
-        "regulations": "Regulations",
-        "api": "API"
-      }
-    },
-    "links": {
-      "title": "Links",
-      "items": {
-        "forum": "Forum",
-        "qqGroup": "QQ Group",
-        "discord": "Discord",
-        "support": "Issues & ideas"
-      }
-    }
+    "skipToContent": "Skip to main content"
   },
   "apiDocs": {
     "eyebrow": "Developers",

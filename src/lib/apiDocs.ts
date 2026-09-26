@@ -37,6 +37,8 @@
  * four translations of a wire format are four things to keep in step.
  */
 
+import type { IconName } from "@jianyuelab-org/can-ui";
+
 /**
  * A key in can-api's rate-limit table.
  *
@@ -154,7 +156,7 @@ export interface ApiGroup {
   name: string;
   description: string;
   /** Key in `ICON_PATHS`. */
-  icon: string;
+  icon: IconName;
   endpoints: ApiEndpoint[];
 }
 

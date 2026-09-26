@@ -1,53 +1,8 @@
 {
   "header": {
-    "forum": "フォーラム",
-    "docs": "ドキュメント",
-    "onlineMap": "レーダー",
-    "signin": "ログイン",
-    "panel": "パイロットパネル",
-    "roster": "管制員名簿",
-    "home": "ホーム",
     "openMenu": "メニューを開く",
     "closeMenu": "メニューを閉じる",
-    "skipToContent": "本文へスキップ",
-    "activities": "イベント",
-    "downloads": "ダウンロード"
-  },
-  "footer": {
-    "description": "フレンドリーで、オープンで、熱意のあるフライトシミュレーションプラットフォーム",
-    "pilots": {
-      "title": "パイロット",
-      "items": {
-        "pilotPanel": "パイロットパネル",
-        "onlineMap": "オンラインマップ",
-        "flightPlan": "フライトプラン",
-        "statistics": "統計"
-      }
-    },
-    "controllers": {
-      "title": "管制員",
-      "items": {
-        "controllerPanel": "管制員パネル",
-        "professionalGuidelines": "職業準則",
-        "roster": "管制員名簿"
-      }
-    },
-    "docs": {
-      "title": "ドキュメント",
-      "items": {
-        "regulations": "規程",
-        "api": "公開 API"
-      }
-    },
-    "links": {
-      "title": "リンク",
-      "items": {
-        "forum": "フォーラム",
-        "qqGroup": "QQグループ",
-        "discord": "Discord",
-        "support": "不具合・ご要望"
-      }
-    }
+    "skipToContent": "本文へスキップ"
   },
   "apiDocs": {
     "eyebrow": "開発者向け",

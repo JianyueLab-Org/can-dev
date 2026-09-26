@@ -41,6 +41,7 @@ const mainWidth = width === "wide" ? "max-w-7xl" : "max-w-5xl";
     <Header
       messages={headerMessages}
       memberName={session ? (session.name ?? session.username) : null}
+      rating={session?.rating}
       pathname={Astro.url.pathname}
       locale={locale}
       client:load
@@ -62,6 +63,11 @@ const mainWidth = width === "wide" ? "max-w-7xl" : "max-w-5xl";
          它原来那一栏「首页 / 应用 / 文档」是本站自己的页面，页眉上已经全有；页脚
          再抄一遍不会让它们更好找，只会让**只在页脚出现**的那几条被淹掉。 */
     }
-    <SiteFooter locale={locale} current="dev" signedIn={!!session} />
+    <SiteFooter
+      locale={locale}
+      current="dev"
+      rating={session?.rating}
+      signedIn={!!session}
+    />
   </div>
 </BaseLayout>

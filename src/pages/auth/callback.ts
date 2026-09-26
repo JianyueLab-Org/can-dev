@@ -50,6 +50,7 @@ export const GET: APIRoute = async ({ cookies, url, redirect }) => {
       // can-web 那边变成 401，而这里表现为一次莫名其妙的失败。
       expiresAt: Date.now() + Math.max(0, tokens.expires_in - 30) * 1000,
       developer: who.developer,
+      rating: who.rating,
     });
 
     // 不是开发者的人**照样发会话**，然后送去 /no-access。

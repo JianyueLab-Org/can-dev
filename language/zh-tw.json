@@ -1,53 +1,8 @@
 {
   "header": {
-    "forum": "論壇",
-    "docs": "文件",
-    "onlineMap": "雷達",
-    "signin": "登入",
-    "panel": "飛行員面板",
-    "roster": "管制員名冊",
-    "home": "首頁",
     "openMenu": "開啟選單",
     "closeMenu": "關閉選單",
-    "skipToContent": "跳至主要內容",
-    "activities": "活動",
-    "downloads": "下載"
-  },
-  "footer": {
-    "description": "友善、開放的模擬飛行連線平台",
-    "pilots": {
-      "title": "飛行員",
-      "items": {
-        "pilotPanel": "飛行員面板",
-        "onlineMap": "線上地圖",
-        "flightPlan": "飛航計畫",
-        "statistics": "統計"
-      }
-    },
-    "controllers": {
-      "title": "管制員",
-      "items": {
-        "controllerPanel": "管制員面板",
-        "professionalGuidelines": "職業準則",
-        "roster": "管制員名冊"
-      }
-    },
-    "docs": {
-      "title": "文件",
-      "items": {
-        "regulations": "規章制度",
-        "api": "開放 API"
-      }
-    },
-    "links": {
-      "title": "連結",
-      "items": {
-        "forum": "論壇",
-        "qqGroup": "QQ群",
-        "discord": "Discord",
-        "support": "問題與建議"
-      }
-    }
+    "skipToContent": "跳至主要內容"
   },
   "apiDocs": {
     "eyebrow": "開發者",

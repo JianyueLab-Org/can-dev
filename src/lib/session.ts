@@ -42,6 +42,15 @@ export interface Session {
    * 于是旧会话按「不是开发者」处理 —— 安全的那个方向，而且下一次登录就自愈。
    */
   developer?: boolean;
+  /**
+   * 会员评级 —— 登录时从 userinfo 的 `rating` claim 抄下来的，只喂给站头的
+   * 「全网」菜单：教员门户（8）和航行资料库（12）按它露不露。
+   *
+   * **不是权限判断**，和 `developer` 一样是一份会旧掉的缓存；旧掉的后果是菜单
+   * 多一条或少一条链接。可选，是因为这一列上线之前签发的 cookie 里没有它 ——
+   * 解出来是 `undefined`，`visibleSites` 对它少给而不是多给。
+   */
+  rating?: number;
 }
 
 export interface Pending {

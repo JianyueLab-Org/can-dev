@@ -124,9 +124,12 @@ export async function exchangeCode(
  * 缺字段时按 `false` 算（`?? false`），而不是按 true。老版本 can-api 不送这条
  * claim，而在「不确定」和「放行」之间，这个站宁可让人看见一句解释。
  */
-export async function userinfo(
-  accessToken: string,
-): Promise<{ sub: string; name?: string | null; developer: boolean }> {
+export async function userinfo(accessToken: string): Promise<{
+  sub: string;
+  name?: string | null;
+  developer: boolean;
+  rating?: number;
+}> {
   const response = await fetch(new URL("/api/oauth/userinfo", apiOrigin()), {
     headers: { Authorization: `Bearer ${accessToken}` },
     signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -136,8 +139,14 @@ export async function userinfo(
     sub: string;
     name?: string | null;
     developer?: boolean;
+    rating?: unknown;
   };
-  return { ...claims, developer: claims.developer ?? false };
+  // `rating` 同样在 `profile` scope 下，只用来画菜单。不是数就当没有。
+  return {
+    ...claims,
+    developer: claims.developer ?? false,
+    rating: typeof claims.rating === "number" ? claims.rating : undefined,
+  };
 }
 
 /* ------------------------------------------------------------------ *
