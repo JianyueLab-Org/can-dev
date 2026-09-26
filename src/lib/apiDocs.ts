@@ -327,7 +327,7 @@ const METAR: ApiEndpoint = {
   path: "/api/v1/metar",
   summary: "The raw METAR and/or TAF for one station.",
   body: [
-    "A bare weather lookup for desktop clients and scripts that want the report text itself rather than the ATIS formatter's rendition of it. METAR sources, in order: NOAA, etops, VATSIM. TAF sources: NOAA, then etops.",
+    "A bare weather lookup for desktop clients and scripts that want the report text itself rather than the ATIS formatter's rendition of it. METAR sources, in order: NOAA, etops, VATSIM, then CMA's avimet.nmc.cn. The last serves decoded fields, so its METAR is assembled and carries only wind, cloud, temperature and QNH, with no `METAR` prefix. TAF sources: NOAA, then etops.",
     "Reports are cached per station for 10 minutes.",
     'A report is an empty string rather than an error status when no source has one — the caller can then tell "no report for this station" from "the service is down", which a non-2xx would blur.',
   ],
