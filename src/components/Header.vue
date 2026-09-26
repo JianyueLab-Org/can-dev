@@ -14,7 +14,11 @@
  *   本站自己加密的，清它的是本站的路由，而表单在水合之前也按得动。
  */
 import { computed } from "vue";
-import { SiteHeader, type NavChild } from "@jianyuelab-org/can-ui";
+import {
+  SiteHeader,
+  type NavChild,
+  type SiteOrigins,
+} from "@jianyuelab-org/can-ui";
 import { createTranslator } from "@/lib/i18n";
 
 const props = withDefaults(
@@ -27,12 +31,15 @@ const props = withDefaults(
     rating?: number;
     pathname?: string;
     locale?: string;
+    /** 开发环境的站点地址覆盖，见 SiteLayout。 */
+    origins?: SiteOrigins;
   }>(),
   {
     memberName: null,
     rating: undefined,
     pathname: "",
     locale: "zh-cn",
+    origins: undefined,
   },
 );
 
@@ -66,6 +73,7 @@ const labels = computed(() => ({
     :rating="rating"
     sign-in-href="/auth/login"
     :labels="labels"
+    :origins="origins"
   >
     <template #brand>
       <span class="flex items-center gap-2.5">
