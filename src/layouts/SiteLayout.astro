@@ -1,22 +1,13 @@
 ---
 /**
- * 站头 + 正文 + 页脚这个三明治，写一次。
+ * 外壳 + 正文。页面不写 `<main>`：`CanFrame` 渲染它、跳转链接和页脚。
  *
- * can-web 上每个页面都自己拼一遍这三件事，那是几十个页面长出来的历史，不是
- * 值得抄的东西 —— 这个站只有三个页面，三份复制品会立刻开始漂移（`max-w` 差
- * 一档、少一个 `#main-content`），而漂移正好是这次统一要消掉的毛病。
- *
- * `messages` 是 `header` 和 `dev` 两个命名空间**合成**的一份字典：站头里
- * `skipToContent` 这类词条来自共享的 `header`，`nav.*` / `auth.*` 来自本站
- * 自己的 `dev`。合在这里而不是丢整本词典进去，是因为整本还带着 `apiDocs` ——
- * 那是十来 KB 的 JSON，会跟着岛屿的 props 序列化进每一个页面的 HTML。
+ * `pathname` 用 `Astro.originPathname`：中间件把非开发者改写到 `/no-access`
+ * 时，导航仍标出他请求的那一页。
  */
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import Header from "@/components/Header.vue";
-import SiteFooter from "@jianyuelab-org/can-ui/components/SiteFooter.vue";
-import type { SiteOrigins } from "@jianyuelab-org/can-ui";
-import { getLocale, getMessages } from "@/lib/i18n";
-import { webOrigin } from "@/lib/config";
+import Frame from "@/components/Frame.vue";
+import { getLocale, getMessages, useTranslations } from "@/lib/i18n";
 
 interface Props {
   title?: string;
@@ -28,54 +19,39 @@ interface Props {
 const { title, description, width = "narrow" } = Astro.props;
 
 const locale = getLocale(Astro.cookies);
+const t = useTranslations(locale, "dev");
 const session = Astro.locals.session;
 
-const headerMessages = {
-  ...getMessages(locale, "header"),
-  dev: getMessages(locale, "dev"),
+const frameMessages = {
+  ...getMessages(locale, "frame"),
+  nav: getMessages(locale, "dev.nav"),
+  siteName: t("siteName"),
 };
 
-const mainWidth = width === "wide" ? "max-w-7xl" : "max-w-5xl";
+const user = session
+  ? {
+      name: session.name ?? session.username,
+      id: session.username,
+      rating: session.rating,
+    }
+  : null;
 
-// 开发环境下把「全网」菜单和页脚指回本机的主站，而不是生产地址；自己的
-// key（dev）不填 —— 站头链接的永远是自己的路径，不是 siteUrl。
-const origins: SiteOrigins = { web: webOrigin() };
+const mainWidth = width === "wide" ? "max-w-7xl" : "max-w-5xl";
 ---
 
 <BaseLayout title={title} description={description} floatingControls={false}>
-  <div class="flex min-h-dvh flex-col">
-    <Header
-      messages={headerMessages}
-      memberName={session ? (session.name ?? session.username) : null}
-      rating={session?.rating}
-      pathname={Astro.url.pathname}
-      locale={locale}
-      origins={origins}
-      client:load
-    />
-
-    <main
-      id="main-content"
-      tabindex="-1"
-      class={`mx-auto w-full flex-1 px-4 py-10 sm:px-6 lg:px-8 ${mainWidth}`}
+  <Frame
+    messages={frameMessages}
+    locale={locale}
+    pathname={Astro.originPathname}
+    user={user}
+    signInHref={`/auth/login?next=${encodeURIComponent(Astro.originPathname)}`}
+    client:load
+  >
+    <div
+      class={`page-sunken mx-auto w-full px-4 py-10 sm:px-6 lg:px-8 ${mainWidth}`}
     >
       <slot />
-    </main>
-
-    {
-      /* 本仓库那份 Footer.astro 删掉了。它是 can-web 页脚的手抄副本，两份已经各
-         自长歪，而且**两份都带着同一条坏链接** —— `https://github.com/Cerulean
-         Aviation Network/`，URL 里带两个空格，改名时全局替换的残骸。
-
-         它原来那一栏「首页 / 应用 / 文档」是本站自己的页面，页眉上已经全有；页脚
-         再抄一遍不会让它们更好找，只会让**只在页脚出现**的那几条被淹掉。 */
-    }
-    <SiteFooter
-      locale={locale}
-      current="dev"
-      rating={session?.rating}
-      signedIn={!!session}
-      origins={origins}
-    />
-  </div>
+    </div>
+  </Frame>
 </BaseLayout>

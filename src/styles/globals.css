@@ -2,7 +2,7 @@
    开发者中心的样式表。
 
    设计系统整体搬到了 can-ui —— 令牌、base 层、组件类、动效层都在那边一份，
-   这里只留下这一行 import，以及真正属于本站的规则（目前一条都没有）。
+   这里只留下这一行 import，以及真正属于本站的规则（目前只有 `.page-sunken` 一条）。
 
    原先这里有 1,224 行，和 can-web 的 globals.css 只差 6 行注释；其中最后 249
    行是 Leaflet 和地图 marker 的样式，从 can-web 抄过来之后就没用过 —— 这个站
@@ -12,3 +12,8 @@
    =========================================================================== */
 
 @import "@jianyuelab-org/can-ui/styles";
+
+/* 外壳渲染 <main id="main-content">。页面根元素带 .page-sunken 时，<main> 用下沉底色。 */
+#main-content:has(.page-sunken) {
+  background-color: var(--surface-sunken);
+}

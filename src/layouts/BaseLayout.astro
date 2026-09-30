@@ -1,12 +1,7 @@
 ---
 /**
- * 页面外框。三个站现在是同一份形状 —— `<head>` 的声明逐字相同，主题脚本是同
- * 一个组件，浮动控件的开关走同一个 `floatingControls` prop。
- *
- * 这个文件原来还兼着站头和页脚，于是它既是外框又是导航；两件事拆开之后，渲染
- * `Header` 的页面把 `floatingControls` 设成 false（控件已经在站头里了），只有
- * 没有外壳的页面才落到右下角那颗浮动药丸上。can-web 和 can-radar 都是这个规
- * 矩，写在这里是为了让第三个站不要自己再发明一次。
+ * 页面外框：`<head>`、主题脚本。套了 CanFrame 的页面把 `floatingControls` 设成
+ * false，控件在外壳里。
  */
 import "@/styles/globals.css";
 import ThemeScript from "@jianyuelab-org/can-ui/components/ThemeScript.astro";
