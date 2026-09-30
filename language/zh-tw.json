@@ -1,9 +1,4 @@
 {
-  "header": {
-    "openMenu": "開啟選單",
-    "closeMenu": "關閉選單",
-    "skipToContent": "跳至主要內容"
-  },
   "apiDocs": {
     "eyebrow": "開發者",
     "title": "開放 API",
@@ -97,8 +92,7 @@
       "ground": "地面圖"
     },
     "auth": {
-      "signIn": "用 CAN 帳號登入",
-      "signOut": "登出"
+      "signIn": "用 CAN 帳號登入"
     },
     "home": {
       "eyebrow": "開發者中心",
@@ -125,7 +119,8 @@
         "state_mismatch": "這次登入的來源對不上，出於安全考量沒有繼續。重新點一次。",
         "exchange_failed": "沒能換到權杖，稍後再試。",
         "access_denied": "你在授權頁上點了拒絕。",
-        "unknown": "登入失敗：{error}"
+        "unknown": "登入失敗：{error}",
+        "network_session_missing": "沒有讀到網路連線階段。請先在主站登入，再回到這裡登入。"
       }
     },
     "apps": {
@@ -320,10 +315,7 @@
       }
     },
     "noAccess": {
-      "eyebrow": "還差一步",
-      "title": "這個帳號還不是開發者",
       "summary": "開發者中心用來註冊和管理 OAuth 應用，需要網路管理員單獨開通。開通是一個人一個人發的，不是自動的，也和管制評級無關 —— 一個 OBS 可以是開發者，一個管理員也可以不是。",
-      "signedInAs": "已登入：{name}（CAN ID {id}）。申請的時候把這個號報上。",
       "howTitle": "怎麼申請",
       "steps": {
         "who": {
@@ -340,7 +332,52 @@
         }
       },
       "contact": "前往意見表單",
-      "ground": "先去看看地面圖預覽"
+      "ground": "先去看看地面圖預覽",
+      "permissionName": "開發者"
+    }
+  },
+  "frame": {
+    "skipToContent": "跳至主要內容",
+    "signIn": "用 CAN 帳號登入",
+    "signOut": "登出",
+    "signingOut": "正在登出…",
+    "signOutFailed": "登出失敗，請重試。",
+    "openSidebar": "開啟導覽",
+    "closeSidebar": "關閉導覽",
+    "close": "關閉",
+    "dismiss": "關閉提示",
+    "sidebar": "側邊欄",
+    "openUserMenu": "開啟帳號選單",
+    "openMenu": "開啟選單",
+    "siteNavigation": "本站導覽",
+    "workspace": {
+      "label": "工作區"
+    },
+    "search": {
+      "label": "搜尋頁面",
+      "placeholder": "跳至頁面…",
+      "noResults": "沒有符合的頁面"
+    },
+    "theme": {
+      "label": "外觀",
+      "light": "淺色",
+      "dark": "深色",
+      "system": "跟隨系統"
+    },
+    "language": {
+      "label": "選擇語言"
+    },
+    "rail": {
+      "collapse": "收合側欄",
+      "expand": "展開側欄",
+      "me": "我的"
+    },
+    "noAccess": {
+      "title": "你沒有權限存取這個頁面",
+      "rating": "需要評級 {required} 或以上。",
+      "permission": "需要「{name}」權限。",
+      "signedInAs": "已登入：{name}（CAN ID {id}）。",
+      "reachable": "你可以使用的站點"
     }
   }
 }

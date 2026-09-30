@@ -1,9 +1,4 @@
 {
-  "header": {
-    "openMenu": "メニューを開く",
-    "closeMenu": "メニューを閉じる",
-    "skipToContent": "本文へスキップ"
-  },
   "apiDocs": {
     "eyebrow": "開発者向け",
     "title": "公開 API",
@@ -97,8 +92,7 @@
       "ground": "地上図"
     },
     "auth": {
-      "signIn": "CAN アカウントでログイン",
-      "signOut": "ログアウト"
+      "signIn": "CAN アカウントでログイン"
     },
     "home": {
       "eyebrow": "デベロッパーセンター",
@@ -125,7 +119,8 @@
         "state_mismatch": "このログインの戻り先が一致しなかったため、安全のため中止しました。もう一度お試しください。",
         "exchange_failed": "トークンの交換に失敗しました。しばらくしてからお試しください。",
         "access_denied": "同意画面で拒否が選択されました。",
-        "unknown": "ログインに失敗しました：{error}"
+        "unknown": "ログインに失敗しました：{error}",
+        "network_session_missing": "ネットワークセッションが見つかりません。先にメインサイトでログインしてから、こちらでログインしてください。"
       }
     },
     "apps": {
@@ -320,10 +315,7 @@
       }
     },
     "noAccess": {
-      "eyebrow": "あと一歩",
-      "title": "このアカウントはまだ開発者ではありません",
       "summary": "デベロッパーセンターは OAuth アプリの登録と管理のための場所で、ネットワーク管理者が一人ずつ許可します。自動ではなく、管制レーティングとも無関係です —— OBS が開発者であってもよく、管理者が開発者でなくても構いません。",
-      "signedInAs": "ログイン中：{name}（CAN ID {id}）。申請の際はこの ID を伝えてください。",
       "howTitle": "申請の方法",
       "steps": {
         "who": {
@@ -340,7 +332,52 @@
         }
       },
       "contact": "フィードバックフォームへ",
-      "ground": "先にグラウンドマップを見る"
+      "ground": "先にグラウンドマップを見る",
+      "permissionName": "開発者"
+    }
+  },
+  "frame": {
+    "skipToContent": "本文へスキップ",
+    "signIn": "CAN アカウントでログイン",
+    "signOut": "ログアウト",
+    "signingOut": "ログアウト中…",
+    "signOutFailed": "ログアウトに失敗しました。もう一度お試しください。",
+    "openSidebar": "ナビゲーションを開く",
+    "closeSidebar": "ナビゲーションを閉じる",
+    "close": "閉じる",
+    "dismiss": "通知を閉じる",
+    "sidebar": "サイドバー",
+    "openUserMenu": "アカウントメニューを開く",
+    "openMenu": "メニューを開く",
+    "siteNavigation": "サイト内ナビゲーション",
+    "workspace": {
+      "label": "ワークスペース"
+    },
+    "search": {
+      "label": "ページを検索",
+      "placeholder": "ページへ移動…",
+      "noResults": "一致するページがありません"
+    },
+    "theme": {
+      "label": "外観",
+      "light": "ライト",
+      "dark": "ダーク",
+      "system": "システムに合わせる"
+    },
+    "language": {
+      "label": "言語を選択"
+    },
+    "rail": {
+      "collapse": "サイドバーを折りたたむ",
+      "expand": "サイドバーを展開",
+      "me": "マイページ"
+    },
+    "noAccess": {
+      "title": "このページへのアクセス権がありません",
+      "rating": "レーティング {required} 以上が必要です。",
+      "permission": "「{name}」の権限が必要です。",
+      "signedInAs": "ログイン中：{name}（CAN ID {id}）。",
+      "reachable": "利用できるサイト"
     }
   }
 }

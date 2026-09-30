@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import crypto from "node:crypto";
 
 import { exchangeCode, userinfo } from "@/lib/canApi";
+import { NETWORK_SESSION_COOKIE } from "@/lib/networkSession";
 import { safeNext, takePending, writeSession } from "@/lib/session";
 
 /**
@@ -38,6 +39,11 @@ export const GET: APIRoute = async ({ cookies, url, redirect }) => {
     return redirect("/?error=state_mismatch", 302);
   }
 
+  // 网络会话看不见时不发本站会话：中间件会立刻把它当孤儿清掉，登录会绕圈。
+  if (!cookies.has(NETWORK_SESSION_COOKIE)) {
+    return redirect("/?error=network_session_missing", 302);
+  }
+
   try {
     const tokens = await exchangeCode(code, pending.verifier);
     const who = await userinfo(tokens.access_token);
@@ -53,13 +59,8 @@ export const GET: APIRoute = async ({ cookies, url, redirect }) => {
       rating: who.rating,
     });
 
-    // 不是开发者的人**照样发会话**，然后送去 /no-access。
-    //
-    // 直接拒绝登录看着更干脆，代价是那一页只能说「你不能用这个站」，说不出
-    // 「你是 1234，去找管理员报这个号」—— 而后者正是他接下来要做的事。会话在
-    // 这里也确实没有别的用处：can-api 会拒掉每一次调用。
-    if (!who.developer) return redirect("/no-access", 302);
-
+    // 不是开发者的人照样发会话。到 `/apps`、`/docs` 时中间件在原地址渲染
+    // NoAccess（403），那一页报出他的 CAN ID。
     return redirect(safeNext(pending.next), 302);
   } catch {
     return redirect("/?error=exchange_failed", 302);
