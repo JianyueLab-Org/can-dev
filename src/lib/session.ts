@@ -19,7 +19,7 @@ import { sessionSecret } from "./config";
  * 前存下来，回来的时候比对。它和会话分开放，因为它的生命周期只有一次跳转。
  */
 
-const SESSION_COOKIE = "can_dev_session";
+export const SESSION_COOKIE = "can_dev_session";
 const PENDING_COOKIE = "can_dev_pending";
 
 export interface Session {
