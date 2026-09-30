@@ -1512,75 +1512,6 @@ const ROSTER: ApiEndpoint = {
   ],
 };
 
-const LEADERBOARD: ApiEndpoint = {
-  id: "leaderboard",
-  methods: ["GET"],
-  path: "/api/v1/leaderboard",
-  summary:
-    "Monthly and all-time rankings for flight time, control time and points.",
-  body: [
-    "Five boards in one response: monthly flight time, monthly control time, all-time flight time, all-time control time and all-time points. Unauthenticated, like the page it draws.",
-    "Ranking is standard competition ranking — equal totals share a rank and the next one skips — and only **finished** sessions are counted, so a board does not change under a reader because somebody is still connected.",
-  ],
-  auth: "none",
-  cors: false,
-  limit: "leaderboard",
-  limitScope: "per IP",
-  query: [
-    {
-      name: "month",
-      type: "YYYY-MM",
-      description:
-        "Which month the two monthly boards cover. Defaults to the current UTC month. A month that does not parse is a 400 rather than a silent fallback.",
-    },
-    {
-      name: "limit",
-      type: "integer",
-      description:
-        "Rows per board, minimum 1, default 20, silently capped at 100.",
-    },
-  ],
-  statuses: [
-    { code: 200, when: "The boards." },
-    { code: 400, when: "`invalidMonth` or `invalidLimit`." },
-    { code: 429, when: "Rate limited." },
-  ],
-  example: {
-    request: "curl '{origin}/api/v1/leaderboard?month=2026-08&limit=5'",
-    response: `{
-  "status": 200,
-  "data": {
-    "month": "2026-08",
-    "monthStart": "2026-08-01T00:00:00Z",
-    "monthEnd": "2026-09-01T00:00:00Z",
-    "limit": 5,
-    "generatedAt": "2026-08-19T10:31:02Z",
-    "award": { "places": 3, "topPoints": 30, "minimumMs": 3600000 },
-    "boards": {
-      "monthlyFlight": [
-        { "rank": 1, "id": "1234", "name": "Someone", "rating": 4,
-          "sessions": 12, "durationMs": 138000000,
-          "formattedDuration": "38:20:00", "award": 30 }
-      ],
-      "monthlyAtc": [],
-      "allTimeFlight": [],
-      "allTimeAtc": [],
-      "allTimePoints": [
-        { "rank": 1, "id": "1234", "name": "Someone", "rating": 4, "points": 480 }
-      ]
-    }
-  },
-  "timestamp": "2026-08-19T10:31:02Z"
-}`,
-  },
-  notes: [
-    "`monthStart`/`monthEnd` say which UTC window the monthly boards were actually computed over. A page labelling a month in local time needs this to tell a timezone bug from an empty month.",
-    "**Only the monthly boards carry `award` on their rows.** The all-time ones must not — nothing is awarded for an all-time placing, and a client that reads the key uniformly would announce prizes nobody is getting.",
-    "The `award` block is the ladder itself (`places`, `topPoints`, `minimumMs`), published so a client can write its footnote from the rule rather than from a translated copy of the numbers.",
-    "Cached for five minutes. Five aggregate scans stand behind one request, on a page linked from the site header.",
-  ],
-};
-
 export const API_GROUPS: ApiGroup[] = [
   {
     key: "oauth",
@@ -1634,9 +1565,9 @@ export const API_GROUPS: ApiGroup[] = [
     key: "network",
     name: "Network directory",
     description:
-      "Unauthenticated reads that describe the network rather than a member: where its servers are, what it is enforcing, who its controllers are and who is at the top of the boards. All four back a public page or answer a question a client has to ask before it can sign in, and all four are cacheable — the cache headers say for how long.",
+      "Unauthenticated reads that describe the network rather than a member: where its servers are, what it is enforcing and who its controllers are. All three back a public page or answer a question a client has to ask before it can sign in, and all three are cacheable — the cache headers say for how long.",
     icon: "globeAlt",
-    endpoints: [SERVERS, META_LIMITS, ROSTER, LEADERBOARD],
+    endpoints: [SERVERS, META_LIMITS, ROSTER],
   },
   {
     key: "clients",
@@ -1667,6 +1598,10 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
     path: "The rest of /api/v1/pilot/*, plus /api/v1/activity/*, /api/v1/super/* and the rest of /api/v1/atc/*",
     reason:
       "Portal plumbing. Most need a member's session cookie and refuse an access token outright; the few reads that do not — the activity feed and the ATC reservation board — exist to draw a panel on ceruleanavi.net, their shapes follow whatever that panel needs that week, and they are not a contract with anyone outside the network's own repositories. The exceptions are documented above: the three member routes an application can reach with a scope, and the public roster.",
+  },
+  {
+    path: "/api/v1/leaderboard",
+    reason: "Members only. Session cookie only; an access token is refused.",
   },
   {
     path: "/api/v1/pilot/data",
