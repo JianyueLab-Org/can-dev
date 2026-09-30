@@ -1,9 +1,4 @@
 {
-  "header": {
-    "openMenu": "打开菜单",
-    "closeMenu": "关闭菜单",
-    "skipToContent": "跳到主要内容"
-  },
   "apiDocs": {
     "eyebrow": "开发者",
     "title": "开放 API",
@@ -97,8 +92,7 @@
       "ground": "地面图"
     },
     "auth": {
-      "signIn": "用 CAN 账号登录",
-      "signOut": "退出"
+      "signIn": "用 CAN 账号登录"
     },
     "home": {
       "eyebrow": "开发者中心",
@@ -320,10 +314,7 @@
       }
     },
     "noAccess": {
-      "eyebrow": "还差一步",
-      "title": "这个账号还不是开发者",
       "summary": "开发者中心用来注册和管理 OAuth 应用，需要网络管理员单独开通。开通是一个人一个人发的，不是自动的，也和管制评级无关 —— 一个 OBS 可以是开发者，一个管理员也可以不是。",
-      "signedInAs": "已登录：{name}（CAN ID {id}）。申请的时候把这个号报上。",
       "howTitle": "怎么申请",
       "steps": {
         "who": {
@@ -340,7 +331,52 @@
         }
       },
       "contact": "去反馈表单",
-      "ground": "先去看看地面图预览"
+      "ground": "先去看看地面图预览",
+      "permissionName": "开发者"
+    }
+  },
+  "frame": {
+    "skipToContent": "跳到主要内容",
+    "signIn": "用 CAN 账号登录",
+    "signOut": "退出",
+    "signingOut": "正在退出…",
+    "signOutFailed": "退出失败，请重试。",
+    "openSidebar": "打开导航",
+    "closeSidebar": "关闭导航",
+    "close": "关闭",
+    "dismiss": "关闭提示",
+    "sidebar": "侧边栏",
+    "openUserMenu": "打开账户菜单",
+    "openMenu": "打开菜单",
+    "siteNavigation": "本站导航",
+    "workspace": {
+      "label": "工作区"
+    },
+    "search": {
+      "label": "搜索页面",
+      "placeholder": "跳转到页面…",
+      "noResults": "没有匹配的页面"
+    },
+    "theme": {
+      "label": "外观",
+      "light": "浅色",
+      "dark": "深色",
+      "system": "跟随系统"
+    },
+    "language": {
+      "label": "选择语言"
+    },
+    "rail": {
+      "collapse": "收起侧栏",
+      "expand": "展开侧栏",
+      "me": "我的"
+    },
+    "noAccess": {
+      "title": "你没有权限访问这个页面",
+      "rating": "需要评级 {required} 或以上。",
+      "permission": "需要「{name}」权限。",
+      "signedInAs": "已登录：{name}（CAN ID {id}）。",
+      "reachable": "你可以使用的站点"
     }
   }
 }

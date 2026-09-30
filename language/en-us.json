@@ -1,9 +1,4 @@
 {
-  "header": {
-    "openMenu": "Open main menu",
-    "closeMenu": "Close menu",
-    "skipToContent": "Skip to main content"
-  },
   "apiDocs": {
     "eyebrow": "Developers",
     "title": "Public API",
@@ -97,8 +92,7 @@
       "ground": "Ground maps"
     },
     "auth": {
-      "signIn": "Sign in with CAN",
-      "signOut": "Sign out"
+      "signIn": "Sign in with CAN"
     },
     "home": {
       "eyebrow": "Developer centre",
@@ -320,10 +314,7 @@
       }
     },
     "noAccess": {
-      "eyebrow": "One step short",
-      "title": "This account is not a developer yet",
       "summary": "The developer centre is for registering and managing OAuth applications, and a network administrator has to grant access to it one member at a time. It is not automatic, and it has nothing to do with controlling rating — an OBS can be a developer, and an administrator need not be.",
-      "signedInAs": "Signed in as {name} (CAN ID {id}). Quote that ID when you ask.",
       "howTitle": "How to ask",
       "steps": {
         "who": {
@@ -340,7 +331,52 @@
         }
       },
       "contact": "Open the feedback form",
-      "ground": "Try the ground map preview instead"
+      "ground": "Try the ground map preview instead",
+      "permissionName": "developer"
+    }
+  },
+  "frame": {
+    "skipToContent": "Skip to main content",
+    "signIn": "Sign in with CAN",
+    "signOut": "Sign out",
+    "signingOut": "Signing out…",
+    "signOutFailed": "Sign-out failed. Try again.",
+    "openSidebar": "Open navigation",
+    "closeSidebar": "Close navigation",
+    "close": "Close",
+    "dismiss": "Dismiss",
+    "sidebar": "Sidebar",
+    "openUserMenu": "Open account menu",
+    "openMenu": "Open menu",
+    "siteNavigation": "Site navigation",
+    "workspace": {
+      "label": "Workspace"
+    },
+    "search": {
+      "label": "Search pages",
+      "placeholder": "Jump to a page…",
+      "noResults": "No matching page"
+    },
+    "theme": {
+      "label": "Appearance",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "Follow system"
+    },
+    "language": {
+      "label": "Select language"
+    },
+    "rail": {
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar",
+      "me": "Me"
+    },
+    "noAccess": {
+      "title": "You do not have access to this page",
+      "rating": "It needs rating {required} or above.",
+      "permission": "It needs the {name} permission.",
+      "signedInAs": "Signed in as {name} (CAN ID {id}).",
+      "reachable": "Sites you can use"
     }
   }
 }
