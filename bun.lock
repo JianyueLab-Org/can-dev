@@ -7,7 +7,7 @@
       "dependencies": {
         "@astrojs/node": "^11",
         "@astrojs/vue": "^7",
-        "@jianyuelab-org/can-ui": "27.1.0",
+        "@jianyuelab-org/can-ui": "27.2.0",
         "astro": "^7.2.0",
         "vue": "^3.5.24",
       },
@@ -276,7 +276,7 @@
 
     "@img/sharp-win32-x64": ["@img/sharp-win32-x64@0.35.3", "", { "os": "win32", "cpu": "x64" }, "sha512-D4y1vNeZrIIJCN+uHaWVtH86B+aCrdMYYjicy9pXHvbGZeGYLLSd3wdVuC37FxVXlU1ARsk84eKWfWMXGYEqvA=="],
 
-    "@jianyuelab-org/can-ui": ["@jianyuelab-org/can-ui@27.1.0", "https://npm.pkg.github.com/download/@jianyuelab-org/can-ui/27.1.0/e7ee58faa6857fda97dc0db8b0aae99f69f02acf", { "peerDependencies": { "astro": "^6.0.0 || ^7.0.0", "tailwindcss": "^4.0.0", "vue": "^3.5.0" }, "bin": { "can-ui-check-pages": "bin/check-pages.ts" } }, "sha512-0m7CMDnZ5jIxozzjbE3oEB6NM+KjHjPE0Da8S1U/HxoBMIr8MCCUt1F4b5/VT15x/Zr1ZBFuwvcWcL1S3RBtlg=="],
+    "@jianyuelab-org/can-ui": ["@jianyuelab-org/can-ui@27.2.0", "https://npm.pkg.github.com/download/@jianyuelab-org/can-ui/27.2.0/30a9fe7590b046e5caeb92d34c8d1d15c6133e40", { "peerDependencies": { "astro": "^6.0.0 || ^7.0.0", "tailwindcss": "^4.0.0", "vue": "^3.5.0" }, "bin": { "can-ui-check-pages": "bin/check-pages.ts" } }, "sha512-4vtsf9Ve6g4TV69jJSm8Ui9S8AOQ2atirW0fMGFicW4d3dXJZBA98G+X8h4JW4tPfdVEF5zBmTvaIQgVRDq60Q=="],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 
