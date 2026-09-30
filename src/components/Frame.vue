@@ -52,6 +52,7 @@ const nav = computed<NavItem[]>(() => {
     :pathname="pathname"
     :nav="nav"
     :user="user"
+    notifications
     :sign-in-href="signInHref"
     after-sign-out="reload"
     :messages="messages"

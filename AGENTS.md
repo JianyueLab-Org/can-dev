@@ -34,13 +34,15 @@ bun run verify:ground
 
 门禁是 `bun run lint`、`bun run build`、`bun run check:pages`，CI（`.github/workflows/check.yml`）跑同样三条。
 
-**测试只有两份**（`bun test`，只多一个 `@types/bun` 让 `astro check` 认得
+**测试有五份**（`bun test`，只多一个 `@types/bun` 让 `astro check` 认得
 `bun:test`）。判据和 can-efb 那边一样 —— 「错了会不会被屏幕出卖」。
 
 - `src/lib/signout.test.ts`：`POST /api/v1/auth/signout` 的 Origin 检查、吊销、
   转发和 `Set-Cookie`。它是唯一一条不经过 `requireSession()` 的写操作。
 - `src/lib/networkSession.test.ts`：中间件那条规则 —— 有 `can_dev_session`
   没有 `can_session`，就吊销令牌、清掉本站会话。
+- `src/lib/notifications.test.ts`：通知铃的五条路径、Origin 检查、只带
+  `can_session`、204 和 `Set-Cookie` 原样回来。
 
 测试文件放在 `src/lib/` 而不是挨着被测的路由：`src/pages/` 下每一个 `.ts` 都是一条
 路由。
@@ -124,6 +126,9 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 - 退出：`AccountMenu` 发 `POST /api/v1/auth/signout`。路由吊销本站令牌、清
   `can_dev_session`，再转发 can-api 的 `/api/v1/auth/signout`，原样带回它的
   `Set-Cookie`。之后原地刷新。第三方应用的令牌不吊销。
+- 通知铃：`Frame.vue` 设 `notifications`。`src/pages/api/v1/notifications/[...path].ts`
+  把五条路径转给 can-api，只带 `can_session`；写操作查 Origin。逻辑在
+  `src/lib/notifications.ts`。
 - 中间件：带 `can_dev_session` 没有 `can_session` 的请求，吊销令牌、清本站会话。
   `can_session` 在父域 `.ceruleanavi.net` 上，这个站看得见。本机开发时 can-api、
   can-web 和本站都要在 `127.0.0.1` 上，否则每个请求都像已在别处退出。
