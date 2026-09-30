@@ -15,8 +15,8 @@ Cerulean Aviation Network 的开发者中心：成员在这里自助注册 OAuth
 器，在本地解析。改完一个机场的 `airports/<ICAO>.json` 直接拖进来就能看，不必
 先跑 `merge.py` 再开 EuroScope。
 
-Astro SSR（standalone Node 适配器）+ Vue 岛屿 + Tailwind v4，和 can-web、
-can-radar 共用同一套设计系统与四语言词典。
+Astro SSR（standalone Node 适配器）+ Vue 岛屿 + Tailwind v4。外壳是 can-ui 的
+`CanFrame`，四语言词典用 `createSiteI18n`。
 
 ## 它自己也是一个 OAuth 应用
 
@@ -46,7 +46,8 @@ cp .env.example .env      # 填 CAN_CLIENT_SECRET 和 SESSION_SECRET
 bun install
 bun run dev               # http://127.0.0.1:4322
 
-bun run lint              # format:check + astro check，CI 跑的就是这个
+bun run lint              # format:check + astro check + bun test
+bun run check:pages       # 站点注册表里的页面都有路由
 bun run build && bun run start
 ```
 
@@ -57,14 +58,15 @@ bun run build && bun run start
 
 ## 环境变量
 
-| 变量                | 说明                                                    |
-| ------------------- | ------------------------------------------------------- |
-| `CAN_API_ORIGIN`    | can-api，默认 `https://api.ceruleanavi.net`             |
-| `CAN_WEB_ORIGIN`    | can-web，只用来拼同意页，默认 `https://ceruleanavi.net` |
-| `CAN_CLIENT_ID`     | 默认 `can-dev`                                          |
-| `CAN_CLIENT_SECRET` | 注册时打印的那一次                                      |
-| `PUBLIC_ORIGIN`     | 本部署的对外地址，回调地址由它拼出                      |
-| `SESSION_SECRET`    | 会话 cookie 的加密密钥，`openssl rand -base64 32`       |
+| 变量                       | 说明                                                    |
+| -------------------------- | ------------------------------------------------------- |
+| `CAN_API_ORIGIN`           | can-api，默认 `https://api.ceruleanavi.net`             |
+| `CAN_WEB_ORIGIN`           | can-web，只用来拼同意页，默认 `https://ceruleanavi.net` |
+| `CAN_CLIENT_ID`            | 默认 `can-dev`                                          |
+| `CAN_CLIENT_SECRET`        | 注册时打印的那一次                                      |
+| `PUBLIC_ORIGIN`            | 本部署的对外地址，回调地址由它拼出                      |
+| `SESSION_SECRET`           | 会话 cookie 的加密密钥，`openssl rand -base64 32`       |
+| `PUBLIC_CAN_<SITE>_ORIGIN` | 外壳里其它站的地址，构建期内联，不设用生产地址          |
 
 ## 几件值得知道的事
 

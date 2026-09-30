@@ -24,24 +24,26 @@ userinfo、吊销和 `/api/v1/dev/clients` 都在那儿；`CAN_WEB_ORIGIN` 只�
 
 ```bash
 bun run dev        # :4322（4321 留给 can-web，两个常常同时开着）
-bun run lint       # format:check + astro check + bun test —— CI 跑的就是这个
+bun run lint       # format:check + astro check + bun test
+bun run check:pages # 站点注册表里的页面都有路由
 bun run build && bun run start
 
 # 地面图那两份移植有没有漂（要本地有 Ground 和 Sector 两个仓库；不在 CI 里）
 bun run verify:ground
 ```
 
-门禁是 `bun run lint` 加一次 `bun run build`。
+门禁是 `bun run lint`、`bun run build`、`bun run check:pages`，CI（`.github/workflows/check.yml`）跑同样三条。
 
-**测试只有一份，而且刻意只有一份**（`src/lib/logout.test.ts`，`bun test`，只多一个
-`@types/bun` 让 `astro check` 认得 `bun:test`）。判据和 can-efb 那边一样 —— 「错了
-会不会被屏幕出卖」。`/auth/logout` 的 Origin 检查不会：站内登出照常工作，坏掉的是
-别人网页上一个隐藏表单能把访客登出，而受害者只会以为自己的会话过期了。它同时是这
-个站里**唯一**一条不经过 `requireSession()` 的写操作，也就是唯一一条没有别的守卫
-兜底的。
+**测试只有两份**（`bun test`，只多一个 `@types/bun` 让 `astro check` 认得
+`bun:test`）。判据和 can-efb 那边一样 —— 「错了会不会被屏幕出卖」。
+
+- `src/lib/signout.test.ts`：`POST /api/v1/auth/signout` 的 Origin 检查、吊销、
+  转发和 `Set-Cookie`。它是唯一一条不经过 `requireSession()` 的写操作。
+- `src/lib/networkSession.test.ts`：中间件那条规则 —— 有 `can_dev_session`
+  没有 `can_session`，就吊销令牌、清掉本站会话。
 
 测试文件放在 `src/lib/` 而不是挨着被测的路由：`src/pages/` 下每一个 `.ts` 都是一条
-路由，一个 `logout.test.ts` 会变成 `/auth/logout.test`。
+路由。
 
 ## 三条不能动的规矩
 
@@ -94,20 +96,19 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 
 ## 外壳和文案
 
-**三个站共用一套设计系统，这个站是最后一个接上的。** `src/styles/globals.css`
-是 can-web 那一份的镜像，`ThemeScript.astro`、`useOverlay.ts`、`ui/Icon.vue`、
-`ui/ThemeLangControls.vue`、`ui/AlertBox.vue` 都是逐字相同的副本 —— 改动要在
-can-web 那边发生，再同步过来。新页面套 `SiteLayout.astro`（站头 + 正文 +
-页脚），不要自己再拼一遍那个三明治。
+**外壳是 can-ui 的 `CanFrame`**，`layout="content"`。`src/components/Frame.vue`
+传导航、品牌、词典和 `originsFromEnv(import.meta.env)`。新页面套
+`SiteLayout.astro`。页面不写 `<main>`：外壳渲染它、跳转链接和页脚。
+`src/styles/globals.css` 只多一条 `.page-sunken`。
 
 **颜色只用语义记号**，`bg-surface-*` / `text-ink|muted|faint` / `badge-*` /
 `AlertBox`，不要写 `bg-red-50`、`bg-slate-100` 这类固定色阶。它们不跟随深色模
 式：这个站从建站起就跟随系统深色，而 `AppManager.vue` 通篇是固定色阶，于是每
 一个提示框在深色下都是浅底深字，一直没人发现。
 
-**四种语言。** `src/lib/i18n.ts` 和另外两个站逐字相同，`NEXT_LOCALE` cookie
-在父域上共享，所以在主站选的语言到这里仍然生效。词典分两半：`header`/`footer`
-是 can-web 的镜像（改在那边再同步），`apiDocs`/`dev` 是本站自己的。
+**四种语言。** `src/lib/i18n.ts` 只有四个 JSON 和一次 `createSiteI18n`，缺键回退
+简体。`NEXT_LOCALE` cookie 在父域上共享。`frame` 是外壳文案，覆盖 can-ui
+`CHROME_MESSAGES` 的每一个键；`apiDocs`、`dev` 是本站自己的。
 
 **`/docs` 印的是 can-api 的地址，不是 `Astro.url.origin`。** 在 can-web 上那两
 者恰好相等，在这里差得很远 —— `platform.ceruleanavi.net/api/v1/atis` 是 404。而且
@@ -120,6 +121,14 @@ can-web 那边发生，再同步过来。新页面套 `SiteLayout.astro`（站�
   配）。本机用 `127.0.0.1`，**不是 `localhost`** —— 后者要过名字解析，服务端
   不接受。
 - 不申请 `offline_access`：这是个坐下来用的地方，会话跟着浏览器走就够了。
+- 退出：`AccountMenu` 发 `POST /api/v1/auth/signout`。路由吊销本站令牌、清
+  `can_dev_session`，再转发 can-api 的 `/api/v1/auth/signout`，原样带回它的
+  `Set-Cookie`。之后原地刷新。第三方应用的令牌不吊销。
+- 中间件：带 `can_dev_session` 没有 `can_session` 的请求，吊销令牌、清本站会话。
+  `can_session` 在父域 `.ceruleanavi.net` 上，这个站看得见。本机开发时 can-api、
+  can-web 和本站都要在 `127.0.0.1` 上，否则每个请求都像已在别处退出。
+- 已登录但不是开发者：中间件把 `/apps`、`/docs` 改写到 `/no-access`，地址不变，
+  渲染 `NoAccess`，403。直接访问 `/no-access` 跳回首页。
 - 写操作的 Origin 检查在 `src/lib/guard.ts`，比对显式的 `PUBLIC_ORIGIN` 而不
   是用 Astro 的 `checkOrigin` —— 反代终止 TLS，Astro 从 Host 推出来的 origin
   是 `http://…`，永远对不上（can-web 关掉那个检查也是这个原因）。
