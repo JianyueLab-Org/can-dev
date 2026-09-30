@@ -16,12 +16,13 @@
     "typecheck": "astro check",
     "test": "bun test",
     "verify:ground": "bun run scripts/verify-ground-port.ts",
+    "check:pages": "can-ui-check-pages dev",
     "lint": "bun run format:check && bun run typecheck && bun test"
   },
   "dependencies": {
     "@astrojs/node": "^11",
     "@astrojs/vue": "^7",
-    "@jianyuelab-org/can-ui": "^0.4.2",
+    "@jianyuelab-org/can-ui": "27.1.0",
     "astro": "^7.2.0",
     "vue": "^3.5.24"
   },
