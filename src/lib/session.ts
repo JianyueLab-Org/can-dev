@@ -137,12 +137,23 @@ export function takePending(cookies: AstroCookies): Pending | null {
 /**
  * 登录后要跳回哪里。
  *
- * 只接受以单个 `/` 开头的站内路径。`//evil.example` 在浏览器里是**协议相对
- * 的绝对地址**，放过去就是一个开放重定向 —— 而这条路径的终点正好是「刚登录
- * 完、带着会话」的那一刻。
+ * 只接受站内路径。`//evil.example` 在浏览器里是**协议相对的绝对地址**，放过
+ * 去就是一个开放重定向 —— 而这条路径的终点正好是「刚登录完、带着会话」的那
+ * 一刻。
+ *
+ * 判断交给 URL 解析器，不靠前缀比较：浏览器把 `\` 当 `/`，还会删掉制表符和换
+ * 行，所以 `/\evil.example`、`/\t/evil.example` 也都是 `//evil.example`。按
+ * 浏览器的规则解析一遍，源没变才放行，放行的是解析后的那一份。
  */
 export function safeNext(value: string | null | undefined): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//"))
+  if (!value?.startsWith("/")) return "/apps";
+  const base = "http://next.invalid";
+  let url: URL;
+  try {
+    url = new URL(value, base);
+  } catch {
     return "/apps";
-  return value;
+  }
+  if (url.origin !== base) return "/apps";
+  return url.pathname + url.search + url.hash;
 }
