@@ -13,13 +13,14 @@ import { NETWORK_SESSION_COOKIE, endDevSession } from "@/lib/networkSession";
  *    状态、响应体和每一条 `Set-Cookie`。
  */
 const TIMEOUT_MS = 5000;
+const NO_STORE = { "cache-control": "no-store, private" };
 
 export const POST: APIRoute = async ({ cookies, request }) => {
   const sent = request.headers.get("origin");
   if (sent && sent !== origin()) {
     return Response.json(
       { error: "bad_origin", message: "跨站请求被拒绝。" },
-      { status: 403 },
+      { status: 403, headers: NO_STORE },
     );
   }
 
@@ -40,7 +41,10 @@ export const POST: APIRoute = async ({ cookies, request }) => {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch {
-    return Response.json({ error: "upstream_unreachable" }, { status: 502 });
+    return Response.json(
+      { error: "upstream_unreachable" },
+      { status: 502, headers: NO_STORE },
+    );
   }
 
   const out = new Headers();

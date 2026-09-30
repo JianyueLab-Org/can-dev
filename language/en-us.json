@@ -119,7 +119,8 @@
         "state_mismatch": "This sign-in did not come back from where it started, so it was stopped. Try again.",
         "exchange_failed": "The token exchange failed. Try again shortly.",
         "access_denied": "You pressed deny on the consent screen.",
-        "unknown": "Sign-in failed: {error}"
+        "unknown": "Sign-in failed: {error}",
+        "network_session_missing": "No network session was found. Sign in on the main site first, then sign in here."
       }
     },
     "apps": {

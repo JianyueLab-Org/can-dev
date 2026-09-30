@@ -119,7 +119,8 @@
         "state_mismatch": "這次登入的來源對不上，出於安全考量沒有繼續。重新點一次。",
         "exchange_failed": "沒能換到權杖，稍後再試。",
         "access_denied": "你在授權頁上點了拒絕。",
-        "unknown": "登入失敗：{error}"
+        "unknown": "登入失敗：{error}",
+        "network_session_missing": "沒有讀到網路連線階段。請先在主站登入，再回到這裡登入。"
       }
     },
     "apps": {

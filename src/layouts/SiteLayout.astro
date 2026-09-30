@@ -39,7 +39,12 @@ const user = session
 const mainWidth = width === "wide" ? "max-w-7xl" : "max-w-5xl";
 ---
 
-<BaseLayout title={title} description={description} floatingControls={false}>
+<BaseLayout
+  title={title}
+  description={description}
+  floatingControls={false}
+  narrow={width !== "wide"}
+>
   <Frame
     messages={frameMessages}
     locale={locale}

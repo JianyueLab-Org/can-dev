@@ -91,6 +91,7 @@ describe("POST /api/v1/auth/signout", () => {
     const response = await POST(ctx);
 
     expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store, private");
     expect(await response.json()).toMatchObject({ error: "bad_origin" });
     expect(deleted).toEqual([]);
     expect(calls).toEqual([]);
@@ -107,6 +108,7 @@ describe("POST /api/v1/auth/signout", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.getSetCookie()).toEqual([CLEARED]);
+    expect(response.headers.get("cache-control")).toBe("no-store, private");
     expect(deleted).toEqual(["can_dev_session"]);
 
     expect(calls.map((c) => c.url)).toEqual([
@@ -153,9 +155,54 @@ describe("POST /api/v1/auth/signout", () => {
     const response = await POST(ctx);
 
     expect(response.status).toBe(502);
+    expect(response.headers.get("cache-control")).toBe("no-store, private");
     expect(await response.json()).toMatchObject({
       error: "upstream_unreachable",
     });
     expect(deleted).toEqual(["can_dev_session"]);
+  });
+  test("吊销抛错：会话照样清，请求照样转发", async () => {
+    calls = [];
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = input instanceof Request ? input.url : String(input);
+      calls.push({ url, init: {} });
+      if (url === `${API}/api/oauth/revoke`) throw new TypeError("down");
+      return upstreamOk();
+    }) as typeof fetch;
+    const { ctx, deleted } = context(
+      { origin: ORIGIN },
+      { can_dev_session: sealedSession(), can_session: "net-token" },
+    );
+
+    const response = await POST(ctx);
+
+    expect(response.status).toBe(200);
+    expect(deleted).toEqual(["can_dev_session"]);
+    expect(calls.map((c) => c.url)).toEqual([
+      `${API}/api/oauth/revoke`,
+      `${API}/api/v1/auth/signout`,
+    ]);
+  });
+
+  test("吊销返回 500：会话照样清，请求照样转发", async () => {
+    calls = [];
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = input instanceof Request ? input.url : String(input);
+      calls.push({ url, init: {} });
+      if (url === `${API}/api/oauth/revoke`) {
+        return new Response(null, { status: 500 });
+      }
+      return upstreamOk();
+    }) as typeof fetch;
+    const { ctx, deleted } = context(
+      { origin: ORIGIN },
+      { can_dev_session: sealedSession(), can_session: "net-token" },
+    );
+
+    const response = await POST(ctx);
+
+    expect(response.status).toBe(200);
+    expect(deleted).toEqual(["can_dev_session"]);
+    expect(calls).toHaveLength(2);
   });
 });

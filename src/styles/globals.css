@@ -17,3 +17,10 @@
 #main-content:has(.page-sunken) {
   background-color: var(--surface-sunken);
 }
+
+/* 窄页面：CanFrame 顶栏内层写死 max-w-7xl，没有 prop 可改。BaseLayout 在正文是
+   max-w-5xl 时给 <body> 挂 chrome-header-narrow，这里把顶栏收回 64rem。
+   故意不放进 @layer：can-ui 的 max-w-7xl 在 utilities 层，未分层规则永远赢过它。 */
+.chrome-header-narrow header > div.max-w-7xl {
+  max-width: 64rem;
+}

@@ -119,7 +119,8 @@
         "state_mismatch": "这次登录的来源对不上，出于安全考虑没有继续。重新点一次。",
         "exchange_failed": "没能换到令牌，稍后再试。",
         "access_denied": "你在授权页上点了拒绝。",
-        "unknown": "登录失败：{error}"
+        "unknown": "登录失败：{error}",
+        "network_session_missing": "没有读到网络会话。请先在主站登录，再回到这里登录。"
       }
     },
     "apps": {
