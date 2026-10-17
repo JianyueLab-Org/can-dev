@@ -320,7 +320,7 @@
       "steps": {
         "who": {
           "title": "Check that you actually need it",
-          "detail": "Only registering an application that signs members in with their CAN account needs developer access. The live datafeed, the server directory, the roster and the leaderboards are all open endpoints — no sign-in, and nothing on this page applies to them."
+          "detail": "Only registering an application that signs members in with their CAN account needs developer access. The live datafeed and the server directory are open endpoints — no sign-in, and nothing on this page applies to them."
         },
         "ask": {
           "title": "Say what it is for, through the feedback form",

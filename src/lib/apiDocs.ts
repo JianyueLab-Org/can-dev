@@ -1385,10 +1385,9 @@ const PILOT_DIVISIONS: ApiEndpoint = {
 /* ------------------------------------------------------------------ *
  * Network directory
  *
- * Unauthenticated reads that describe the network rather than a member. All
- * four are already public pages' backing data or values a client needs before
- * it can sign in, so none of them carries a session, and all four are safe to
- * cache.
+ * Unauthenticated reads that describe the network rather than a member. Both
+ * answer a question a client has to ask before it can sign in, so neither
+ * carries a session, and both are safe to cache.
  * ------------------------------------------------------------------ */
 
 const SERVERS: ApiEndpoint = {
