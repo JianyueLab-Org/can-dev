@@ -1472,46 +1472,6 @@ const META_LIMITS: ApiEndpoint = {
   ],
 };
 
-const ROSTER: ApiEndpoint = {
-  id: "atc-roster",
-  methods: ["GET"],
-  path: "/api/v1/atc/roster",
-  summary: "The network's controller roster, by division.",
-  body: [
-    "What `ceruleanavi.net/roster` draws: every member holding a controller position, grouped by numeric region code. Unauthenticated, because the roster is a public page linked from the site header — it used to sit behind a staff guard, which meant a signed-out visitor got a 401 on a page the footer advertised.",
-    "It is a **separate handler over a separate query** from the staff roster, not the same one with the guard removed. The staff version's payload also carries every member's email address; keeping them apart is what makes it impossible to publish that by loosening one condition.",
-  ],
-  auth: "none",
-  cors: false,
-  limitScope: "—",
-  statuses: [
-    { code: 200, when: "The roster, keyed by region code as a string." },
-  ],
-  example: {
-    request: "curl '{origin}/api/v1/atc/roster'",
-    response: `{
-  "status": 200,
-  "data": {
-    "byRegion": {
-      "1": [
-        { "id": "1234", "name": "Someone", "rating": 4, "status": true,
-          "permission": { "del": true, "gnd": true, "twr": true,
-                          "app": false, "ctr": false,
-                          "instructor": false, "home": true } }
-      ]
-    }
-  },
-  "timestamp": "2026-08-19T10:31:02Z"
-}`,
-  },
-  notes: [
-    "**Everything absent here is absent on purpose.** This renders for an anonymous caller, so there is no email address, no join date and no account state — adding a field to this shape publishes it to the world.",
-    "`status` is the division row's active flag, which is what splits each region into serving and non-serving members. It is **not** an online indicator: this route never sees who is connected. For that, read the datafeed.",
-    "Regions with nobody in them are absent rather than present and empty, so the set of keys is the set of divisions with members.",
-    "`rating` here is the bare integer.",
-  ],
-};
-
 export const API_GROUPS: ApiGroup[] = [
   {
     key: "oauth",
@@ -1565,9 +1525,9 @@ export const API_GROUPS: ApiGroup[] = [
     key: "network",
     name: "Network directory",
     description:
-      "Unauthenticated reads that describe the network rather than a member: where its servers are, what it is enforcing and who its controllers are. All three back a public page or answer a question a client has to ask before it can sign in, and all three are cacheable — the cache headers say for how long.",
+      "Unauthenticated reads that describe the network rather than a member: where its servers are and what it is enforcing. Both answer a question a client has to ask before it can sign in, and both are cacheable — the cache headers say for how long.",
     icon: "globeAlt",
-    endpoints: [SERVERS, META_LIMITS, ROSTER],
+    endpoints: [SERVERS, META_LIMITS],
   },
   {
     key: "clients",
@@ -1597,11 +1557,21 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
   {
     path: "The rest of /api/v1/pilot/*, plus /api/v1/activity/*, /api/v1/super/* and the rest of /api/v1/atc/*",
     reason:
-      "Portal plumbing. Most need a member's session cookie and refuse an access token outright; the few reads that do not — the activity feed and the ATC reservation board — exist to draw a panel on ceruleanavi.net, their shapes follow whatever that panel needs that week, and they are not a contract with anyone outside the network's own repositories. The exceptions are documented above: the three member routes an application can reach with a scope, and the public roster.",
+      "Portal plumbing. Most need a member's session cookie and refuse an access token outright; the few reads that do not — the activity feed and the ATC reservation board — exist to draw a panel on ceruleanavi.net, their shapes follow whatever that panel needs that week, and they are not a contract with anyone outside the network's own repositories. The exceptions are documented above: the three member routes an application can reach with a scope.",
   },
   {
     path: "/api/v1/leaderboard",
     reason: "Members only. Session cookie only; an access token is refused.",
+  },
+  {
+    path: "/api/v1/atc/roster",
+    reason:
+      "Members only. It names every controller, and nothing reachable without a session serves member data beyond the CID. Session cookie only; an access token is refused.",
+  },
+  {
+    path: "/api/v1/feedback",
+    reason:
+      "Members only, for the same reason: published cases name the members involved. Session cookie only.",
   },
   {
     path: "/api/v1/pilot/data",
