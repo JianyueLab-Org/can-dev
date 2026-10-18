@@ -1378,7 +1378,7 @@ const PILOT_DIVISIONS: ApiEndpoint = {
   notes: [
     "**Joining is one-way.** Setting a home division succeeds exactly once and there is no leave or remove action anywhere in this API; a transfer goes through an instructor. `canSetHome` is therefore false forever after the first success.",
     "The seat flags (`del`/`gnd`/`twr`/`app`/`ctr`), `instructor`, `director` and `status` are instructor-granted and are read-only here. The member-side write can only ever set the region and the home flag.",
-    "`regionName.shortZh` is the simplified-Chinese short code. It equals `short` for every region except 5 (`ROC`, 中国台湾), where it is `TWN`. Region codes: 1 PRC, 4 HKG, 5 ROC.",
+    "`regionName.shortZh` is the simplified-Chinese short code. It equals `short` for every region except 5 (`ROC`, 中国台湾), where it is `TWN`. Region codes: 0 UNK, 1 PRC, 2 USA, 3 JPN, 4 HKG, 5 ROC.",
     "`rating` in this payload is the bare integer, unlike the expanded object on `/api/v1/pilot/atc`. Both shapes exist in this API and neither is going to change — check which one you are holding.",
   ],
 };
