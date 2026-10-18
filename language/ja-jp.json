@@ -83,7 +83,6 @@
     "baseUrlHint": "ほとんどのエンドポイントはこちらです。同意画面は can-web、ライブデータフィードは can-fsd にあり、それらはパスの横に自分のホスト名を表示します。"
   },
   "dev": {
-    "siteName": "CAN デベロッパーセンター",
     "tagline": "ここでアプリケーションを登録すると、CAN メンバーが自分のアカウントでログインできるようになります。",
     "nav": {
       "home": "ホーム",
@@ -338,7 +337,7 @@
   },
   "frame": {
     "skipToContent": "本文へスキップ",
-    "signIn": "CAN アカウントでログイン",
+    "signIn": "ログイン",
     "signOut": "ログアウト",
     "signingOut": "ログアウト中…",
     "signOutFailed": "ログアウトに失敗しました。もう一度お試しください。",
@@ -350,9 +349,6 @@
     "openUserMenu": "アカウントメニューを開く",
     "openMenu": "メニューを開く",
     "siteNavigation": "サイト内ナビゲーション",
-    "workspace": {
-      "label": "ワークスペース"
-    },
     "search": {
       "label": "ページを検索",
       "placeholder": "ページへ移動…",

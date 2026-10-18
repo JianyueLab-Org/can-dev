@@ -34,15 +34,20 @@ bun run verify:ground
 
 门禁是 `bun run lint`、`bun run build`、`bun run check:pages`，CI（`.github/workflows/check.yml`）跑同样三条。
 
-**测试有五份**（`bun test`，只多一个 `@types/bun` 让 `astro check` 认得
+**测试有七份**（`bun test`，只多一个 `@types/bun` 让 `astro check` 认得
 `bun:test`）。判据和 can-efb 那边一样 —— 「错了会不会被屏幕出卖」。
 
 - `src/lib/signout.test.ts`：`POST /api/v1/auth/signout` 的 Origin 检查、吊销、
   转发和 `Set-Cookie`。它是唯一一条不经过 `requireSession()` 的写操作。
 - `src/lib/networkSession.test.ts`：中间件那条规则 —— 有 `can_dev_session`
   没有 `can_session`，就吊销令牌、清掉本站会话。
+- `src/lib/nav.test.ts`：导航四项的顺序和要登录的路径。
+- `src/lib/pageTitle.test.ts`：标题格式。
 - `src/lib/notifications.test.ts`：通知铃的五条路径、Origin 检查、只带
   `can_session`、204 和 `Set-Cookie` 原样回来。
+- `src/lib/callback.test.ts`：`GET /auth/callback` 没有 `can_session` 时跳回
+  `/?error=network_session_missing`，不换码，不写 `can_dev_session`。
+- `src/lib/session.test.ts`：`safeNext` 只放行站内路径，其余一律回 `/apps`。
 
 测试文件放在 `src/lib/` 而不是挨着被测的路由：`src/pages/` 下每一个 `.ts` 都是一条
 路由。
@@ -91,7 +96,7 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 `readFileSync(p, "utf8")` 会把每个 GBK 机位名变成 U+FFFD —— 两边同时这么错的时候
 这个脚本是绿的，只有这边解对了它才会指出产物没重新合并。
 
-**不登录、不上传、没有后端路由**，这三件事是一件事。中间件的 `PROTECTED` 里没
+**不登录、不上传、没有后端路由**，这三件事是一件事。`src/lib/nav.ts` 的 `PROTECTED_PREFIXES` 里没
 有它：改扇区包的人不一定注册过 OAuth 应用。文件在浏览器里解析：地面数据跟着扇
 区包走，不属于这个站，而这个站是公开的 —— 一个"传上来我帮你渲染"的按钮等于让
 还没发布的扇区数据落到服务器上。
@@ -99,8 +104,10 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 ## 外壳和文案
 
 **外壳是 can-ui 的 `CanFrame`**，`layout="content"`。`src/components/Frame.vue`
-传导航、品牌、词典和 `originsFromEnv(import.meta.env)`。新页面套
+传导航、词典和 `originsFromEnv(import.meta.env)`。新页面套
 `SiteLayout.astro`。页面不写 `<main>`：外壳渲染它、跳转链接和页脚。
+导航四项不论登没登录都显示，名单和要登录的路径都在 `src/lib/nav.ts`。
+标题是 `<页面> · <站名>`，站名取 can-ui `siteLabel(locale, "dev").name`（`src/lib/pageTitle.ts`）。首页只有站名。
 `src/styles/globals.css` 只多一条 `.page-sunken`。
 
 **颜色只用语义记号**，`bg-surface-*` / `text-ink|muted|faint` / `badge-*` /
@@ -125,7 +132,7 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 - 不申请 `offline_access`：这是个坐下来用的地方，会话跟着浏览器走就够了。
 - 退出：`AccountMenu` 发 `POST /api/v1/auth/signout`。路由吊销本站令牌、清
   `can_dev_session`，再转发 can-api 的 `/api/v1/auth/signout`，原样带回它的
-  `Set-Cookie`。之后原地刷新。第三方应用的令牌不吊销。
+  `Set-Cookie`。公开页原地刷新；`/apps`、`/docs` 上退出回主站首页。第三方应用的令牌不吊销。
 - 通知铃：`Frame.vue` 设 `notifications`。`src/pages/api/v1/notifications/[...path].ts`
   把五条路径转给 can-api，只带 `can_session`；写操作查 Origin。逻辑在
   `src/lib/notifications.ts`。

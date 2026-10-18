@@ -7,9 +7,10 @@ import "@/styles/globals.css";
 import ThemeScript from "@jianyuelab-org/can-ui/components/ThemeScript.astro";
 import { ThemeLangControls } from "@jianyuelab-org/can-ui";
 import { getLocale, useTranslations } from "@/lib/i18n";
+import { pageTitle } from "@/lib/pageTitle";
 
 interface Props {
-  /** 页面标题，会拼上站名。整串自己定的话传 `titleOverride`。 */
+  /** 页面名。缺省时标题只有站名（首页）。 */
   title?: string;
   description?: string;
   floatingControls?: boolean;
@@ -27,7 +28,7 @@ const {
   narrow = false,
 } = Astro.props;
 
-const fullTitle = title ? `${title} · ${t("siteName")}` : t("siteName");
+const fullTitle = pageTitle(title, locale);
 ---
 
 <!doctype html>
@@ -40,7 +41,16 @@ const fullTitle = title ? `${title} · ${t("siteName")}` : t("siteName");
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#4c92c1" />
+    <meta
+      name="theme-color"
+      content="#ffffff"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0b0f14"
+      media="(prefers-color-scheme: dark)"
+    />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />

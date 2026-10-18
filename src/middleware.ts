@@ -1,5 +1,6 @@
 import { defineMiddleware } from "astro:middleware";
 
+import { isProtectedPath } from "@/lib/nav";
 import { resolveDevSession } from "@/lib/networkSession";
 
 /**
@@ -13,13 +14,12 @@ import { resolveDevSession } from "@/lib/networkSession";
  *
  * `/apps`、`/docs` 要登录并且是开发者。首页和 `/ground` 不要：首页说明这个站
  * 并给出登录入口，`/ground` 没有上游。can-ui 的站点注册表指首页，两处一起看。
+ * 名单在 `lib/nav.ts`，导航和退出去向读同一份。
  *
  * 登录了但不是开发者：改写到 `/no-access`，地址不变，渲染 `NoAccess`，403。
  * 这道判断读会话里的缓存，是门面，不是边界。边界是 can-api 的
  * `/api/v1/dev/clients`，每次请求都重读 `user.developer`。
  */
-const PROTECTED = ["/apps", "/docs"];
-
 function withSecurityHeaders(response: Response): Response {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
@@ -32,9 +32,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.session = session;
 
   const path = context.url.pathname;
-  const guarded = PROTECTED.some(
-    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
-  );
+  const guarded = isProtectedPath(path);
 
   if (guarded && !session) {
     return withSecurityHeaders(

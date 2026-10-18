@@ -2,22 +2,22 @@
 /**
  * 开发者中心的外壳：can-ui `CanFrame`，`content` 布局。
  *
- * 品牌是方形标记 + 站名。「我的应用」只在登录后出现。登录走本站的 OAuth PKCE
- * （`/auth/login`）。退出由 `AccountMenu` 发 `POST /api/v1/auth/signout`，
- * 之后原地刷新。
+ * 导航四项不论登没登录都显示（`lib/nav.ts`）。登录走本站的 OAuth PKCE
+ * （`/auth/login`）。退出由 `AccountMenu` 发 `POST /api/v1/auth/signout`：
+ * 公开页原地刷新，要登录的页回主站首页。
  */
-import { computed } from "vue";
 import {
   CanFrame,
   originsFromEnv,
+  type AfterSignOut,
   type FrameUser,
-  type NavItem,
 } from "@jianyuelab-org/can-ui";
 import { createTranslator } from "@/lib/i18n";
+import { devNav, isProtectedPath } from "@/lib/nav";
 
 const props = withDefaults(
   defineProps<{
-    /** `frame` 命名空间，加上 `nav`（`dev.nav`）和 `siteName`。 */
+    /** `frame` 命名空间，加上 `nav`（`dev.nav`）。 */
     messages: Record<string, unknown>;
     locale: string;
     pathname: string;
@@ -31,17 +31,10 @@ const props = withDefaults(
 const t = createTranslator(props.messages);
 const origins = originsFromEnv(import.meta.env);
 
-const nav = computed<NavItem[]>(() => {
-  const items: NavItem[] = [{ name: t("nav.home"), href: "/", icon: "home" }];
-  if (props.user) {
-    items.push({ name: t("nav.apps"), href: "/apps", icon: "squares2x2" });
-  }
-  items.push(
-    { name: t("nav.docs"), href: "/docs", icon: "bookOpen" },
-    { name: t("nav.ground"), href: "/ground", icon: "map" },
-  );
-  return items;
-});
+const nav = devNav(t);
+const afterSignOut: AfterSignOut = isProtectedPath(props.pathname)
+  ? "web"
+  : "reload";
 </script>
 
 <template>
@@ -54,16 +47,10 @@ const nav = computed<NavItem[]>(() => {
     :user="user"
     notifications
     :sign-in-href="signInHref"
-    after-sign-out="reload"
+    :after-sign-out="afterSignOut"
     :messages="messages"
     :origins="origins"
   >
-    <template #brand>
-      <span class="flex items-center gap-2.5">
-        <img alt="" src="/logo.png" class="h-8 w-auto" />
-        <span class="text-sm font-semibold text-ink">{{ t("siteName") }}</span>
-      </span>
-    </template>
     <slot />
   </CanFrame>
 </template>

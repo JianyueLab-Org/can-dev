@@ -83,7 +83,6 @@
     "baseUrlHint": "多數介面在這裡。同意頁在 can-web、即時資料來源在 can-fsd，那幾條會各自印出自己的主機名。"
   },
   "dev": {
-    "siteName": "CAN 開發者中心",
     "tagline": "在這裡註冊應用程式，讓 CAN 成員用自己的帳號登入它。",
     "nav": {
       "home": "首頁",
@@ -338,7 +337,7 @@
   },
   "frame": {
     "skipToContent": "跳至主要內容",
-    "signIn": "用 CAN 帳號登入",
+    "signIn": "登入",
     "signOut": "登出",
     "signingOut": "正在登出…",
     "signOutFailed": "登出失敗，請重試。",
@@ -350,9 +349,6 @@
     "openUserMenu": "開啟帳號選單",
     "openMenu": "開啟選單",
     "siteNavigation": "本站導覽",
-    "workspace": {
-      "label": "工作區"
-    },
     "search": {
       "label": "搜尋頁面",
       "placeholder": "跳至頁面…",
