@@ -45,6 +45,9 @@ bun run verify:ground
 - `src/lib/pageTitle.test.ts`：标题格式。
 - `src/lib/notifications.test.ts`：通知铃的五条路径、Origin 检查、只带
   `can_session`、204 和 `Set-Cookie` 原样回来。
+- `src/lib/callback.test.ts`：`GET /auth/callback` 没有 `can_session` 时跳回
+  `/?error=network_session_missing`，不换码，不写 `can_dev_session`。
+- `src/lib/session.test.ts`：`safeNext` 只放行站内路径，其余一律回 `/apps`。
 
 测试文件放在 `src/lib/` 而不是挨着被测的路由：`src/pages/` 下每一个 `.ts` 都是一条
 路由。
@@ -93,7 +96,7 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 `readFileSync(p, "utf8")` 会把每个 GBK 机位名变成 U+FFFD —— 两边同时这么错的时候
 这个脚本是绿的，只有这边解对了它才会指出产物没重新合并。
 
-**不登录、不上传、没有后端路由**，这三件事是一件事。中间件的 `PROTECTED` 里没
+**不登录、不上传、没有后端路由**，这三件事是一件事。`src/lib/nav.ts` 的 `PROTECTED_PREFIXES` 里没
 有它：改扇区包的人不一定注册过 OAuth 应用。文件在浏览器里解析：地面数据跟着扇
 区包走，不属于这个站，而这个站是公开的 —— 一个"传上来我帮你渲染"的按钮等于让
 还没发布的扇区数据落到服务器上。
