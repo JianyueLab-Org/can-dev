@@ -338,7 +338,7 @@
   },
   "frame": {
     "skipToContent": "跳至主要內容",
-    "signIn": "用 CAN 帳號登入",
+    "signIn": "登入",
     "signOut": "登出",
     "signingOut": "正在登出…",
     "signOutFailed": "登出失敗，請重試。",
@@ -350,9 +350,6 @@
     "openUserMenu": "開啟帳號選單",
     "openMenu": "開啟選單",
     "siteNavigation": "本站導覽",
-    "workspace": {
-      "label": "工作區"
-    },
     "search": {
       "label": "搜尋頁面",
       "placeholder": "跳至頁面…",

@@ -338,8 +338,8 @@
   },
   "frame": {
     "skipToContent": "跳到主要内容",
-    "signIn": "用 CAN 账号登录",
-    "signOut": "退出",
+    "signIn": "登录",
+    "signOut": "退出登录",
     "signingOut": "正在退出…",
     "signOutFailed": "退出失败，请重试。",
     "openSidebar": "打开导航",
@@ -350,9 +350,6 @@
     "openUserMenu": "打开账户菜单",
     "openMenu": "打开菜单",
     "siteNavigation": "本站导航",
-    "workspace": {
-      "label": "工作区"
-    },
     "search": {
       "label": "搜索页面",
       "placeholder": "跳转到页面…",

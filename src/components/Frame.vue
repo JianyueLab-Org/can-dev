@@ -58,12 +58,6 @@ const nav = computed<NavItem[]>(() => {
     :messages="messages"
     :origins="origins"
   >
-    <template #brand>
-      <span class="flex items-center gap-2.5">
-        <img alt="" src="/logo.png" class="h-8 w-auto" />
-        <span class="text-sm font-semibold text-ink">{{ t("siteName") }}</span>
-      </span>
-    </template>
     <slot />
   </CanFrame>
 </template>

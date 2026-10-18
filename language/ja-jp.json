@@ -338,7 +338,7 @@
   },
   "frame": {
     "skipToContent": "本文へスキップ",
-    "signIn": "CAN アカウントでログイン",
+    "signIn": "ログイン",
     "signOut": "ログアウト",
     "signingOut": "ログアウト中…",
     "signOutFailed": "ログアウトに失敗しました。もう一度お試しください。",
@@ -350,9 +350,6 @@
     "openUserMenu": "アカウントメニューを開く",
     "openMenu": "メニューを開く",
     "siteNavigation": "サイト内ナビゲーション",
-    "workspace": {
-      "label": "ワークスペース"
-    },
     "search": {
       "label": "ページを検索",
       "placeholder": "ページへ移動…",

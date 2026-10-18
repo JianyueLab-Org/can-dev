@@ -338,8 +338,8 @@
   },
   "frame": {
     "skipToContent": "Skip to main content",
-    "signIn": "Sign in with CAN",
-    "signOut": "Sign out",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
     "signingOut": "Signing out…",
     "signOutFailed": "Sign-out failed. Try again.",
     "openSidebar": "Open navigation",
@@ -350,9 +350,6 @@
     "openUserMenu": "Open account menu",
     "openMenu": "Open menu",
     "siteNavigation": "Site navigation",
-    "workspace": {
-      "label": "Workspace"
-    },
     "search": {
       "label": "Search pages",
       "placeholder": "Jump to a page…",
