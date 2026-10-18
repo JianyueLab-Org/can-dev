@@ -22,11 +22,7 @@ const t = useTranslations(locale, "dev");
 const messages = getMessages(locale, "dev.ground");
 ---
 
-<SiteLayout
-  title={t("ground.title")}
-  description={t("ground.description")}
-  width="wide"
->
+<SiteLayout title={t("ground.title")} description={t("ground.description")}>
   <header class="mb-6">
     <p class="text-xs font-semibold uppercase tracking-[0.2em] text-can">
       {t("ground.eyebrow")}

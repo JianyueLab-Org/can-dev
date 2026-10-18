@@ -14,8 +14,6 @@ interface Props {
   title?: string;
   description?: string;
   floatingControls?: boolean;
-  /** 正文是窄的一档时，顶栏收回同样的宽度（见 globals.css）。 */
-  narrow?: boolean;
 }
 
 const locale = getLocale(Astro.cookies);
@@ -25,7 +23,6 @@ const {
   title,
   description = t("tagline"),
   floatingControls = true,
-  narrow = false,
 } = Astro.props;
 
 const fullTitle = pageTitle(title, locale);
@@ -61,12 +58,7 @@ const fullTitle = pageTitle(title, locale);
     <meta property="og:image" content="/icon-512.png" />
     <ThemeScript />
   </head>
-  <body
-    class:list={[
-      "min-h-dvh bg-surface-sunken",
-      narrow && "chrome-header-narrow",
-    ]}
-  >
+  <body class="min-h-dvh bg-surface-sunken">
     <slot />
     {
       floatingControls && (

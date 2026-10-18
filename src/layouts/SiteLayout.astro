@@ -12,11 +12,9 @@ import { getLocale, getMessages } from "@/lib/i18n";
 interface Props {
   title?: string;
   description?: string;
-  /** 正文容器的宽度。文档页要更宽的一档来放侧边目录。 */
-  width?: "narrow" | "wide";
 }
 
-const { title, description, width = "narrow" } = Astro.props;
+const { title, description } = Astro.props;
 
 const locale = getLocale(Astro.cookies);
 const session = Astro.locals.session;
@@ -33,16 +31,9 @@ const user = session
       rating: session.rating,
     }
   : null;
-
-const mainWidth = width === "wide" ? "max-w-7xl" : "max-w-5xl";
 ---
 
-<BaseLayout
-  title={title}
-  description={description}
-  floatingControls={false}
-  narrow={width !== "wide"}
->
+<BaseLayout title={title} description={description} floatingControls={false}>
   <Frame
     messages={frameMessages}
     locale={locale}
@@ -51,9 +42,7 @@ const mainWidth = width === "wide" ? "max-w-7xl" : "max-w-5xl";
     signInHref={`/auth/login?next=${encodeURIComponent(Astro.originPathname)}`}
     client:load
   >
-    <div
-      class={`page-sunken mx-auto w-full px-4 py-10 sm:px-6 lg:px-8 ${mainWidth}`}
-    >
+    <div class="page-sunken page-gutter w-full py-10">
       <slot />
     </div>
   </Frame>

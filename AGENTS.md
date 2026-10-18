@@ -107,6 +107,7 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 传导航、词典和 `originsFromEnv(import.meta.env)`。新页面套
 `SiteLayout.astro`。页面不写 `<main>`：外壳渲染它、跳转链接和页脚。
 导航四项不论登没登录都显示，名单和要登录的路径都在 `src/lib/nav.ts`。
+页面满宽：不写 `max-w-*` 页面容器，`SiteLayout` 用 `.page-gutter`。`/404` 用 can-ui 的 `NotFound`，不在受保护路径里。
 标题是 `<页面> · <站名>`，站名取 can-ui `siteLabel(locale, "dev").name`（`src/lib/pageTitle.ts`）。首页只有站名。
 `src/styles/globals.css` 只多一条 `.page-sunken`。
 
