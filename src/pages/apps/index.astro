@@ -11,7 +11,7 @@ import { getLocale, getMessages, useTranslations } from "@/lib/i18n";
  * 首屏的数据在服务端取好、当 prop 交给岛屿，而不是让岛屿挂载后自己再拉一次
  * —— 后者会让页面先闪一下空列表。之后的增删改由岛屿走 /api/clients/*。
  *
- * 中间件保证到这里一定有会话（/apps 在 PROTECTED 里）。
+ * 中间件保证到这里一定有会话（/apps 在 `PROTECTED_PREFIXES` 里）。
  */
 const session = Astro.locals.session!;
 const result = await listClients(session.accessToken);
