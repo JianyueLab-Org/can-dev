@@ -987,7 +987,7 @@ const OAUTH_INTROSPECT: ApiEndpoint = {
   path: "/api/oauth/introspect",
   summary: "Ask whether a token is still valid (RFC 7662).",
   body: [
-    "Access tokens are **opaque strings, not JWTs**. That is a deliberate trade: you cannot verify one offline, but a member who revokes your app on /pilots/apps stops you the same second rather than an hour later. This endpoint is how a resource server of your own checks one.",
+    "Access tokens are **opaque strings, not JWTs**. That is a deliberate trade: you cannot verify one offline, but a member who revokes your app on /account/apps stops you the same second rather than an hour later. This endpoint is how a resource server of your own checks one.",
     'A client may only introspect its own tokens. Anything else answers `{"active": false}` — otherwise every registered app could use this to confirm that some string it found is a live token.',
   ],
   auth: "oauthClient",
