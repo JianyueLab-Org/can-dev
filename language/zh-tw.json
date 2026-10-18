@@ -83,7 +83,6 @@
     "baseUrlHint": "多數介面在這裡。同意頁在 can-web、即時資料來源在 can-fsd，那幾條會各自印出自己的主機名。"
   },
   "dev": {
-    "siteName": "CAN 開發者中心",
     "tagline": "在這裡註冊應用程式，讓 CAN 成員用自己的帳號登入它。",
     "nav": {
       "home": "首頁",

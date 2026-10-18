@@ -83,7 +83,6 @@
     "baseUrlHint": "多数接口在这里。同意页在 can-web、实时数据源在 can-fsd，那几条会各自印出自己的主机名。"
   },
   "dev": {
-    "siteName": "CAN 开发者中心",
     "tagline": "在这里注册应用，让 CAN 成员用自己的账号登录它。",
     "nav": {
       "home": "首页",

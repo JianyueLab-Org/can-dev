@@ -83,7 +83,6 @@
     "baseUrlHint": "Most endpoints live here. The consent screen is on can-web and the live datafeed on can-fsd; those print their own hostname beside the path."
   },
   "dev": {
-    "siteName": "CAN Developer Centre",
     "tagline": "Register an application here and CAN members can sign in to it with their own account.",
     "nav": {
       "home": "Home",

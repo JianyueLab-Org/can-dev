@@ -7,7 +7,7 @@
  */
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import Frame from "@/components/Frame.vue";
-import { getLocale, getMessages, useTranslations } from "@/lib/i18n";
+import { getLocale, getMessages } from "@/lib/i18n";
 
 interface Props {
   title?: string;
@@ -19,13 +19,11 @@ interface Props {
 const { title, description, width = "narrow" } = Astro.props;
 
 const locale = getLocale(Astro.cookies);
-const t = useTranslations(locale, "dev");
 const session = Astro.locals.session;
 
 const frameMessages = {
   ...getMessages(locale, "frame"),
   nav: getMessages(locale, "dev.nav"),
-  siteName: t("siteName"),
 };
 
 const user = session
