@@ -67,6 +67,9 @@ spec:
               value: https://api.ceruleanavi.net
             - name: CAN_WEB_ORIGIN
               value: https://ceruleanavi.net
+            # 文档印的数据源地址。fsd.ceruleanavi.net 是协议插座，不答 HTTPS。
+            - name: CAN_FSD_ORIGIN
+              value: https://data.ceruleanavi.net
             - name: PUBLIC_ORIGIN
               value: https://platform.ceruleanavi.net
             - name: CAN_CLIENT_ID

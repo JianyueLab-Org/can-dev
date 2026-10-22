@@ -1053,10 +1053,10 @@ const OAUTH_REVOKE: ApiEndpoint = {
  * Live network datafeed — can-fsd
  *
  * The one group in this reference that is not can-api's. It is served by the
- * FSD daemon itself, on its own hostname, and it does **not** use the
- * `{status, data, timestamp}` envelope every can-api route wraps its payload
- * in — these documents are the payload. A client that unwraps `data` here gets
- * `undefined`.
+ * FSD daemon itself, on its HTTP hostname (`data.ceruleanavi.net`), and it
+ * does **not** use the `{status, data, timestamp}` envelope every can-api
+ * route wraps its payload in — these documents are the payload. A client that
+ * unwraps `data` here gets `undefined`.
  * ------------------------------------------------------------------ */
 
 const DATAFEED: ApiEndpoint = {
@@ -1509,7 +1509,7 @@ export const API_GROUPS: ApiGroup[] = [
     key: "datafeed",
     name: "Live network datafeed",
     description:
-      "Who is connected right now, served by the FSD daemon on its own hostname (`fsd.ceruleanavi.net`) rather than by can-api. Two faces of one document: fetch `data.json` for a snapshot, or hold `/v1/events` open and receive only what changed. Neither needs a credential, and neither uses the `{status, data, timestamp}` envelope the rest of this page describes — here the document *is* the payload.",
+      "Who is connected right now, served by the FSD daemon on its HTTP hostname (`data.ceruleanavi.net`) rather than by can-api. The FSD protocol itself still listens on `fsd.ceruleanavi.net:6809`; that host does not serve this document over HTTPS. Two faces of one document: fetch `data.json` for a snapshot, or hold `/v1/events` open and receive only what changed. Neither needs a credential, and neither uses the `{status, data, timestamp}` envelope the rest of this page describes — here the document *is* the payload.",
     icon: "signal",
     endpoints: [DATAFEED, DATAFEED_EVENTS, DATAFEED_STATUS],
   },
@@ -1611,7 +1611,8 @@ export interface ApiOrigins {
   /** can-web — `https://ceruleanavi.net`. Serves the consent screen only. */
   web: string;
   /**
-   * can-fsd — `https://fsd.ceruleanavi.net`. Serves the datafeed only.
+   * can-fsd's HTTP face — `https://data.ceruleanavi.net`. Serves the datafeed
+   * only. The FSD protocol host remains `fsd.ceruleanavi.net:6809`.
    *
    * Read from configuration rather than hardcoded for the same reason the
    * other two are: the network has already moved hostname once, and the
