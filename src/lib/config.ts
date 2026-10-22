@@ -42,15 +42,20 @@ export const webOrigin = () =>
   (process.env.CAN_WEB_ORIGIN || "https://ceruleanavi.net").replace(/\/+$/, "");
 
 /**
- * 第三个上游：can-fsd，实时数据源住的地方。
+ * 第三个上游：can-fsd 的 **HTTP 数据源**。
  *
  * 只有接口文档用得到它 —— 这个站不读数据源，它只是**印出**那几条地址。而正因为
  * 只是印出来，它更需要是个变量：数据源是 FSD 守护进程自己在服务的，不经过
  * can-api 转发，所以文档上那个主机名是读者唯一能拿到的东西。写死一个域名，等于
  * 让这一页成为搬家时唯一不跟着走的那一处 —— 而这个网络已经搬过一次域名了。
+ *
+ * **这是 `data.ceruleanavi.net`，不是 `fsd.ceruleanavi.net`。** 后者是 FSD 协议
+ * 的插座（:6809）；HTTP 数据源（`/v1/data.json`、`/v1/events`）走前面的 TLS
+ * 终止，主机名是 `data.`。把文档默认印成 `https://fsd.…` 等于让「Try it」打到
+ * 一台不答 HTTPS 的机器上，而第三方会把那一页抄进自己的客户端。
  */
 export const fsdOrigin = () =>
-  (process.env.CAN_FSD_ORIGIN || "https://fsd.ceruleanavi.net").replace(
+  (process.env.CAN_FSD_ORIGIN || "https://data.ceruleanavi.net").replace(
     /\/+$/,
     "",
   );
