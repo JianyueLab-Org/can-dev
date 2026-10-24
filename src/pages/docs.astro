@@ -54,9 +54,10 @@ function limitText(endpoint: ApiEndpoint): string {
     : t("labels.perMinutes", { limit: rule.limit, minutes });
 }
 
-/** GET reads, POST writes, HEAD is neither — colour them apart. */
+/** GET reads, POST writes, DELETE removes, HEAD is neither — colour them apart. */
 function methodBadge(method: ApiMethod): string {
   if (method === "POST") return "badge-warning";
+  if (method === "DELETE") return "badge-danger";
   if (method === "HEAD") return "badge-neutral";
   return "badge-info";
 }

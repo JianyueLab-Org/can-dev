@@ -2,13 +2,16 @@
  * The public API reference, as data.
  *
  * can-api guards everything under `/api/v1` itself, and a handful of those
- * routes are deliberately open: the ATIS endpoints EuroScope and
- * `ATIS for CAN` call with no session, the radar's track lookup, and the
- * desktop clients' update/download path. Those are the ones third parties can
- * build against, so those are the ones documented here. Everything else needs
- * a member's session cookie and is portal plumbing — see `NOT_PUBLIC` at the
- * bottom, which is rendered on the page so "it is not in the list" reads as a
- * decision rather than an omission.
+ * routes are deliberately open: the ATIS and weather endpoints EuroScope,
+ * TopSky and `ATIS for CAN` call with no session, the radar's track and
+ * route lookups, the server directory and the desktop clients'
+ * update/download path. A smaller set accepts an OAuth access token carrying
+ * a scope a self-registered application may request. Those are the ones third
+ * parties can build against, so those are the ones documented here.
+ * Everything else needs a member's session cookie, a hand-granted scope or a
+ * network password and is plumbing — see `NOT_PUBLIC` at the bottom, which is
+ * rendered on the page so "it is not in the list" reads as a decision rather
+ * than an omission.
  *
  * ## This file used to live in can-web
  *
@@ -73,7 +76,7 @@ export type LimitKey = string;
  */
 export type ApiHost = "api" | "web" | "fsd";
 
-export type ApiMethod = "GET" | "HEAD" | "POST";
+export type ApiMethod = "GET" | "HEAD" | "POST" | "DELETE";
 
 /** How a caller proves who they are. */
 export type ApiAuth =
@@ -131,8 +134,8 @@ export interface ApiEndpoint {
    * Which bucket in `LIMITS` this endpoint counts against.
    *
    * Optional, and the absence is a fact about the route rather than a gap in
-   * the docs: the two OIDC discovery documents are static, cacheable and
-   * fetched once per client at startup, so they are served without a counter.
+   * the docs: the OIDC discovery documents, the key set, revocation, the
+   * datafeed and the member reads are served without a counter of their own.
    * The page prints "not limited" for those rather than leaving the field
    * blank, so a reader can tell the difference.
    */
@@ -168,10 +171,10 @@ const ATIS: ApiEndpoint = {
   id: "atis",
   methods: ["GET"],
   path: "/api/v1/atis",
-  summary: "Turn a METAR into a line of spoken ATIS text.",
+  summary: "One station's current METAR, as plain text.",
   body: [
-    'This is the URL a controller pastes into EuroScope\'s "ATIS maker URL" field. EuroScope substitutes its own macros into the query string, GETs it, and speaks or displays the plain text that comes back. Build the URL on https://ceruleanavi.net/controllers/atis rather than by hand.',
-    "It is a formatter, not a weather service: give it a METAR and it gives you the ATIS. `icao` alone also works — the METAR is then fetched for you — which makes the same URL usable from a script that has no weather source of its own.",
+    'This is the URL controllers paste into EuroScope\'s "ATIS maker URL" field. EuroScope substitutes its own macros into the query string, GETs it, and reads the plain text that comes back. The ATIS maker on https://controller.ceruleanavi.net/atis builds the URL.',
+    "What comes back is the report this service fetched for the station, not an echo of anything you sent. The station is `icao`; when `icao` is absent it is read from the header of the `metar` parameter (an optional `METAR `/`SPECI ` and `COR ` prefix, then the four-letter station and the `DDHHMMZ` time). Every other query parameter is ignored.",
   ],
   auth: "none",
   cors: true,
@@ -179,69 +182,40 @@ const ATIS: ApiEndpoint = {
   limitScope: "per IP",
   query: [
     {
-      name: "metar",
-      type: "string",
-      description:
-        "Raw METAR to format. EuroScope passes `$metar($atisairportA)` here. Required unless `icao` is given.",
-    },
-    {
       name: "icao",
       type: "ICAO",
       description:
-        "Four letters. Names the station in the text, and — when `metar` is absent — the report is fetched for it.",
+        "Four letters, either case. Required unless `metar` carries a station header.",
     },
     {
-      name: "info",
-      type: "string",
-      description: "Information letter, e.g. `A`.",
-    },
-    {
-      name: "arr",
-      type: "string",
-      description: "Arrival runways, comma-separated: `19,18R`.",
-    },
-    {
-      name: "dep",
-      type: "string",
-      description: "Departure runways, comma-separated: `18L,18R`.",
-    },
-    {
-      name: "apptype",
-      type: "string",
-      description: "Approach in use, e.g. `ILS`.",
-    },
-    { name: "tl", type: "string", description: "Transition level." },
-    {
-      name: "remarks",
-      type: "string",
-      description: "Extra text, appended as given.",
-    },
-    {
-      name: "format",
+      name: "metar",
       type: "string",
       description:
-        "`multiline` returns one element per line. Anything else (the default) joins them with full stops.",
+        "A METAR whose header names the station. Read only when `icao` is absent, and only for the station code.",
     },
   ],
   statuses: [
-    { code: 200, when: "The ATIS, as `text/plain; charset=utf-8`." },
-    { code: 400, when: "Neither a `metar` nor a valid `icao` was given." },
+    {
+      code: 200,
+      when: "The report, as `text/plain; charset=utf-8` with `Cache-Control: no-store`. It keeps its leading `METAR`/`SPECI` word when the source sent one.",
+    },
+    {
+      code: 400,
+      when: "No valid station in `icao` or in the `metar` header. Plain text.",
+    },
+    { code: 404, when: "No source has a report for that station. Plain text." },
     {
       code: 429,
-      when: "Rate limited. Plain text, not JSON — see the note below.",
+      when: 'Rate limited — `{"error": "rate_limited", …}` as JSON with `Retry-After`, unlike the other answers here.',
     },
-    { code: 502, when: "No METAR could be fetched for that station." },
   ],
   example: {
-    request:
-      "curl '{origin}/api/v1/atis?icao=ZBAA&info=A&arr=19,18R&dep=18L&apptype=ILS'",
-    response:
-      "ZBAA INFORMATION ALPHA 1730Z. ARR RWY 19, 18R, DEP RWY 18L. EXPECT ILS APPROACH. WIND 300 DEGREES 2 METRES PER SECOND, VARIABLE BETWEEN 260 AND 330 DEGREES. CAVOK. TEMPERATURE 28, DEWPOINT 22. QNH 1001. ADVISE ON INITIAL CONTACT YOU HAVE INFORMATION ALPHA",
+    request: "curl '{origin}/api/v1/atis?icao=ZBAA'",
+    response: "METAR ZBAA 231630Z VRB01MPS CAVOK 11/08 Q1018 NOSIG",
   },
   notes: [
-    "The default is **one line**. EuroScope reads the response only up to the first newline, so a `\\n`-joined ATIS would arrive as nothing but the header; the full stops give the voice engine its pauses instead. Use `format=multiline` when a human is reading it.",
-    "This route answers a 429 in plain text like every other response it sends, rather than in the JSON envelope the rest of the API uses. EuroScope has no JSON parser.",
-    "Nothing here touches the database or a session — it reads public weather and echoes formatted text.",
+    "The weather sources and the per-station cache are the ones `/api/v1/metar` uses, so the two answer with the same report.",
+    "Nothing here touches the database or a session — it reads public weather and returns text.",
   ],
 };
 
@@ -267,7 +241,10 @@ const ATIS_CONFIG: ApiEndpoint = {
     },
   ],
   statuses: [
-    { code: 200, when: "The configuration document, with an `ETag`." },
+    {
+      code: 200,
+      when: "The configuration document, with an `ETag` and `Cache-Control: public, max-age=300`.",
+    },
     {
       code: 304,
       when: "`If-None-Match` matched the current version. No body.",
@@ -275,7 +252,7 @@ const ATIS_CONFIG: ApiEndpoint = {
     { code: 429, when: "Rate limited." },
     {
       code: 500,
-      when: "The published file failed validation. The body carries `problems[]` naming each reason.",
+      when: '`{"error": "config_invalid", "message": …}` — the published file failed validation; `message` names each reason (no stations, a station with no identifier or frequency, an unknown `atis_type`, a duplicate callsign).',
     },
   ],
   example: {
@@ -314,10 +291,10 @@ const ATIS_CONFIG: ApiEndpoint = {
 }`,
   },
   notes: [
-    "`version` is a content hash of the document, not a number anybody remembers to bump — any edit is a new version, and a client can compare it to decide whether it is current.",
-    "`atis_type` is one of `combined`, `departure`, `arrival`; `voice_language` is one of `en`, `zh`, `both`.",
+    "`version` is a content hash of the document, not a number anybody remembers to bump — any edit is a new version, and a client can compare it to decide whether it is current. The same value, quoted, is the `ETag`.",
+    "`atis_type` is one of `combined` (the default when absent), `departure`, `arrival`. The station's callsign is derived from it — `ZBAA_ATIS`, `ZBAA_D_ATIS`, `ZBAA_A_ATIS` — which is why there is no callsign key and why two entries deriving the same callsign fail validation.",
     "The information letter is deliberately absent: it advances with the weather and belongs to a running session, not to a configuration.",
-    "`ETag` is listed in `Access-Control-Expose-Headers`, so a browser fetch can read the value it needs to send back.",
+    "`ETag` is not listed in `Access-Control-Expose-Headers`, so a cross-origin browser fetch cannot read it. Read `version` from the body instead and send it back quoted.",
   ],
 };
 
@@ -325,11 +302,12 @@ const METAR: ApiEndpoint = {
   id: "metar",
   methods: ["GET"],
   path: "/api/v1/metar",
-  summary: "The raw METAR and/or TAF for one station.",
+  summary: "The METAR and/or TAF for one station.",
   body: [
-    "A bare weather lookup for desktop clients and scripts that want the report text itself rather than the ATIS formatter's rendition of it. METAR sources, in order: NOAA, etops, VATSIM, then CMA's avimet.nmc.cn. The last serves decoded fields, so its METAR is assembled and carries only wind, cloud, temperature and QNH, with no `METAR` prefix. TAF sources: NOAA, then etops.",
+    "A bare weather lookup for desktop clients and scripts that want the report text itself. METAR sources, in order: NOAA, etops, VATSIM, then CMA's avimet.nmc.cn. The last serves decoded fields, so its METAR is assembled and carries only wind, cloud, temperature and QNH, with no `METAR` prefix. TAF sources: NOAA, then etops.",
     "Reports are cached per station for 10 minutes.",
     'A report is an empty string rather than an error status when no source has one — the caller can then tell "no report for this station" from "the service is down", which a non-2xx would blur.',
+    "`format` picks the shape. The default (`json`) is the object below. `pre` and `raw` are plain-text answers for two non-browser readers that poll: `pre` is the one report wrapped in `<pre>…</pre>` (what TopSky's weather window scrapes), `raw` is the bare report with any leading `METAR`/`SPECI` word removed so the line starts with the station (what can-fsd reads). Both fold the report onto one line, take one report per request — `type=all` is refused — and answer an empty `<pre></pre>` or empty body when there is no report.",
   ],
   auth: "none",
   cors: true,
@@ -347,17 +325,24 @@ const METAR: ApiEndpoint = {
       type: "string",
       required: false,
       description:
-        "`metar` (default), `taf` or `all`. The reply carries a `metar` and/or `taf` key to match.",
+        "`metar` (default), `taf` or `all`. The JSON reply carries a `metar` and/or `taf` key to match. `pre` and `raw` accept only `metar` or `taf`.",
+    },
+    {
+      name: "format",
+      type: "string",
+      required: false,
+      description:
+        "`json` (default), `pre` or `raw`. `pre` and `raw` count against their own bucket, `metarPoll`, instead of `metarLookup`.",
     },
   ],
   statuses: [
     {
       code: 200,
-      when: '`{"icao": "ZSPD", "metar": "METAR ZSPD ..."}` — or an empty string when no source has a report.',
+      when: '`{"icao": "ZSPD", "metar": "METAR ZSPD ..."}` — or an empty string when no source has a report. Plain text for `format=pre`/`raw`.',
     },
     {
       code: 400,
-      when: "`icao` is missing or not four letters, or `type` is not `metar`, `taf` or `all`.",
+      when: "`invalid_icao` (`icao` missing or not four letters), `invalid_type`, or `invalid_format`.",
     },
     { code: 429, when: "Rate limited." },
   ],
@@ -398,19 +383,26 @@ const TRACK: ApiEndpoint = {
       name: "limit",
       type: "integer",
       description:
-        "How many points to return, 1–2000 (default 600). The **oldest** points are dropped first, so a long flight keeps its recent shape.",
+        "How many points to return, 1–2000 (default 600; out-of-range values are clamped, a non-number is ignored). The **oldest** points are dropped first, so a long flight keeps its recent shape.",
     },
   ],
   statuses: [
     {
       code: 200,
-      when: "The track. `points` is empty when nothing was recorded.",
+      when: "The track. `points` is empty when nothing was recorded, and `callsign` is `null` when there is neither an open session nor a recorded point to name it from.",
     },
     {
       code: 400,
-      when: '`cid` is missing or not 1–10 digits — `{ "error": "invalidCid" }`.',
+      when: '`cid` is missing or not 1–10 digits — `{"error": "invalidCid", …}`.',
     },
-    { code: 429, when: 'Rate limited — `{ "error": "tooManyRequests" }`.' },
+    {
+      code: 429,
+      when: 'Rate limited — `{"error": "rate_limited", …}` with `Retry-After`. This answer carries no CORS header.',
+    },
+    {
+      code: 500,
+      when: '`{"error": "internal_error", …}` — the track could not be read.',
+    },
   ],
   example: {
     request: "curl '{origin}/api/v1/track?cid=1234&limit=200'",
@@ -419,19 +411,93 @@ const TRACK: ApiEndpoint = {
   "data": {
     "cid": "1234",
     "callsign": "CCA1501",
-    "since": "2026-08-01T09:14:22.000Z",
+    "since": "2026-08-01T09:14:22Z",
     "points": [
       [40.0741, 116.5908, 112, 1785574462000],
       [40.0812, 116.6033, 1450, 1785574492000]
     ]
   },
-  "timestamp": "2026-08-01T10:31:02.884Z"
+  "timestamp": "2026-08-01T10:31:02Z"
 }`,
   },
   notes: [
-    "A point is `[latitude, longitude, altitude in feet, unix milliseconds]`, oldest first.",
+    "A point is `[latitude, longitude, altitude in feet, unix milliseconds]`, oldest first. `since` is where the window starts, as RFC 3339 UTC.",
     "Positions at exactly 0/0 are excluded: a simulator that has not finished initialising reports them, and one such row drags the drawn track out to the Gulf of Guinea and back.",
-    "The 400 and 429 bodies carry a short `error` **key**, not a sentence — they are translated by the caller, not by us.",
+    "Error bodies carry a short `error` **key** to branch on; `message` is for a human and may change.",
+  ],
+};
+
+const ROUTE: ApiEndpoint = {
+  id: "route",
+  methods: ["GET"],
+  path: "/api/v1/route",
+  summary: "A filed route, resolved into the points a map draws.",
+  body: [
+    "Give it the departure, the arrival and the route string from a flight plan, and it answers the sequence of points — airports, fixes, airway and procedure legs — that the live map connects. The navigation data stays on the server: a caller gets this one flight's line, not a copy of the database.",
+    "Unrecognised tokens are skipped rather than failing the whole route: a filed route is free text typed by a member, and half a line beats none. The answer is the **whole** route; trimming it to the part not yet flown is the map's job, because that changes every time the aircraft moves.",
+    "The radar serves the same path on its own origin (`https://radar.ceruleanavi.net/api/v1/route`) as a server-side proxy to this one, so its page stays same-origin. The resolver itself is can-api's.",
+  ],
+  auth: "none",
+  cors: true,
+  limit: "routeResolve",
+  limitScope: "per IP",
+  query: [
+    {
+      name: "departure",
+      type: "ICAO",
+      required: true,
+      description: "3–4 letters or digits; trimmed and upper-cased.",
+    },
+    {
+      name: "arrival",
+      type: "ICAO",
+      required: true,
+      description: "3–4 letters or digits; trimmed and upper-cased.",
+    },
+    {
+      name: "route",
+      type: "string",
+      description:
+        "The filed route, e.g. `LAT91D LATUX W108 MATNU MATNU2`. Anything past 1,500 characters is cut off.",
+    },
+  ],
+  statuses: [
+    {
+      code: 200,
+      when: "`points`, in flying order. `Cache-Control: no-store`.",
+    },
+    {
+      code: 400,
+      when: '`{"error": "invalidAirports", …}` — `departure` or `arrival` is not 3–4 letters or digits.',
+    },
+    {
+      code: 429,
+      when: "Rate limited. This answer carries no CORS header.",
+    },
+    {
+      code: 503,
+      when: '`{"error": "navDataUnavailable", …}` — this instance has no navigation data loaded. Fall back to a direct line between the two airports.',
+    },
+  ],
+  example: {
+    request:
+      "curl '{origin}/api/v1/route?departure=ZSQD&arrival=ZSPD&route=LAT91D%20LATUX%20W108%20MATNU%20MATNU2'",
+    response: `{
+  "status": 200,
+  "data": {
+    "points": [
+      { "ident": "ZSQD", "lat": 36.36, "lon": 120.09, "kind": "airport" },
+      { "ident": "LATUX", "lat": 35.43, "lon": 120.66, "kind": "sid", "via": "LAT91D" },
+      { "ident": "MATNU", "lat": 32.27, "lon": 121.97, "kind": "airway", "via": "W108" },
+      { "ident": "ZSPD", "lat": 31.14, "lon": 121.81, "kind": "airport" }
+    ]
+  },
+  "timestamp": "2026-08-19T10:31:02Z"
+}`,
+  },
+  notes: [
+    "`kind` is one of `airport`, `fix`, `airway`, `sid`, `star` — what put the point on the line. `via` is the airway or procedure the point was reached along; it is absent for a point reached direct. Consecutive points sharing a `via` are one labelled leg.",
+    "Which AIRAC cycle the resolver is using is answered by `/api/v1/meta/navdata`.",
   ],
 };
 
@@ -484,25 +550,25 @@ const CLIENTS_LATEST: ApiEndpoint = {
     request:
       "curl '{origin}/api/v1/clients/latest?client=atis-for-can&version=2.0.0'",
     response: `{
-  "version": "v2.0.3",
+  "version": "2.0.3",
   "publishedAt": "2026-07-31T08:35:28Z",
-  "notes": "https://github.com/JianyueLab-Org/airwaysn_audio/releases/tag/v2.0.3",
+  "notes": "https://github.com/JianyueLab-Org/can-audio/releases/tag/v2.0.3",
   "clients": {
-    "audio-for-can": { "name": "audio-for-can", "version": "v2.0.3", "size": 64583682, "download": "…", "origin": "…" },
+    "audio-for-can": { "name": "audio-for-can", "version": "2.0.3", "size": 64583682, "download": "…", "origin": "…" },
     "atis-for-can": {
       "name": "atis-for-can",
-      "version": "v2.0.3",
+      "version": "2.0.3",
       "size": 58094371,
-      "download": "{origin}/api/v1/clients/download/atis-for-can?v=v2.0.3",
-      "origin": "https://github.com/JianyueLab-Org/airwaysn_audio/releases/download/v2.0.3/atis-for-can-v2.0.3.zip"
+      "download": "{origin}/api/v1/clients/download/atis-for-can?v=2.0.3",
+      "origin": "https://github.com/JianyueLab-Org/can-audio/releases/download/v2.0.3/…"
     }
   },
   "client": "atis-for-can",
-  "update": { "available": true, "current": "2.0.0", "latest": "v2.0.3" }
+  "update": { "available": true, "current": "2.0.0", "latest": "2.0.3" }
 }`,
   },
   notes: [
-    "`download` points at our own relay; `origin` is the GitHub asset, for anyone who can reach it. Prefer `download`.",
+    "`download` points at our own relay; `origin` is the GitHub asset, for anyone who can reach it. Prefer `download`. Versions are reported without the tag's leading `v`, and `download` pins one with `?v=`.",
     "**This endpoint has no `{status, data, timestamp}` envelope.** Most of can-api wraps its answer; this one writes the document at the top level, and the field names are `publishedAt` (camelCase) and `notes`. Read the keys above literally.",
     "**`client` is a string and `update` is an object.** They replaced an earlier `client` object plus an `update_available` boolean, and older shipped desktop clients still read the old shape — so they are the ones that are wrong, not this page. There is no `reason` field anywhere in the answer.",
     "**`msfs-for-can` and `xpc-for-can` are retired; their update check is answered with can-pilot.** `update.latest` is can-pilot's version, `clients[<retired name>]` holds `name`, `version`, `size` and a `download` pointing at can-pilot's relay link, and `notes` is can-pilot's release page — so an old pilot client is told to move on. Only a **stable** can-pilot is offered: while its successor is a prerelease, `update.available` is `false`, `clients` is empty and there is no `notes`. Neither name can be downloaded any more.",
@@ -519,7 +585,7 @@ const CLIENTS_DOWNLOAD: ApiEndpoint = {
   body: [
     "`github.com` and `objects.githubusercontent.com` are unreliable from the mainland — a 60 MB release asset routinely crawls or stops halfway — so the bytes are relayed through this origin, which members can already reach. This is the link `/api/v1/clients/latest` hands out and the one the download centre uses.",
     "It is **not an open proxy**: the upstream URL only ever comes out of the resolved release for a fixed set of repositories, keyed by a whitelist of four names, and nothing the caller sends is used to build it.",
-    "Apps (`can-pilot`, `can-downloader`) are verified against the SHA-256 GitHub recorded for the asset before they are served; a mismatch is a 502 `checksum_mismatch` rather than bytes nobody published.",
+    "When the release records a SHA-256 for the asset — GitHub's digest for an app (`can-pilot`, `can-downloader`), or a published `SHA256SUMS` for the can-audio bundle — a `GET` downloads and hashes the whole file before sending a byte, and a mismatch is a 502 `checksum_mismatch` rather than bytes nobody published.",
   ],
   auth: "none",
   cors: true,
@@ -539,7 +605,7 @@ const CLIENTS_DOWNLOAD: ApiEndpoint = {
       name: "v",
       type: "string",
       description:
-        "Pin the release, e.g. `v2.0.1`. A pinned answer is `Cache-Control: public, max-age=604800, immutable`; unpinned it is `max-age=300`. A stale pin is redirected to the current version rather than silently serving different bytes than the URL promised.",
+        "Pin the release, e.g. `2.0.1` — the version as `/api/v1/clients/latest` reports it, with no leading `v`. A pinned answer is `Cache-Control: public, max-age=604800, immutable`; unpinned it is `max-age=300`. A pin that is not the current version is redirected to the current one rather than silently serving different bytes than the URL promised.",
     },
   ],
   headers: [
@@ -547,49 +613,53 @@ const CLIENTS_DOWNLOAD: ApiEndpoint = {
       name: "Range",
       type: "string",
       description:
-        "Forwarded upstream, so a stalled download can be resumed with `bytes=N-`. `If-Range` is forwarded too.",
+        "Resume a stalled download with `bytes=N-`. On a checksum-verified `GET` the range is served from the verified file; otherwise `Range` and `If-Range` are forwarded to GitHub.",
     },
   ],
   statuses: [
-    { code: 200, when: "The asset, streamed as `application/zip`." },
+    {
+      code: 200,
+      when: "The asset, as an attachment — `application/zip` (an app whose asset is not a zip is `application/octet-stream`).",
+    },
     { code: 206, when: "A range of it, when `Range` was sent." },
     {
       code: 302,
-      when: "`v` pinned a release that is no longer current; `Location` carries the current one.",
+      when: "`v` pinned a release that is no longer current; `Location` carries the current one. `Cache-Control: no-store`.",
     },
     {
       code: 404,
-      when: "Unknown client name (including the retired `msfs-for-can` / `xpc-for-can`), or that package is not in the latest release.",
+      when: "`unknown_client` — not one of the four names (including the retired `msfs-for-can` / `xpc-for-can`); or `no_asset` — that bundle package is not in the latest release.",
     },
+    { code: 405, when: "`method_not_allowed` — anything but `GET` or `HEAD`." },
     {
       code: 416,
-      when: "Mirrored from upstream: the `Range` cannot be served.",
+      when: "`bad_range`, mirrored from GitHub: the forwarded `Range` cannot be served.",
     },
     {
       code: 429,
-      when: "Rate limited. This is the tightest bucket here — each miss pulls the whole asset across our bandwidth.",
+      when: "Rate limited. Each miss pulls the whole asset across our bandwidth, and every request of a resumed download counts.",
     },
     {
       code: 501,
-      when: "Mirrored from upstream: GitHub answers this to a suffix range like `bytes=-22`.",
+      when: "`bad_range`, mirrored from GitHub: it answers this to a forwarded suffix range like `bytes=-22`.",
     },
     {
       code: 502,
-      when: "GitHub could not be reached, or answered something else; or `checksum_mismatch` — an app's bytes did not match GitHub's recorded SHA-256.",
+      when: "`upstream_error` — GitHub could not be reached or answered something else; `upstream_too_large`; or `checksum_mismatch` — the bytes did not match the recorded SHA-256.",
     },
     {
       code: 503,
-      when: "The release feed could not be resolved, so there is no asset to stream.",
+      when: "`unavailable` — the release feed could not be resolved, so there is no asset to stream.",
     },
   ],
   example: {
     request:
-      "curl -L -O -J '{origin}/api/v1/clients/download/atis-for-can?v=v2.0.1'\ncurl -I '{origin}/api/v1/clients/download/atis-for-can'",
+      "curl -L -O -J '{origin}/api/v1/clients/download/atis-for-can?v=2.0.1'\ncurl -I '{origin}/api/v1/clients/download/atis-for-can'",
   },
   notes: [
-    "`HEAD` exists so a client can check size and version without pulling 60 MB. `X-Client-Version` carries the release on every answer.",
+    "`HEAD` exists so a client can check size and version without pulling 60 MB. `X-Client-Version` carries the release on a successful answer (200, 206, or `HEAD`); error answers and the 302 do not carry it.",
     '416 and 501 are mirrored rather than flattened to 502 on purpose: they are about the request, and calling them "GitHub is down" sends whoever is debugging to the wrong end.',
-    "The body is streamed, never buffered, so a slow download costs no memory here either.",
+    "An unverified download is streamed straight through. A verified one is staged and hashed first, so its first byte arrives only after the whole file has crossed from GitHub.",
   ],
 };
 
@@ -599,14 +669,14 @@ const LOGS: ApiEndpoint = {
   path: "/api/v1/logs",
   summary: "Send a client log to the maintainer.",
   body: [
-    'Diagnosing "it won\'t connect" means reading `audio-for-can.log`, `atis-for-can.log` or `xpc.log`, which otherwise means asking the member to find the file and get it over chat. This is that step automated: the log lands in an inbox with who sent it, which client, which version and what they were doing.',
+    "Diagnosing \"it won't connect\" means reading the client's log file, which otherwise means asking the member to find it and get it over chat. This is that step automated: the log lands in an inbox, attached, with who sent it, which client and which version.",
     "**Nothing is stored.** No table, no file on disk — the mail is the record, which keeps a log of somebody's session out of the database.",
   ],
   auth: "credentials",
   cors: false,
   limit: "logUpload",
   limitScope:
-    "per member (plus a wider per-IP bucket, checked before the body is read)",
+    "per member, after sign-in (plus `logUploadPerIP`, checked before the body is read, and `logUploadAuth`, failed sign-ins per CAN ID)",
   fields: [
     { name: "cid", type: "string", required: true, description: "CAN ID." },
     {
@@ -618,78 +688,54 @@ const LOGS: ApiEndpoint = {
     },
     {
       name: "log",
-      type: "file",
-      description: "The log file. `multipart/form-data` only.",
+      type: "string",
+      required: true,
+      description: "The log text, inline.",
     },
     {
-      name: "text",
+      name: "client",
       type: "string",
       description:
-        "The log inline, as a string. `application/json` only. One of `log`/`text` is required.",
-    },
-    {
-      name: "component",
-      type: "string",
-      description:
-        "Which client: `atis`, `controller`, `xpc`, `msfs`… Used in the subject line.",
+        "Which client, e.g. `atis-for-can`. Used in the subject line.",
     },
     { name: "version", type: "string", description: "Client version string." },
-    {
-      name: "note",
-      type: "string",
-      description:
-        "What the member was doing when it broke. The most useful field on the form.",
-    },
   ],
   statuses: [
     {
       code: 200,
-      when: "Sent. The body reports `bytes` received and whether it was `truncated`.",
+      when: 'Accepted — `{"status": 200, "data": {"received": true}, "timestamp": …}`.',
     },
     {
       code: 400,
-      when: "Missing `cid`/`password`, an empty log, or a body that could not be read.",
+      when: "`invalidBody` — not JSON, or over 4 MiB.",
     },
     {
       code: 401,
-      when: "CAN ID or password is wrong. One message for both cases, deliberately.",
-    },
-    {
-      code: 413,
-      when: "Over 8 MB. The stream is counted, so this does not depend on `Content-Length`.",
+      when: "`invalidCredentials` — CAN ID or password is wrong. One message for both cases, deliberately.",
     },
     {
       code: 429,
-      when: "Rate limited — per IP, per member, and per member for failed sign-ins.",
+      when: "Rate limited — per IP, per member, or after repeated failed sign-ins for that CAN ID.",
     },
-    { code: 500, when: "The credentials could not be checked." },
     {
-      code: 502,
-      when: "The mail could not be sent. Nothing was kept, so retry.",
+      code: 503,
+      when: "`unavailable` — log upload is not configured on this deployment.",
     },
   ],
   example: {
     request: `curl -X POST '{origin}/api/v1/logs' \\
-  -F cid=1234 -F password=... \\
-  -F component=atis -F version=2.0.1 \\
-  -F 'note=Connects, then no audio on transmit' \\
-  -F log=@atis-for-can.log
-
-curl -X POST '{origin}/api/v1/logs' \\
   -H 'Content-Type: application/json' \\
-  -d '{"cid":"1234","password":"...","component":"atis","text":"<log>"}'`,
+  -d '{"cid":"1234","password":"...","client":"atis-for-can","version":"2.0.1","log":"<log>"}'`,
     response: `{
   "status": 200,
-  "timestamp": "2026-08-01T10:31:02.884Z",
-  "success": true,
-  "bytes": 428113,
-  "truncated": false,
-  "message": "Log received. Thank you."
+  "data": { "received": true },
+  "timestamp": "2026-08-01T10:31:02Z"
 }`,
   },
   notes: [
-    "Two body shapes on purpose: `multipart/form-data` for a browser or `curl -F`, and `application/json` with the log inline for the Python clients, which use nothing but stdlib `urllib` — hand-rolling multipart there is twenty lines of boundary bookkeeping.",
-    "Past 1 MB the **tail** is kept, because the failure is the last thing that happened and the first 200 KB is startup noise.",
+    "`application/json` only. The Python clients use nothing but stdlib `urllib`, where hand-rolling multipart is twenty lines of boundary bookkeeping.",
+    "Past 1 MiB the **tail** is kept, because the failure is the last thing that happened and the start of the file is startup noise.",
+    "The mail is sent in the background. A 200 means the log was accepted, not that it has reached the inbox.",
     "It authenticates not because a log is secret but because an unauthenticated endpoint that mails a fixed human address is a mail bomb with a rate limit in front of it. `rating` is not checked — an unrated member with a broken client is exactly who needs to send one.",
   ],
 };
@@ -709,31 +755,41 @@ const OIDC_DISCOVERY: ApiEndpoint = {
   path: "/.well-known/openid-configuration",
   summary: "Everything a client library needs to configure itself.",
   body: [
-    "Point any OAuth/OIDC library at this URL and it will find the authorization, token, userinfo, revocation and introspection endpoints, the signing algorithm and the scopes this network supports. Nothing below has to be typed in by hand.",
+    "Point any OAuth/OIDC library at this URL and it will find the authorization, token, userinfo, revocation and introspection endpoints, the key set, the signing algorithm and the scopes this network supports. Nothing below has to be typed in by hand.",
     "The `issuer` here is the exact string that appears as `iss` in an id_token — both come from the same place in the code, so they cannot drift apart.",
+    "The same document is served at `/.well-known/oauth-authorization-server` (RFC 8414) and at the older `/api/oauth/openid-configuration`.",
   ],
   auth: "none",
   cors: true,
   limitScope: "—",
   statuses: [
-    { code: 200, when: "Always. The document is cached for an hour." },
+    {
+      code: 200,
+      when: "Always. `Cache-Control: public, max-age=3600`.",
+    },
   ],
   example: { request: `curl '{origin}/.well-known/openid-configuration'` },
+  notes: [
+    "`grant_types_supported` lists `client_credentials` too. That grant exists only for service clients the network registers by hand, carrying service-only scopes; an application registered on this developer centre is refused it (`unauthorized_client`).",
+  ],
 };
 
 const OIDC_JWKS: ApiEndpoint = {
   id: "oidc-jwks",
   methods: ["GET"],
-  path: "/.well-known/jwks.json",
+  path: "/api/oauth/jwks",
   summary: "Public keys for verifying an id_token.",
   body: [
     "RS256 only. A retired key stays in this document until every id_token signed with it has expired, so verify by `kid` rather than by taking the first key.",
     "You only need this to verify an **id_token**. Access tokens are opaque strings, not JWTs — see the note on `/api/oauth/introspect`.",
+    "This is the `jwks_uri` the discovery document advertises. There is no `/.well-known/jwks.json`.",
   ],
   auth: "none",
   cors: true,
   limitScope: "—",
-  statuses: [{ code: 200, when: "Always. Cached for 10 minutes." }],
+  statuses: [
+    { code: 200, when: "Always. `Cache-Control: public, max-age=3600`." },
+  ],
 };
 
 const OAUTH_AUTHORIZE: ApiEndpoint = {
@@ -746,12 +802,13 @@ const OAUTH_AUTHORIZE: ApiEndpoint = {
   body: [
     "A page, not an API call: open it in the member's browser (or the system browser, for a native app — never an embedded webview, which hides the address bar the member needs in order to see who they are giving a password to).",
     "**PKCE is required for every client, including confidential ones**, and only `S256` is accepted. That is OAuth 2.1, and it is the only thing still protecting the exchange if the authorization code is intercepted on the way back to you.",
-    "Anonymous visitors are sent to the sign-in page and returned here afterwards with every parameter intact. First-party applications skip the consent screen; third-party ones show it once and remember the answer until the member revokes it.",
+    "Anonymous visitors are sent to the sign-in page and returned here afterwards with every parameter intact. Trusted first-party applications skip the consent screen; others show it once and skip it afterwards while the member's earlier approval already covers every scope requested, until the member revokes it.",
+    "The page is rendered by the main site, but every decision on it — which client, which callback, which scopes — is made by can-api, which is also where the rate limit is counted.",
   ],
   auth: "browser",
   cors: false,
-  limit: "oauthAuthorize",
-  limitScope: "per IP",
+  limit: "oAuthAuthorize",
+  limitScope: "per IP while signed out, per member once signed in",
   query: [
     {
       name: "response_type",
@@ -770,21 +827,21 @@ const OAUTH_AUTHORIZE: ApiEndpoint = {
       type: "URL",
       required: true,
       description:
-        "Must match a registered URI exactly. The one exception is a loopback address (`http://127.0.0.1/…`), where the port may differ — RFC 8252, for native apps that bind an ephemeral port.",
+        "Must match a registered URI exactly. The one exception is a loopback address (`http://127.0.0.1/…` or `http://[::1]/…`), where the port may differ — RFC 8252, for native apps that bind an ephemeral port. Path and query must still match.",
     },
     {
       name: "scope",
       type: "string",
       required: true,
       description:
-        "Space-separated. See the scope list on the consent screen; unknown scopes are dropped.",
+        "Space-separated. Unrecognised scopes are dropped; if none is left the request fails with `invalid_scope`, and so does any scope the application was not registered for.",
     },
     {
       name: "code_challenge",
       type: "string",
       required: true,
       description:
-        "Base64url SHA-256 of your `code_verifier`, 43–128 characters.",
+        "Base64url (unpadded) SHA-256 of your `code_verifier`. The verifier itself must be 43–128 unreserved characters, which is checked at the token exchange.",
     },
     {
       name: "code_challenge_method",
@@ -804,25 +861,19 @@ const OAUTH_AUTHORIZE: ApiEndpoint = {
       description:
         "Returned in the id_token. Bind it to the member's browser session and check it.",
     },
-    {
-      name: "prompt",
-      type: "string",
-      description:
-        "`none` to fail with `login_required`/`consent_required` instead of showing anything; `consent` to force the screen even if the member has approved before.",
-    },
   ],
   statuses: [
     {
       code: 302,
-      when: "Back to your `redirect_uri` with `code` and `state`, or with `error` and `error_description`.",
+      when: "Back to your `redirect_uri` with `code` and `state` when no screen is needed, or with `error`, `error_description` and `state` for a request that failed after the callback was verified.",
     },
     {
       code: 302,
-      when: "To `/signin` when nobody is signed in and `prompt` is not `none`.",
+      when: "To `/signin?callbackUrl=…` when nobody is signed in.",
     },
     {
       code: 200,
-      when: "The consent screen — or an error page, when `client_id` or `redirect_uri` could not be verified. Those two never redirect: with an unverified callback there is nowhere safe to send the error.",
+      when: "The consent screen; after the member answers it, a page that forwards the browser to your `redirect_uri` with `code` (or `error=access_denied`) and `state`. Or an error page, when `client_id` or `redirect_uri` could not be verified — those two never redirect: with an unverified callback there is nowhere safe to send the error.",
     },
   ],
   example: {
@@ -837,6 +888,7 @@ const OAUTH_AUTHORIZE: ApiEndpoint = {
   },
   notes: [
     "An unknown `client_id` or an unregistered `redirect_uri` renders an error page rather than redirecting. This is deliberate: redirecting an error to an address we could not verify is how an attacker gets the `state` of a request they did not make.",
+    "`prompt`, `max_age`, `login_hint` and other optional OIDC request parameters are not supported and have no effect.",
   ],
 };
 
@@ -847,20 +899,22 @@ const OAUTH_TOKEN: ApiEndpoint = {
   summary:
     "Exchange an authorization code — or a refresh token — for an access token.",
   body: [
-    "`application/x-www-form-urlencoded` only. Confidential clients authenticate with HTTP Basic (`client_secret_basic`) or a `client_secret` field; public clients send only `client_id` and rely on PKCE.",
+    "`application/x-www-form-urlencoded` only. Confidential clients authenticate with HTTP Basic (`client_secret_basic`) or a `client_secret` field (`client_secret_post`); public clients send only `client_id` and rely on PKCE.",
     "**Refresh tokens rotate.** Every refresh returns a new one and invalidates the one you sent, so store what comes back. Presenting an already-rotated refresh token is treated as a leak and revokes the whole grant — both the thief and the real client are logged out, which is the only safe reading when the two are indistinguishable.",
-    "A refresh token is only issued when the member granted `offline_access`.",
+    "A refresh token is only issued when the member granted `offline_access`, and an id_token only when the grant holds `openid`.",
   ],
   auth: "oauthClient",
   cors: true,
-  limit: "oauthToken",
-  limitScope: "per client and per IP; failures counted separately, per client",
+  limit: "oAuthToken",
+  limitScope:
+    "per IP, then per client and IP once the client is known; failed attempts count in `oAuthTokenFail`, per client and IP (per IP for an unknown client)",
   fields: [
     {
       name: "grant_type",
       type: "string",
       required: true,
-      description: "`authorization_code` or `refresh_token`.",
+      description:
+        "`authorization_code` or `refresh_token`. (`client_credentials` is reserved for hand-registered service clients — see the discovery note.)",
     },
     {
       name: "code",
@@ -909,13 +963,14 @@ const OAUTH_TOKEN: ApiEndpoint = {
     },
     {
       code: 400,
-      when: "`invalid_request`, `invalid_grant` (bad/expired/replayed code, PKCE mismatch), `unsupported_grant_type`.",
+      when: "`invalid_request`, `invalid_grant` (bad/expired/replayed code or refresh token, a code or token issued to another client, `redirect_uri` mismatch, PKCE mismatch), `invalid_scope` (a refresh asked for more than the grant holds), `unsupported_grant_type`.",
     },
     { code: 401, when: "`invalid_client` — client authentication failed." },
     {
       code: 429,
       when: "Rate limited. Failures are counted in their own, much tighter bucket.",
     },
+    { code: 500, when: "`server_error` — a token could not be issued." },
   ],
   example: {
     request: `curl -X POST '{origin}/api/oauth/token' \\
@@ -934,6 +989,7 @@ const OAUTH_TOKEN: ApiEndpoint = {
   },
   notes: [
     "An authorization code presented twice revokes every token issued from it. Retrying a failed exchange with the same code will not work — start the authorization again.",
+    "Every answer, errors included, carries `Cache-Control: no-store`. Errors are `{error, error_description}` per RFC 6749.",
   ],
 };
 
@@ -943,13 +999,13 @@ const OAUTH_USERINFO: ApiEndpoint = {
   path: "/api/oauth/userinfo",
   summary: "Who the access token belongs to, right now.",
   body: [
-    "What comes back is decided entirely by the scopes on the token, not by anything in the request: a token holding only `openid` gets a `sub` and nothing else.",
-    "Standard OIDC claims keep their standard names; everything specific to this network is prefixed `asn_` — `rating` means something else on every other network, and a reader should be able to see whose definition applies.",
+    "What comes back is decided entirely by the scopes on the token, not by anything in the request: a token holding only `openid` gets a `sub` (the CAN ID) and nothing else. `profile` adds `name`, `rating` and `developer`; `email` adds `email` and `email_verified`.",
+    "`rating` is this network's controller rating as a bare integer (5 is C1), not any other network's. `developer` says whether the member may use this developer centre.",
     "Prefer this over the id_token when you want current data. The id_token is a snapshot of the moment the member signed in; this is now.",
   ],
   auth: "oauth",
   cors: true,
-  limit: "oauthUserinfo",
+  limit: "oAuthUserinfo",
   limitScope: "per IP",
   headers: [
     {
@@ -960,28 +1016,31 @@ const OAUTH_USERINFO: ApiEndpoint = {
     },
   ],
   statuses: [
-    { code: 200, when: "The claim set." },
+    { code: 200, when: "The claim set. `Cache-Control: no-store`." },
     {
       code: 401,
-      when: "Missing, expired, revoked or unknown token. `WWW-Authenticate` says which.",
+      when: '`invalid_request` with `WWW-Authenticate: Bearer realm="can-api"` when no Bearer token was sent; `invalid_grant` with `WWW-Authenticate: Bearer error="invalid_token"` when it is expired, revoked or unknown.',
     },
     {
       code: 403,
       when: "`insufficient_scope` — the token does not hold `openid`.",
     },
+    { code: 429, when: "Rate limited." },
   ],
   example: {
     request: `curl '{origin}/api/oauth/userinfo' -H 'Authorization: Bearer can_at_...'`,
     response: `{
   "sub": "1234",
   "name": "Jane Doe",
-  "asn_id": "1234",
-  "asn_rating": 5,
-  "asn_rating_short": "C1",
+  "rating": 5,
+  "developer": false,
   "email": "jane@example.com",
   "email_verified": true
 }`,
   },
+  notes: [
+    "`divisions` is a scope and appears in `claims_supported`, but userinfo carries no division claim. Read memberships from `/api/v1/pilot/divisions` with that scope.",
+  ],
 };
 
 const OAUTH_INTROSPECT: ApiEndpoint = {
@@ -990,13 +1049,14 @@ const OAUTH_INTROSPECT: ApiEndpoint = {
   path: "/api/oauth/introspect",
   summary: "Ask whether a token is still valid (RFC 7662).",
   body: [
-    "Access tokens are **opaque strings, not JWTs**. That is a deliberate trade: you cannot verify one offline, but a member who revokes your app on /account/apps stops you the same second rather than an hour later. This endpoint is how a resource server of your own checks one.",
+    "Access tokens are **opaque strings, not JWTs**. That is a deliberate trade: you cannot verify one offline, but a member who revokes your app on https://ceruleanavi.net/account/apps stops you the same second rather than an hour later. This endpoint is how a resource server of your own checks one.",
     'A client may only introspect its own tokens. Anything else answers `{"active": false}` — otherwise every registered app could use this to confirm that some string it found is a live token.',
+    "**Confidential clients only.** A public client is refused with 401 even with a correct `client_id`: a client id is public by construction, and an introspection endpoint open to it would be an oracle for stolen tokens.",
   ],
   auth: "oauthClient",
   cors: true,
-  limit: "oauthUserinfo",
-  limitScope: "per IP",
+  limit: "oAuthUserinfo",
+  limitScope: "per IP (its own counter, same rule as userinfo)",
   fields: [
     {
       name: "token",
@@ -1008,15 +1068,20 @@ const OAUTH_INTROSPECT: ApiEndpoint = {
       name: "token_type_hint",
       type: "string",
       description:
-        "`access_token` or `refresh_token`. A hint only — both are tried.",
+        "Ignored. The type is read from the token's prefix: `can_rt_` is a refresh token, anything else is looked up as an access token.",
     },
   ],
   statuses: [
     {
       code: 200,
-      when: '`{"active": true, …}` or `{"active": false}`. An invalid token is not an error.',
+      when: '`{"active": true, "scope", "client_id", "username", "sub", "token_type": "Bearer", "exp", "iss"}` or `{"active": false}`. An invalid token is not an error.',
     },
-    { code: 401, when: "`invalid_client`." },
+    { code: 400, when: "`invalid_request` — the form body could not be read." },
+    {
+      code: 401,
+      when: "`invalid_client` — authentication failed, or the client is public.",
+    },
+    { code: 429, when: "Rate limited." },
   ],
 };
 
@@ -1026,13 +1091,13 @@ const OAUTH_REVOKE: ApiEndpoint = {
   path: "/api/oauth/revoke",
   summary: "Sign the member out of your app (RFC 7009).",
   body: [
-    "Pass a refresh token and the whole grant goes — the paired access tokens included. Leaving a still-valid access token behind is not what anyone means by signing out.",
+    "Revokes exactly the token you send, and only if it was issued to your client. Revoking a refresh token does **not** revoke access tokens already issued from it — to sign a member out, revoke both, or the access token keeps working until it expires (one hour).",
     "Always answers 200, including for a token that is unknown, expired or belongs to someone else. A revocation endpoint that 404s is a way to ask whether a string is a live token.",
+    "Public clients authenticate with `client_id` alone here, as at the token endpoint.",
   ],
   auth: "oauthClient",
   cors: true,
-  limit: "oauthUserinfo",
-  limitScope: "per IP",
+  limitScope: "—",
   fields: [
     {
       name: "token",
@@ -1043,11 +1108,13 @@ const OAUTH_REVOKE: ApiEndpoint = {
     {
       name: "token_type_hint",
       type: "string",
-      description: "Accepted and ignored — the type is looked up.",
+      description:
+        "Accepted and ignored — the token is looked up by its value.",
     },
   ],
   statuses: [
-    { code: 200, when: "Done, or there was nothing to do." },
+    { code: 200, when: "Done, or there was nothing to do. No body." },
+    { code: 400, when: "`invalid_request` — the form body could not be read." },
     { code: 401, when: "`invalid_client`." },
   ],
 };
@@ -1130,7 +1197,7 @@ const DATAFEED: ApiEndpoint = {
     "`general.socket` and `general.user` always report the same number. They were separate counters in the Python server; a connection is only registered once here. The keys stay for compatibility.",
     "`update` and every `logon_time` are `YYYY-MM-DD HH:MM:SS` in **UTC with no zone marker**. Parse them as UTC; the server converts explicitly rather than relying on its own `TZ`.",
     "`tracked_by` is the callsign of the controller holding the radar track, and `track` is the full server-owned state (`owner`, `handoff_peer`, `status` of `owned` / `pending_handoff` / `handoff_accepted`). A client must read these rather than decide locally — two workstations disagreeing about who holds an aircraft is the bug this prevents.",
-    "There is no rate limit here, because can-fsd runs no limiter. That is not an invitation: the document is rebuilt on every request. Poll no faster than once a second, and prefer `/v1/events` below, which exists precisely so you do not have to poll at all.",
+    "There is no rate limit on can-fsd's HTTP routes. That is not an invitation: the document is rebuilt on every request. Poll no faster than once a second, and prefer `/v1/events` below, which exists precisely so you do not have to poll at all.",
   ],
 };
 
@@ -1156,7 +1223,7 @@ const DATAFEED_EVENTS: ApiEndpoint = {
     },
     {
       code: 500,
-      when: "The response writer cannot stream (a proxy that buffers). Rare, and not something a client can retry into working.",
+      when: '`{"error": "streaming unsupported"}` — the server\'s response writer cannot flush. Not something a client can retry into working.',
     },
   ],
   example: {
@@ -1165,17 +1232,17 @@ const DATAFEED_EVENTS: ApiEndpoint = {
 data: {"general":{…},"pilots":[…],"controllers":[…],"atis":[]}
 
 event: update
-data: {"update":1787136663,"pilots":{"changed":[{"cid":"1234","callsign":"CCA1501",…}]}}
+data: {"update":1787136663,"pilots":{"changed":[{"cid":"1234","callsign":"CCA1501",…}]},"controllers":{},"atis":{}}
 
 event: update
-data: {"update":1787136665,"pilots":{"removed":["CCA1501"]}}
+data: {"update":1787136665,"pilots":{"removed":["CCA1501"]},"controllers":{},"atis":{}}
 
 : keepalive`,
   },
   notes: [
-    "**A subscriber that falls behind is dropped, not buffered.** The per-connection queue is 16 events deep and a subscriber that has not drained it within a tick is disconnected, so one slow reader cannot stall the broker for everyone. Reconnect and take the fresh `snapshot` as the new truth; do not try to stitch it onto what you had.",
+    "**A subscriber that falls behind is dropped, not buffered.** The per-connection queue is 16 events deep; when a new update finds it full, the subscriber is disconnected, so one slow reader cannot stall the broker for everyone. Reconnect and take the fresh `snapshot` as the new truth; do not try to stitch it onto what you had.",
     "A comment line `: keepalive` arrives every 15 seconds. It is not an event — it exists so idle connections survive proxies that time out silent streams.",
-    "Empty groups are omitted from an `update` rather than sent as empty arrays, so a quiet network produces a small event. Absent means *nothing changed in that collection*, which is not the same as *that collection is now empty*.",
+    "Every `update` carries all three groups, `pilots`, `controllers` and `atis`; a group where nothing changed is an empty object `{}`, and within a group `changed` and `removed` are omitted when empty. Neither means *that collection is now empty*.",
     "The response carries `X-Accel-Buffering: no` so a reverse proxy does not hold the stream. If you deploy your own proxy in front of a consumer, do the same.",
     "The broker is idle while nobody is watching and rebuilds the feed when the first subscriber connects, so the first `snapshot` is always current rather than whatever the last tick left behind.",
   ],
@@ -1188,7 +1255,7 @@ const DATAFEED_STATUS: ApiEndpoint = {
   host: "fsd",
   summary: "How many clients are connected, and what the network calls itself.",
   body: [
-    "Two fields and nothing else: `version` (the network name, the same string `general.version` carries) and `online` (the number of connected clients, pilots and controllers together). For a status badge, a bot, or a health page that wants a number without pulling the whole feed.",
+    "Two fields and nothing else: `version` (the network name, the same string `general.version` carries) and `online` (the number of connected clients — pilots, controllers and ATIS stations together, the same number as `general.socket`). For a status badge, a bot, or a health page that wants a number without pulling the whole feed.",
     "Note this is **not** wrapped in the `{status, data, timestamp}` envelope — like everything else can-fsd serves, the object is the payload.",
   ],
   auth: "none",
@@ -1211,7 +1278,7 @@ const DATAFEED_STATUS: ApiEndpoint = {
  * The routes an application can reach **on a member's behalf**, with an
  * access token carrying the named scope. Everything else under
  * `/api/v1/pilot/*` is cookie-only and is listed at the foot of this page:
- * the default is no token access, and each of these three is an explicit
+ * the default is no token access, and each route here is an explicit
  * exception made because the data is the member's own and an EFB or a logbook
  * genuinely needs it.
  *
@@ -1311,7 +1378,7 @@ const PILOT_ATC: ApiEndpoint = {
     "sessions": [
       {
         "id": 1204, "callsign": "ZBAA_APP",
-        "rating": { "id": 4, "long": "Controller 1", "short": "C1", "zh": "一级管制员" },
+        "rating": { "id": 5, "long": "Enroute Controller", "short": "C1", "zh": "航路管制员" },
         "facility": 5, "type": 2,
         "logonTime": "2026-08-19T08:02:11Z", "logoffTime": "2026-08-19T10:14:03Z",
         "durationMs": 7912000, "formattedDuration": "2:11:52",
@@ -1363,17 +1430,18 @@ const PILOT_DIVISIONS: ApiEndpoint = {
     response: `{
   "status": 200,
   "data": {
-    "rating": 4,
+    "rating": 5,
     "home": {
       "id": 91, "region": 1,
       "regionName": { "short": "PRC", "shortZh": "PRC", "zh": "中国大陆" },
       "del": true, "gnd": true, "twr": true, "app": false, "ctr": false,
-      "instructor": false, "director": false, "status": true, "home": true
+      "instructor": false, "director": false, "status": true, "home": true,
+      "createdAt": "2026-03-02T11:20:00Z", "updatedAt": "2026-06-14T08:05:41Z"
     },
     "visiting": [],
     "canSetHome": false,
     "canAddVisiting": true,
-    "minVisitingRating": 3
+    "minVisitingRating": 1
   },
   "timestamp": "2026-08-19T10:31:02Z"
 }`,
@@ -1386,12 +1454,382 @@ const PILOT_DIVISIONS: ApiEndpoint = {
   ],
 };
 
+const AUTH_SESSION: ApiEndpoint = {
+  id: "auth-session",
+  methods: ["GET"],
+  path: "/api/v1/auth/session",
+  summary: "The token's member, in the shape the network's own sites read.",
+  body: [
+    "With a Bearer token this answers who the token belongs to and which scopes it carries. It is the same member object the network's websites get from their session cookie, so a resource server that already reads it for the sites can read it for a token too. For a third-party sign-in, `/api/oauth/userinfo` is the standard answer and usually the better one.",
+    "`email` and `emailVerified` are present only when the token also carries `email` — the same gate userinfo applies.",
+  ],
+  auth: "oauth",
+  scopes: ["profile"],
+  cors: false,
+  limitScope: "—",
+  statuses: [
+    { code: 200, when: "`user` and `scope`." },
+    {
+      code: 401,
+      when: "`unauthorized` — the token is invalid or expired, or the member's account is gone or closed.",
+    },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `profile`.",
+    },
+  ],
+  example: {
+    request:
+      "curl -H 'Authorization: Bearer can_at_…' '{origin}/api/v1/auth/session'",
+    response: `{
+  "user": {
+    "username": "1234",
+    "name": "Jane Doe",
+    "rating": 5,
+    "aipAccess": 0,
+    "developer": false,
+    "email": "jane@example.com",
+    "emailVerified": true
+  },
+  "scope": "openid profile email"
+}`,
+  },
+  notes: [
+    "**No `{status, data, timestamp}` envelope** — `user` and `scope` are top-level keys.",
+    "`username` is the CAN ID, as a string. `rating` is the bare integer. `aipAccess` is the member's access level to the aeronautical data console and `developer` whether they may use this developer centre — facts the network's own sites draw their navigation from.",
+    'Without any credential this route answers 200 `{"user": null}` — that is the signed-out answer the websites expect, not an error.',
+  ],
+};
+
+/* ------------------------------------------------------------------ *
+ * Flight plan
+ *
+ * Seven routes, one scope. `flightplan` reaches the member's filed plan and
+ * their SimBrief binding; filing broadcasts to every controller under the
+ * member's name, which is why no other scope reaches any of these.
+ * ------------------------------------------------------------------ */
+
+const FLIGHTPLAN_GET: ApiEndpoint = {
+  id: "flightplan-get",
+  methods: ["GET"],
+  path: "/api/v1/pilot/flightplan",
+  summary: "The member's flight plan on file.",
+  body: [
+    "Whatever is on file for the token's member — filed through `POST` below, or written back by the FSD server when the member filed from their simulator (`filedFromClient: true`).",
+  ],
+  auth: "oauth",
+  scopes: ["flightplan"],
+  cors: false,
+  limitScope: "—",
+  statuses: [
+    {
+      code: 200,
+      when: "The plan, or `data: null` when nothing is on file.",
+    },
+    { code: 401, when: "No credential, or the token is invalid or expired." },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `flightplan`.",
+    },
+  ],
+  example: {
+    request:
+      "curl -H 'Authorization: Bearer can_at_…' '{origin}/api/v1/pilot/flightplan'",
+    response: `{
+  "status": 200,
+  "data": {
+    "callsign": "CCA1501", "flightRules": "I", "aircraft": "A320",
+    "cruiseTas": "450", "departure": "ZBAA", "departureTime": "0900",
+    "cruisingAltitude": "FL361", "arrival": "ZSPD", "alternate": "ZSNJ",
+    "hoursEnroute": "2", "minutesEnroute": "5",
+    "fuelHours": "3", "fuelMinutes": "30",
+    "remarks": "", "route": "ELKUR A593 SASAN",
+    "filedFromClient": false,
+    "updatedAt": "2026-08-19T08:41:10Z"
+  },
+  "timestamp": "2026-08-19T10:31:02Z"
+}`,
+  },
+  notes: [
+    "Every plan field is a **string**, numbers included — that is what the FSD protocol carries. Numbers are validated, not converted.",
+  ],
+};
+
+const FLIGHTPLAN_FILE: ApiEndpoint = {
+  id: "flightplan-file",
+  methods: ["POST"],
+  path: "/api/v1/pilot/flightplan",
+  summary: "File or replace the member's flight plan.",
+  body: [
+    'The plan is normalised (trimmed; codes upper-cased; empty numbers become `"0"`), validated, and handed to the FSD server **before** it is stored. If the member is connected on that callsign the plan is in force at once and every controller sees it (`live: true`); otherwise it applies at their next login (`live: false`, which also covers an FSD server that could not be reached).',
+    "**A plan cannot be changed while a controller holds the aircraft's radar track.** The amendment is then the controller's to make: the request is refused with 409 `tracked` and nothing is stored. The datafeed's `tracked_by` says in advance when that is the case, so a form can grey itself out first.",
+  ],
+  auth: "oauth",
+  scopes: ["flightplan"],
+  cors: false,
+  limit: "flightPlanFile",
+  limitScope: "per member",
+  fields: [
+    {
+      name: "callsign",
+      type: "string",
+      required: true,
+      description: "2–10 of `A-Z`, `0-9`, `_`, `-`.",
+    },
+    {
+      name: "flightRules",
+      type: "string",
+      required: true,
+      description: "`I`, `V`, `S` or `D`.",
+    },
+    {
+      name: "aircraft",
+      type: "string",
+      required: true,
+      description: "1–40 characters.",
+    },
+    {
+      name: "cruiseTas",
+      type: "string",
+      required: true,
+      description: "1–4 digits, above zero.",
+    },
+    {
+      name: "departure",
+      type: "ICAO",
+      required: true,
+      description: "Four letters.",
+    },
+    {
+      name: "departureTime",
+      type: "string",
+      required: true,
+      description: "Zulu `HHMM`.",
+    },
+    {
+      name: "cruisingAltitude",
+      type: "string",
+      required: true,
+      description: "1–12 characters, e.g. `FL361` or `36100`.",
+    },
+    {
+      name: "arrival",
+      type: "ICAO",
+      required: true,
+      description: "Four letters.",
+    },
+    {
+      name: "alternate",
+      type: "ICAO",
+      description: "Four letters when given.",
+    },
+    {
+      name: "hoursEnroute",
+      type: "string",
+      description:
+        "1–2 digits. Likewise `minutesEnroute`, `fuelHours`, `fuelMinutes`; the minutes at most 59.",
+    },
+    {
+      name: "route",
+      type: "string",
+      required: true,
+      description:
+        "Up to 1,000 characters; runs of whitespace collapse to one space.",
+    },
+    {
+      name: "remarks",
+      type: "string",
+      description: "Up to 400 characters.",
+    },
+  ],
+  statuses: [
+    {
+      code: 200,
+      when: '`{"status": 200, "message": "filed", "live": …, "data": <normalised plan>, "timestamp": …}`.',
+    },
+    {
+      code: 400,
+      when: "`invalidBody` — not JSON, or a field is not a string.",
+    },
+    { code: 401, when: "No credential, or the token is invalid or expired." },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `flightplan`.",
+    },
+    {
+      code: 409,
+      when: '`{"error": "tracked", "controller": "<callsign>"}` — a controller holds the track; or `callsignInUse` — another member is connected on that callsign.',
+    },
+    {
+      code: 422,
+      when: '`{"error": "validation", "fields": {"<field>": "<reason>"}}` — one entry per failing field.',
+    },
+    { code: 429, when: "Rate limited." },
+  ],
+  example: {
+    request: `curl -X POST '{origin}/api/v1/pilot/flightplan' \\
+  -H 'Authorization: Bearer can_at_…' \\
+  -H 'Content-Type: application/json' \\
+  -d '{"callsign":"CCA1501","flightRules":"I","aircraft":"A320","cruiseTas":"450","departure":"ZBAA","departureTime":"0900","cruisingAltitude":"FL361","arrival":"ZSPD","route":"ELKUR A593 SASAN"}'`,
+  },
+  notes: [
+    "A colon or a line break in `route` or `remarks` is refused (`structural`) rather than stripped: the plan becomes a colon-delimited, newline-terminated protocol packet, and either character would shift or split it.",
+    "The reasons in `fields` are short keys — `callsign`, `icao`, `time`, `number`, `minutes`, `route`, `remarksLength`, `structural` and the like — meant to be translated by the caller.",
+    "The off-block time is the simulator client's to set, and an edit made here keeps the stored one.",
+  ],
+};
+
+const FLIGHTPLAN_DELETE: ApiEndpoint = {
+  id: "flightplan-delete",
+  methods: ["DELETE"],
+  path: "/api/v1/pilot/flightplan",
+  summary: "Withdraw the stored flight plan.",
+  body: [
+    'Clears the plan on file. It does not reach controllers: the protocol has no way to say "this flight has no plan any more", so an aircraft already flying keeps the plan it was given, and the radar-track lock does not apply.',
+  ],
+  auth: "oauth",
+  scopes: ["flightplan"],
+  cors: false,
+  limitScope: "—",
+  statuses: [
+    {
+      code: 200,
+      when: '`{"status": 200, "message": "withdrawn", "timestamp": …}` — also when nothing was on file.',
+    },
+    { code: 401, when: "No credential, or the token is invalid or expired." },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `flightplan`.",
+    },
+  ],
+};
+
+const SIMBRIEF_GET: ApiEndpoint = {
+  id: "simbrief-get",
+  methods: ["GET"],
+  path: "/api/v1/pilot/simbrief",
+  summary: "Which SimBrief account the member has linked.",
+  body: [
+    "`simbriefId` is the linked account's numeric SimBrief id as a string, or `null` when none is linked. Cheap: it reads the member's own record and calls nothing outside.",
+  ],
+  auth: "oauth",
+  scopes: ["flightplan"],
+  cors: false,
+  limitScope: "—",
+  statuses: [
+    {
+      code: 200,
+      when: '`{"status": 200, "data": {"simbriefId": "123456"}, …}`.',
+    },
+    { code: 401, when: "No credential, or the token is invalid or expired." },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `flightplan`.",
+    },
+  ],
+};
+
+const SIMBRIEF_LINK: ApiEndpoint = {
+  id: "simbrief-link",
+  methods: ["POST"],
+  path: "/api/v1/pilot/simbrief",
+  summary: "Link a SimBrief account.",
+  body: [
+    "Send a SimBrief Pilot ID or Navigraph username. It is proved against SimBrief before anything is stored, and what is stored — and returned — is the **numeric id** SimBrief reports, so a later rename of the alias does not break the link.",
+  ],
+  auth: "oauth",
+  scopes: ["flightplan"],
+  cors: false,
+  limit: "simbriefLink",
+  limitScope: "per member",
+  fields: [
+    {
+      name: "identifier",
+      type: "string",
+      required: true,
+      description:
+        "Pilot ID or Navigraph username: up to 64 of letters, digits, `.`, `_`, `-`, starting with a letter or digit.",
+    },
+  ],
+  statuses: [
+    {
+      code: 200,
+      when: '`{"status": 200, "data": {"simbriefId": "123456"}, …}`.',
+    },
+    {
+      code: 400,
+      when: "`invalid_request` (not JSON) or `invalid_identifier`.",
+    },
+    { code: 401, when: "No credential, or the token is invalid or expired." },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `flightplan`.",
+    },
+    {
+      code: 404,
+      when: "`not_found` — SimBrief has no saved flight for that account; or `invalid_plan` — it answered without the fields a plan needs.",
+    },
+    { code: 429, when: "Rate limited." },
+    { code: 502, when: "`unreachable` — SimBrief did not answer." },
+  ],
+};
+
+const SIMBRIEF_UNLINK: ApiEndpoint = {
+  id: "simbrief-unlink",
+  methods: ["DELETE"],
+  path: "/api/v1/pilot/simbrief",
+  summary: "Remove the SimBrief link.",
+  body: ["Clears the link. The answer carries `simbriefId: null`."],
+  auth: "oauth",
+  scopes: ["flightplan"],
+  cors: false,
+  limitScope: "—",
+  statuses: [
+    { code: 200, when: '`{"status": 200, "data": {"simbriefId": null}, …}`.' },
+    { code: 401, when: "No credential, or the token is invalid or expired." },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `flightplan`.",
+    },
+  ],
+};
+
+const SIMBRIEF_IMPORT: ApiEndpoint = {
+  id: "simbrief-import",
+  methods: ["GET"],
+  path: "/api/v1/pilot/simbrief/import",
+  summary: "The linked account's latest SimBrief OFP, as a flight plan.",
+  body: [
+    "Fetches the newest OFP from SimBrief and converts it into the same plan object `POST /api/v1/pilot/flightplan` takes. **Returned, not filed, and not validated** — show it to the member, let them check it, then file it through the normal route, which is what validates it.",
+  ],
+  auth: "oauth",
+  scopes: ["flightplan"],
+  cors: false,
+  limit: "simbriefImport",
+  limitScope: "per member",
+  statuses: [
+    { code: 200, when: "`data` is the plan object." },
+    { code: 401, when: "No credential, or the token is invalid or expired." },
+    {
+      code: 403,
+      when: "`insufficient_scope` — the token does not carry `flightplan`.",
+    },
+    {
+      code: 404,
+      when: "`not_found` or `invalid_plan`, as for linking.",
+    },
+    { code: 409, when: "`not_linked` — no SimBrief account is linked." },
+    { code: 429, when: "Rate limited." },
+    { code: 502, when: "`unreachable` — SimBrief did not answer." },
+  ],
+};
+
 /* ------------------------------------------------------------------ *
  * Network directory
  *
- * Unauthenticated reads that describe the network rather than a member. Both
- * answer a question a client has to ask before it can sign in, so neither
- * carries a session, and both are safe to cache.
+ * Unauthenticated reads that describe the network rather than a member: where
+ * its servers are, what it is enforcing, and which navigation data cycle the
+ * route resolver is on. None carries a session.
  * ------------------------------------------------------------------ */
 
 const SERVERS: ApiEndpoint = {
@@ -1400,7 +1838,7 @@ const SERVERS: ApiEndpoint = {
   path: "/api/v1/servers",
   summary: "Where the network's FSD, voice and datafeed servers are.",
   body: [
-    "The addresses a client needs in order to connect, grouped by kind: `fsd`, `audio` and `datafeed`. Ask for this instead of compiling a hostname in — that is exactly what this endpoint exists to replace, and a client that reads it turns the network's next move into a row edit rather than a release.",
+    "The addresses a client needs in order to connect, grouped by kind: `fsd` (FSD servers), `audio` (the Mumble voice server), `voice` (the newer can-voice server), `datafeed` (the live feed) and `automation` (the authenticated controller automation plane). Ask for this instead of compiling a hostname in — that is exactly what this endpoint exists to replace, and a client that reads it turns the network's next move into a row edit rather than a release.",
     "Unauthenticated, and it has to be: a client must learn where FSD is *before* it can sign in, so the order does not reverse. It is also reachable at `https://ceruleanavi.net/api/v1/servers` through the main site's allow-list proxy, which is the hostname to prefer from mainland China.",
   ],
   auth: "none",
@@ -1411,6 +1849,10 @@ const SERVERS: ApiEndpoint = {
       code: 200,
       when: "The directory. Every kind is present as a key, possibly with an empty array.",
     },
+    {
+      code: 500,
+      when: '`{"error": "internal_error", …}` — the list could not be read.',
+    },
   ],
   example: {
     request: "curl '{origin}/api/v1/servers'",
@@ -1419,25 +1861,70 @@ const SERVERS: ApiEndpoint = {
   "data": {
     "fsd": [
       { "id": 1, "kind": "fsd", "name": "Tokyo",
-        "host": "fsd.ceruleanavi.net", "port": 6809, "location": "JP" }
+        "host": "fsd.ceruleanavi.net", "port": 6809, "location": "JP",
+        "capabilities": [] }
     ],
     "audio": [
       { "id": 2, "kind": "audio", "name": "Tokyo",
-        "host": "audio.ceruleanavi.net", "port": 64738, "location": "JP" }
+        "host": "audio.ceruleanavi.net", "port": 64738, "location": "JP",
+        "capabilities": [] }
     ],
+    "voice": [],
     "datafeed": [
       { "id": 3, "kind": "datafeed", "name": "Primary",
-        "url": "https://data.ceruleanavi.net" }
-    ]
+        "url": "https://data.ceruleanavi.net", "capabilities": [] }
+    ],
+    "automation": []
   },
   "timestamp": "2026-08-19T10:31:02Z"
 }`,
   },
   notes: [
-    "**Fields that do not apply to a kind are absent, not `null`.** An `fsd` or `audio` entry has `host` and `port` and no `url`; a `datafeed` entry has `url` and neither. A client reading `port` off a datafeed row has misunderstood the kind, and an absent key says so louder than a null.",
+    "**Fields that do not apply to a kind are absent, not `null`.** An `fsd`, `audio` or `voice` entry has `host` and `port` and no `url`; a `datafeed` or `automation` entry has an HTTPS `url` and neither. A client reading `port` off a datafeed row has misunderstood the kind, and an absent key says so louder than a null. `location` is absent when unset.",
+    "`tlsPort` appears only on `fsd` entries that serve FSD over TLS; a client that sees it should connect there and never try the plaintext port. `capabilities` is always an array, possibly empty — an `automation` entry serves the shared automation plane only when it carries `atc:automation`.",
+    "**`audio` and `voice` are different protocols that can share a host and port** (both listen on 64738). Ask for the kind your client speaks and ignore the rest.",
     "**A `datafeed` entry's `url` is an origin, not a path.** The feed publishes two paths under it (`/v1/data.json` and `/v1/events`) and different clients want different ones, so storing a complete URL could only ever satisfy one of them. Append the path you need.",
     'Retired servers are omitted from this list but are not deleted upstream — the row survives so that "where is your client pointed" stays answerable when somebody cannot connect.',
     "Cached for an hour (`Cache-Control: public, max-age=3600`). Respect it; the list changes a few times a year.",
+  ],
+};
+
+const META_NAVDATA: ApiEndpoint = {
+  id: "meta-navdata",
+  methods: ["GET"],
+  path: "/api/v1/meta/navdata",
+  summary: "Which AIRAC cycle the route resolver is using.",
+  body: [
+    "The cycle of the navigation data `/api/v1/route` resolves against, its validity window, and whether it is current. A map can print it beside a drawn route, or warn when the data has expired.",
+  ],
+  auth: "none",
+  cors: true,
+  limitScope: "—",
+  statuses: [
+    { code: 200, when: "The cycle. `Cache-Control: no-store`." },
+    {
+      code: 503,
+      when: "`navDataUnavailable`, `navDataMetadataMissing` or `navDataMetadataInvalid` — no navigation data, or no usable cycle information for it, on this instance.",
+    },
+  ],
+  example: {
+    request: "curl '{origin}/api/v1/meta/navdata'",
+    response: `{
+  "status": 200,
+  "data": {
+    "cycle": "2610",
+    "version": "1",
+    "valid_from": "2026-10-01",
+    "valid_to": "2026-10-28",
+    "expired": false,
+    "status": "current"
+  },
+  "timestamp": "2026-10-24T08:00:00Z"
+}`,
+  },
+  notes: [
+    "`status` is `current`, `future` (the cycle has not started yet) or `expired`. `valid_from` and `valid_to` are `YYYY-MM-DD`; `cycle` is four digits.",
+    "Keys are `snake_case` here, unlike most of can-api.",
   ],
 };
 
@@ -1469,7 +1956,7 @@ const META_LIMITS: ApiEndpoint = {
 }`,
   },
   notes: [
-    "The keys are lower-camel and are the same keys this page uses. A key vanishing is a limit that no longer exists, not a value of zero — treat a missing key as unlimited, which is what this page renders.",
+    "The keys are lower-camel and are the same keys this page uses. A leading acronym is lowered up to the next word, so the OAuth buckets read `oAuthToken`, `oAuthUserinfo` — copy keys from this table rather than guessing them. A key vanishing is a limit that no longer exists, not a value of zero — treat a missing key as unlimited, which is what this page renders.",
     "Cached for an hour. The table only changes when can-api is redeployed.",
     "A limit being listed does not say what the bucket is *keyed by* — per IP, per member, per client. That varies per endpoint and is written beside each one above.",
   ],
@@ -1480,7 +1967,7 @@ export const API_GROUPS: ApiGroup[] = [
     key: "oauth",
     name: "Unified sign-in",
     description:
-      "Sign a member in with their CAN account, and act for them afterwards. Standard OAuth 2.1 authorization code + PKCE with OpenID Connect on top, so an off-the-shelf client library configured from the discovery document will work without anything bespoke. Applications are registered by hand for now — ask through the feedback form.",
+      "Sign a member in with their CAN account, and act for them afterwards. Standard OAuth 2.1 authorization code + PKCE with OpenID Connect on top, so an off-the-shelf client library configured from the discovery document will work without anything bespoke. Register your application on this developer centre; using it needs developer access, which an administrator grants.",
     icon: "key",
     endpoints: [
       OIDC_DISCOVERY,
@@ -1496,7 +1983,7 @@ export const API_GROUPS: ApiGroup[] = [
     key: "atis",
     name: "ATIS",
     description:
-      "The two ATIS endpoints, both called by software with no session to present. Note that a third thing shares the name: `atis[]` in the network datafeed is who is broadcasting right now, which is runtime state and lives with the datafeed, not here.",
+      "The ATIS maker's weather line, the ATIS client's station configuration, and the raw METAR/TAF lookup — all called by software with no session to present. Note that another thing shares the name: `atis[]` in the network datafeed is who is broadcasting right now, which is runtime state and lives with the datafeed, not here.",
     icon: "speakerWave",
     endpoints: [ATIS, ATIS_CONFIG, METAR],
   },
@@ -1504,9 +1991,9 @@ export const API_GROUPS: ApiGroup[] = [
     key: "flight-data",
     name: "Flight data",
     description:
-      "What the live map draws. Both are open for the same reason the map is: the positions are already public in the network datafeed, and a track is the same information a few minutes older.",
+      "What the live map draws. Both are open for the same reason the map is: the positions are already public in the network datafeed, a track is the same information a few minutes older, and a route is what the pilot filed.",
     icon: "mapPin",
-    endpoints: [TRACK],
+    endpoints: [TRACK, ROUTE],
   },
   {
     key: "datafeed",
@@ -1520,17 +2007,29 @@ export const API_GROUPS: ApiGroup[] = [
     key: "member-data",
     name: "Member data",
     description:
-      "What an application may read **on a member's behalf** after they sign in through the flow above. Each route names the scope it requires, and a token without it gets 403 rather than an empty result. can-api's default is that no route accepts a token at all — these three are deliberate exceptions, chosen because the data is the member's own and a flight bag or a logbook cannot work without it.",
+      "What an application may read and do **on a member's behalf** after they sign in through the flow above. Each route names the scope it requires, and a token without it gets 403 rather than an empty result. can-api's default is that no route accepts a token at all — these are deliberate exceptions, chosen because the data is the member's own and a flight bag or a logbook cannot work without it. None sends CORS headers to other sites: call them from your server or a native app.",
     icon: "userCircle",
-    endpoints: [PILOT_FLIGHTS, PILOT_ATC, PILOT_DIVISIONS],
+    endpoints: [
+      PILOT_FLIGHTS,
+      PILOT_ATC,
+      PILOT_DIVISIONS,
+      AUTH_SESSION,
+      FLIGHTPLAN_GET,
+      FLIGHTPLAN_FILE,
+      FLIGHTPLAN_DELETE,
+      SIMBRIEF_GET,
+      SIMBRIEF_LINK,
+      SIMBRIEF_UNLINK,
+      SIMBRIEF_IMPORT,
+    ],
   },
   {
     key: "network",
     name: "Network directory",
     description:
-      "Unauthenticated reads that describe the network rather than a member: where its servers are and what it is enforcing. Both answer a question a client has to ask before it can sign in, and both are cacheable — the cache headers say for how long.",
+      "Unauthenticated reads that describe the network rather than a member: where its servers are, what it is enforcing, and which navigation data cycle the route resolver uses.",
     icon: "globeAlt",
-    endpoints: [SERVERS, META_LIMITS],
+    endpoints: [SERVERS, META_LIMITS, META_NAVDATA],
   },
   {
     key: "clients",
@@ -1553,14 +2052,34 @@ export const API_GROUPS: ApiGroup[] = [
  */
 export const NOT_PUBLIC: { path: string; reason: string }[] = [
   {
-    path: "/api/v1/route",
+    path: "The rest of /api/v1/pilot/*, plus /api/v1/activity/*, /api/v1/lottery/*, /api/v1/notifications/*, /api/v1/super/* and the rest of /api/v1/atc/*",
     reason:
-      "Moved. Route resolution lives on the radar's own site — https://radar.ceruleanavi.net/api/v1/route — with the same shape, the same rate limit and still no authentication. It went with the map because the navigation database it reads is what makes it expensive, and nothing else needs it.",
+      "Portal plumbing. Almost all of it needs a member's session cookie and refuses an access token outright; the one read that does not — the activity list and an activity's briefing — exists to draw a panel on the network's own sites, its shape follows whatever that panel needs, and it is not a contract with anyone outside the network's own repositories. The exceptions are documented above: the member routes an application can reach with a scope.",
   },
   {
-    path: "The rest of /api/v1/pilot/*, plus /api/v1/activity/*, /api/v1/super/* and the rest of /api/v1/atc/*",
+    path: "/api/v1/weather/precipitation/{z}/{x}/{y}",
     reason:
-      "Portal plumbing. Most need a member's session cookie and refuse an access token outright; the few reads that do not — the activity feed and the ATC reservation board — exist to draw a panel on ceruleanavi.net, their shapes follow whatever that panel needs that week, and they are not a contract with anyone outside the network's own repositories. The exceptions are documented above: the three member routes an application can reach with a scope.",
+      "The precipitation overlay of the network's flight bag. Every tile it does not already hold is fetched from an upstream weather provider under one network-wide rate budget, so a third-party map drawing from it would spend the flight bag's allowance. Not a contract.",
+  },
+  {
+    path: "/api/v1/voice/update/… and /api/v1/voice/download/…",
+    reason:
+      "The voice clients' own updater feed and download relay, shaped for their updater. Like `/api/v1/clients/*` for the older clients, but there is nothing for a third party to build against.",
+  },
+  {
+    path: "/api/v1/auth/token, /api/v1/voice/token",
+    reason:
+      "Exchange a CAN ID and network password for a short-lived token for the controller automation plane or the voice server. Each exists only on a deployment running that service, and each takes the member's network password — which is exactly what a third-party application must never ask for.",
+  },
+  {
+    path: "/api/v1/bot/*",
+    reason:
+      "The network's community bot. Service tokens only, with bot scopes that are granted by hand and cannot be requested by a self-registered application.",
+  },
+  {
+    path: "/v1/… bridge, /api/v1/atc/* and /healthz (can-fsd)",
+    reason:
+      "The FSD daemon's other HTTP routes: a key-guarded copy of the datafeed for the network's own relays, the controller automation plane (its own token, obtained with the network password), and a health probe. None is a third-party surface.",
   },
   {
     path: "/api/v1/leaderboard",
@@ -1584,7 +2103,7 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
   {
     path: "/api/v1/internal/flightplan (can-fsd)",
     reason:
-      "Not can-api's at all: it is on the FSD daemon, beside the datafeed, and it is how can-api pushes a plan filed on the website into an already-connected pilot's live session. A shared secret is its whole protection, so the daemon advertises only GET and OPTIONS for cross-origin requests — a browser's preflight for it fails by design, and a member's session can never be ridden into it.",
+      "Not can-api's at all: it is on the FSD daemon, beside the datafeed, and it is how can-api pushes a plan filed through `/api/v1/pilot/flightplan` into an already-connected pilot's live session. It exists only when the daemon is configured with a shared secret, that secret is its whole protection, and the daemon advertises only GET and OPTIONS for cross-origin requests — a browser's preflight for it fails by design, and a member's session can never be ridden into it.",
   },
   {
     path: "/api/v1/public/auth",
@@ -1614,8 +2133,10 @@ export interface ApiOrigins {
   /** can-web — `https://ceruleanavi.net`. Serves the consent screen only. */
   web: string;
   /**
-   * can-fsd's HTTP face — `https://data.ceruleanavi.net`. Serves the datafeed
-   * only. The FSD protocol host remains `fsd.ceruleanavi.net:6809`.
+   * can-fsd's HTTP face — `https://data.ceruleanavi.net`. The only public
+   * routes documented on it are the datafeed's; the daemon's other HTTP
+   * routes are listed in `NOT_PUBLIC`. The FSD protocol host remains
+   * `fsd.ceruleanavi.net:6809`.
    *
    * Read from configuration rather than hardcoded for the same reason the
    * other two are: the network has already moved hostname once, and the
