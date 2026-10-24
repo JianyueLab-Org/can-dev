@@ -445,8 +445,9 @@ const CLIENTS_LATEST: ApiEndpoint = {
   path: "/api/v1/clients/latest",
   summary: "Is there a newer version of a desktop client?",
   body: [
-    "Without parameters this describes the newest release: its version, when it was published, where the notes are, and one entry per package with its size and a download link.",
-    'With `client` and `version` it answers the question directly, so all four clients agree on what "newer" means rather than each writing its own comparison. Versions are compared numerically field by field, a leading `v` is ignored and anything after the numbers (`-rc1`, `+dirty`) is too — as strings, `2.0.10` sorts before `2.0.9` and the check either nags forever or never fires.',
+    "Without parameters this describes the newest can-audio release — its version, when it was published, where the notes are, and one entry per package in `clients` (`audio-for-can`, `atis-for-can`) with its size and a download link — plus `apps`: programs released separately, keyed by name. Today those are `can-pilot` (the pilot client for MSFS 2020/2024 and X-Plane 11.50+/12 on Windows, which replaces `msfs-for-can` and `xpc-for-can`) and `can-downloader`. An app that cannot be resolved is simply absent from `apps`.",
+    "Each `apps` entry carries `name`, `version`, `publishedAt`, `prerelease`, `size`, `sha256` (when GitHub recorded one), `download` (our relay), `notes` (the release page), `origin` (the GitHub asset) and `changelog` (the release body, Markdown). An app's version is its newest stable release; a prerelease is offered only while the app has no stable one.",
+    'With `client` and `version` it answers the question directly, so every client agrees on what "newer" means rather than each writing its own comparison. Versions are compared numerically field by field and a leading `v` is ignored — as strings, `2.0.10` sorts before `2.0.9` and the check either nags forever or never fires. Every run of digits counts, including one in a suffix: `2.1.0-rc1` reads as `2.1.0.1` and compares *newer* than `2.1.0`.',
     "What to do about an update is the client's business. The design is *tell the user, let them choose* — never a silent self-update.",
   ],
   auth: "none",
@@ -458,7 +459,7 @@ const CLIENTS_LATEST: ApiEndpoint = {
       name: "client",
       type: "string",
       description:
-        "One of `audio-for-can`, `atis-for-can`, `msfs-for-can`, `xpc-for-can`. Adds two top-level keys to the answer: `client` (the name you asked about, as a **string**) and `update` (an object — `available`, `current`, `latest`).",
+        "One of `audio-for-can`, `atis-for-can` (the can-audio bundle — the answer carries no `apps`), `can-pilot`, `can-downloader` (an app — `update` compares against that app's version, and the answer carries `apps` but none of the bundle's `version`, `clients` or `notes`), or the retired `msfs-for-can` / `xpc-for-can` (answered with can-pilot — see below). Adds two top-level keys to the answer: `client` (the name you asked about, as a **string**) and `update` (an object — `available`, `current`, `latest`).",
     },
     {
       name: "version",
@@ -471,12 +472,12 @@ const CLIENTS_LATEST: ApiEndpoint = {
     { code: 200, when: "The release document." },
     {
       code: 404,
-      when: '`client` is not one of the four names — `{"error": "unknown_client"}`.',
+      when: '`client` is not one of the accepted names — `{"error": "unknown_client"}`.',
     },
     { code: 429, when: "Rate limited." },
     {
       code: 503,
-      when: 'The release feed could not be reached. No version is invented — a client told "you are up to date" wrongly stops asking.',
+      when: 'The relevant release could not be resolved — `{"error": "unavailable"}`. No version is invented — a client told "you are up to date" wrongly stops asking.',
     },
   ],
   example: {
@@ -503,8 +504,9 @@ const CLIENTS_LATEST: ApiEndpoint = {
   notes: [
     "`download` points at our own relay; `origin` is the GitHub asset, for anyone who can reach it. Prefer `download`.",
     "**This endpoint has no `{status, data, timestamp}` envelope.** Most of can-api wraps its answer; this one writes the document at the top level, and the field names are `publishedAt` (camelCase) and `notes`. Read the keys above literally.",
-    "**`client` is a string and `update` is an object.** They replaced an earlier `client` object plus an `update_available` boolean, and the four shipped desktop clients still read the old shape — so they are the ones that are wrong, not this page. There is no `reason` field anywhere in the answer.",
-    "**A package missing from a release still gets an `update` answer.** When one of the four builds fails it is simply absent from `clients`, but `update.available` is computed from the release version regardless — so check that `clients[name]` exists before following a download, rather than trusting `available` alone.",
+    "**`client` is a string and `update` is an object.** They replaced an earlier `client` object plus an `update_available` boolean, and older shipped desktop clients still read the old shape — so they are the ones that are wrong, not this page. There is no `reason` field anywhere in the answer.",
+    "**`msfs-for-can` and `xpc-for-can` are retired; their update check is answered with can-pilot.** `update.latest` is can-pilot's version, `clients[<retired name>]` holds `name`, `version`, `size` and a `download` pointing at can-pilot's relay link, and `notes` is can-pilot's release page — so an old pilot client is told to move on. Only a **stable** can-pilot is offered: while its successor is a prerelease, `update.available` is `false`, `clients` is empty and there is no `notes`. Neither name can be downloaded any more.",
+    "**A package missing from a release still gets an `update` answer.** When one of the builds fails it is simply absent from `clients`, but `update.available` is computed from the release version regardless — so check that `clients[name]` exists before following a download, rather than trusting `available` alone.",
     "Cached for 5 minutes at the edge, so a release reaches members within minutes without every client startup reaching GitHub.",
   ],
 };
@@ -516,7 +518,8 @@ const CLIENTS_DOWNLOAD: ApiEndpoint = {
   summary: "Download a client through us instead of from GitHub.",
   body: [
     "`github.com` and `objects.githubusercontent.com` are unreliable from the mainland — a 60 MB release asset routinely crawls or stops halfway — so the bytes are relayed through this origin, which members can already reach. This is the link `/api/v1/clients/latest` hands out and the one the download centre uses.",
-    "It is **not an open proxy**: the upstream URL only ever comes out of the resolved release for one fixed repository, keyed by a four-entry whitelist, and nothing the caller sends is used to build it.",
+    "It is **not an open proxy**: the upstream URL only ever comes out of the resolved release for a fixed set of repositories, keyed by a whitelist of four names, and nothing the caller sends is used to build it.",
+    "Apps (`can-pilot`, `can-downloader`) are verified against the SHA-256 GitHub recorded for the asset before they are served; a mismatch is a 502 `checksum_mismatch` rather than bytes nobody published.",
   ],
   auth: "none",
   cors: true,
@@ -528,7 +531,7 @@ const CLIENTS_DOWNLOAD: ApiEndpoint = {
       type: "string",
       required: true,
       description:
-        "One of `audio-for-can`, `atis-for-can`, `msfs-for-can`, `xpc-for-can`.",
+        "One of `audio-for-can`, `atis-for-can`, `can-pilot`, `can-downloader`. The retired `msfs-for-can` and `xpc-for-can` answer 404 — can-pilot replaces both.",
     },
   ],
   query: [
@@ -536,7 +539,7 @@ const CLIENTS_DOWNLOAD: ApiEndpoint = {
       name: "v",
       type: "string",
       description:
-        "Pin the release, e.g. `v2.0.1`. Matching the current release makes the answer immutable and cacheable at the edge; a stale pin is redirected to the current version rather than silently serving different bytes than the URL promised.",
+        "Pin the release, e.g. `v2.0.1`. A pinned answer is `Cache-Control: public, max-age=604800, immutable`; unpinned it is `max-age=300`. A stale pin is redirected to the current version rather than silently serving different bytes than the URL promised.",
     },
   ],
   headers: [
@@ -556,7 +559,7 @@ const CLIENTS_DOWNLOAD: ApiEndpoint = {
     },
     {
       code: 404,
-      when: "Unknown client name, or that package is not in the latest release.",
+      when: "Unknown client name (including the retired `msfs-for-can` / `xpc-for-can`), or that package is not in the latest release.",
     },
     {
       code: 416,
@@ -572,7 +575,7 @@ const CLIENTS_DOWNLOAD: ApiEndpoint = {
     },
     {
       code: 502,
-      when: "GitHub could not be reached, or answered something else.",
+      when: "GitHub could not be reached, or answered something else; or `checksum_mismatch` — an app's bytes did not match GitHub's recorded SHA-256.",
     },
     {
       code: 503,
