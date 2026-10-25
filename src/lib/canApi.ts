@@ -236,6 +236,13 @@ export const updateClient = (token: string, id: string, patch: unknown) =>
     body: JSON.stringify(patch),
   });
 
+export const setClientDisabled = (token: string, id: string, input: unknown) =>
+  call<{ disabled: boolean }>(
+    token,
+    `/api/v1/dev/clients/${encodeURIComponent(id)}/disabled`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+
 export const deleteClient = (token: string, id: string) =>
   call<{ deleted: boolean }>(
     token,

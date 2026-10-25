@@ -60,15 +60,20 @@ can-api。令牌能改回调地址，也就是能决定授权码送到哪儿 —
 出去。新加的页面要数据，走同样的路：服务端取好当 prop 传进岛屿。
 
 **2. 校验只有一份，在 can-api 的 `internal/oauth/registry.go`。** 回调地址规
-则、保留应用名、能申请哪些 scope，都在那边；这边只显示它返回的 `message`。在前
-端补一份「友好的即时校验」听起来无害，但两份规则会漂移，而**宽的那一份**会先被
-人发现。
+则、保留应用名、能申请哪些 scope，都在那边。`invalid_name` 使用
+`dev.apps.errors.invalid_name` 四语言文案；`name_reserved` 和其他错误仍显示上游
+`message`。不在前端重复校验。
 
 **3. `apps:manage` 只有手工注册的应用拿得到。** 它不在 can-api 的
 `SelfServiceScopes` 里，这正是开发者中心自己必须手工注册的原因。别为了省事去改
 那份名单 —— 一个自助拿到 `apps:manage` 的应用，可以给成员名下**另一个**应用换
 上自己的回调地址，然后等下一次登录把授权码送过来。can-api 有一条测试专门盯着
 这件事。
+
+应用卡片的停用和启用发送 `POST /api/clients/{id}/disabled`，专用路由经
+`requireSession` 检查会话、开发者身份和 Origin，再用服务端 Bearer 令牌调用
+`POST /api/v1/dev/clients/{id}/disabled`。`disabled` 是必填 JSON 布尔值，
+由 can-api 校验；成功后才刷新列表。停用吊销已发出的令牌，启用不恢复这些令牌。
 
 ## `/ground` —— 站上唯一没有上游的一页
 

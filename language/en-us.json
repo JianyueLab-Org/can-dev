@@ -133,6 +133,9 @@
       "empty": "No applications yet. Register one and members can sign in to it with their CAN account.",
       "networkError": "The network is unreachable. Try again shortly.",
       "requestFailed": "Request failed ({status})",
+      "errors": {
+        "invalid_name": "Enter an application name of 1–120 UTF-8 bytes after trimming whitespace."
+      },
       "secret": {
         "title": "This is the client_secret, and it is shown once",
         "detail": "Only its hash is stored, so nobody can recover it after this box closes. Lose it and you have to rotate.",

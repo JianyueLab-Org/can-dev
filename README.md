@@ -76,9 +76,17 @@ bun run build && bun run start
 `localStorage`，一处 XSS 就等于全交出去。
 
 **校验只有一份，在 can-api。** 回调地址的规则、保留的应用名、能申请哪些
-scope，全在 can-api 的 `internal/oauth/registry.go`，这边只把它返回的
-`message` 显示出来。前端再抄一遍的下场是两份规则慢慢对不上，而宽的那一份会先
-被人发现。
+scope，全在 can-api 的 `internal/oauth/registry.go`。应用名称去除首尾空白后须为
+1–120 个 UTF-8 字节；`invalid_name` 显示四语言提示，`name_reserved` 和其他错误
+仍显示上游 `message`。前端不重复校验。
+
+**停用和启用走独立端点。** 应用卡片发送
+`POST /api/clients/{id}/disabled`，服务端转到 can-api 的
+`POST /api/v1/dev/clients/{id}/disabled`。请求体的 `disabled` 是必填布尔值；
+成功返回 `{"data":{"disabled":true}}`（启用时为 `false`），之后才刷新列表。
+本站检查会话、开发者身份和写入 Origin，Bearer 令牌只在服务端转发。
+can-api 再检查 `apps:manage`、当前开发者资格和应用所有权。
+停用会吊销已发出的令牌；重新启用不会恢复这些令牌。
 
 **上游是两个地址。** issuer 和所有 API 调用在 can-api；同意页
 `/oauth/authorize` 还在 can-web，因为它是渲染给人看的页面，带着主站的样式和会
