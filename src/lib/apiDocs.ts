@@ -171,10 +171,11 @@ const ATIS: ApiEndpoint = {
   id: "atis",
   methods: ["GET"],
   path: "/api/v1/atis",
-  summary: "One station's current METAR, as plain text.",
+  summary: "Formatted ATIS from METAR weather and controller settings.",
   body: [
     'This is the URL controllers paste into EuroScope\'s "ATIS maker URL" field. EuroScope substitutes its own macros into the query string, GETs it, and reads the plain text that comes back. The ATIS maker on https://controller.ceruleanavi.net/atis builds the URL.',
-    "What comes back is the report this service fetched for the station, not an echo of anything you sent. The station is `icao`; when `icao` is absent it is read from the header of the `metar` parameter (an optional `METAR `/`SPECI ` and `COR ` prefix, then the four-letter station and the `DDHHMMZ` time). Every other query parameter is ignored.",
+    "A nonblank `metar` supplies the weather; otherwise the service fetches the current report for `icao`. A valid explicit `icao` controls the station label even if the report names another station. When `icao` is absent or blank, the station is read only from the start of the trimmed METAR header: optional `METAR `/`SPECI ` and `COR ` prefixes, then four letters and a valid `DDHHMMZ` time. An explicitly invalid ICAO returns 400; it does not fall back to the report.",
+    "The response is multiline plain-text ATIS: station, information letter and observation time, runway and approach settings, decoded weather, optional remarks and the initial-contact reminder. It is not the raw METAR.",
   ],
   auth: "none",
   cors: true,
@@ -185,36 +186,82 @@ const ATIS: ApiEndpoint = {
       name: "icao",
       type: "ICAO",
       description:
-        "Four letters, either case. Required unless `metar` carries a station header.",
+        "Four letters, either case. Controls the station label. Required unless a blank or absent value can be inferred from the METAR header.",
     },
     {
       name: "metar",
       type: "string",
       description:
-        "A METAR whose header names the station. Read only when `icao` is absent, and only for the station code.",
+        "Weather report to format. A nonblank value takes precedence over upstream weather; blank or absent triggers lookup by ICAO.",
+    },
+    {
+      name: "arr",
+      type: "string",
+      description: "Comma-separated arrival runways; trimmed and uppercased.",
+    },
+    {
+      name: "dep",
+      type: "string",
+      description: "Comma-separated departure runways; trimmed and uppercased.",
+    },
+    {
+      name: "apptype",
+      type: "string",
+      description:
+        "Approach type, for example ILS or RNAV. Adds EXPECT … APPROACH.",
+    },
+    {
+      name: "info",
+      type: "string",
+      description:
+        "Information code. The first trimmed character is used; A–Z become phonetic words. Defaults to A when omitted or empty.",
+    },
+    {
+      name: "tl",
+      type: "string",
+      description: "Transition level. Adds TRL …; a leading FL is removed.",
+    },
+    {
+      name: "remarks",
+      type: "string",
+      description:
+        "Optional free-text remarks, trimmed and appended before the initial-contact reminder.",
     },
   ],
   statuses: [
     {
       code: 200,
-      when: "The report, as `text/plain; charset=utf-8` with `Cache-Control: no-store`. It keeps its leading `METAR`/`SPECI` word when the source sent one.",
+      when: "Multiline ATIS as `text/plain; charset=utf-8` with `Cache-Control: no-store`.",
     },
     {
       code: 400,
-      when: "No valid station in `icao` or in the `metar` header. Plain text.",
+      when: "Explicitly invalid `icao`, or no valid station in a blank/absent `icao` and the anchored `metar` header. Plain text.",
     },
-    { code: 404, when: "No source has a report for that station. Plain text." },
+    {
+      code: 404,
+      when: "No supplied weather and no source has a report for that station. Plain text.",
+    },
     {
       code: 429,
       when: 'Rate limited — `{"error": "rate_limited", …}` as JSON with `Retry-After`, unlike the other answers here.',
     },
   ],
   example: {
-    request: "curl '{origin}/api/v1/atis?icao=ZBAA'",
-    response: "METAR ZBAA 231630Z VRB01MPS CAVOK 11/08 Q1018 NOSIG",
+    request:
+      "curl -G '{origin}/api/v1/atis' --data-urlencode 'metar=ZBAA 231630Z 00000KT CAVOK 11/08 Q1018 NOSIG' --data-urlencode 'arr=36R' --data-urlencode 'dep=01' --data-urlencode 'apptype=ILS' --data-urlencode 'info=B' --data-urlencode 'tl=FL70' --data-urlencode 'remarks=Runway wet.'",
+    response: `ZBAA INFORMATION BRAVO 1630Z
+ARR RWY 36R, DEP RWY 01
+TRL 70
+EXPECT ILS APPROACH
+WIND CALM
+CAVOK
+TEMPERATURE 11, DEWPOINT 8
+QNH 1018
+Runway wet.
+ADVISE ON INITIAL CONTACT YOU HAVE INFORMATION BRAVO`,
   },
   notes: [
-    "The weather sources and the per-station cache are the ones `/api/v1/metar` uses, so the two answer with the same report.",
+    "ICAO-only lookups use the same weather sources and per-station cache as `/api/v1/metar`.",
     "Nothing here touches the database or a session — it reads public weather and returns text.",
   ],
 };
