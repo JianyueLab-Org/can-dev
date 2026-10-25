@@ -676,7 +676,7 @@ const LOGS: ApiEndpoint = {
   cors: false,
   limit: "logUpload",
   limitScope:
-    "per member, after sign-in (plus `logUploadPerIP`, checked before the body is read, and `logUploadAuth`, failed sign-ins per CAN ID)",
+    "per member, after sign-in (plus `logUploadPerIP` before the body is read, and shared `credentialAccount` / `credentialPerIP` failure budgets; successful authentication clears only the account budget)",
   fields: [
     { name: "cid", type: "string", required: true, description: "CAN ID." },
     {
