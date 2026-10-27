@@ -9,8 +9,8 @@
  * **不在 CI 里**（CI 的机器上没有那两个仓库），改过 `groundMap.ts` 或者改过
  * merge.py 之后手工跑一次：
  *
- *   GROUND_REPO=~/Documents/Dev/CeruleanAviationNetwork/Ground \
- *   SECTOR_REPO=~/Documents/Dev/CeruleanAviationNetwork/Sector \
+ *   GROUND_REPO=~/Documents/Dev/CeruleanAviationNetwork/utils/Ground \
+ *   SECTOR_REPO=~/Documents/Dev/CeruleanAviationNetwork/utils/Sector \
  *   bun run scripts/verify-ground-port.ts
  *
  * 退出码非零就是漂了。差异会打印出第一处不同的位置 —— 通常是某个常量，或者
@@ -32,8 +32,8 @@ import {
 
 // 默认按开发单体仓库的布局找同级的两个仓库；单独克隆 can-dev 时用环境变量指
 const here = fileURLToPath(new URL(".", import.meta.url));
-const GROUND = process.env.GROUND_REPO ?? join(here, "../../Ground");
-const SECTOR = process.env.SECTOR_REPO ?? join(here, "../../Sector");
+const GROUND = process.env.GROUND_REPO ?? join(here, "../../../utils/Ground");
+const SECTOR = process.env.SECTOR_REPO ?? join(here, "../../../utils/Sector");
 
 /** FIR -> 扇区文件名。PRC_FSS 的扇区文件不叫它自己的名字。 */
 const FIRS: Record<string, string> = {
