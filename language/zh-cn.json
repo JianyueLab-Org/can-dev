@@ -133,6 +133,7 @@
       "empty": "还没有应用。注册一个，就能让成员用 CAN 账号登录它。",
       "networkError": "网络不通，稍后再试。",
       "requestFailed": "请求失败（{status}）",
+      "copied": "已复制",
       "secret": {
         "title": "这是 client_secret，只显示这一次",
         "detail": "我们只存它的哈希，关掉之后谁也找不回来。丢了就得再换一把。",

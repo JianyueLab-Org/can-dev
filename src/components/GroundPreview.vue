@@ -493,9 +493,9 @@ watch(only, () => fit());
         <!-- 空状态：说清楚它吃哪些文件，以及它们在仓库里的位置 -->
         <div
           v-if="empty"
-          class="absolute inset-0 flex items-center justify-center bg-surface p-6"
+          class="absolute inset-0 flex overflow-y-auto bg-surface p-6"
         >
-          <div class="max-w-lg text-center">
+          <div class="m-auto max-w-lg text-center">
             <Icon name="mapPin" class="mx-auto size-8 text-faint" />
             <p class="mt-3 font-semibold text-ink">{{ t("empty.title") }}</p>
             <p class="mt-2 text-sm leading-relaxed text-muted">
@@ -513,11 +513,15 @@ watch(only, () => fit());
                 ]"
                 :key="k"
               >
-                <code class="text-faint">{{ t(`empty.paths.${k}.path`) }}</code>
+                <code class="break-all text-faint">{{
+                  t(`empty.paths.${k}.path`)
+                }}</code>
                 — {{ t(`empty.paths.${k}.what`) }}
               </li>
             </ul>
-            <label class="btn btn-primary mt-5 cursor-pointer">
+            <label
+              class="btn btn-primary mt-5 cursor-pointer has-[:focus-visible]:shadow-[0_0_0_2px_var(--surface),0_0_0_4px_var(--ring-brand)]"
+            >
               {{ t("pick") }}
               <input type="file" multiple class="sr-only" @change="onPick" />
             </label>
@@ -547,19 +551,19 @@ watch(only, () => fit());
         <div v-if="!empty" class="absolute right-2 top-2 flex gap-1">
           <button
             type="button"
-            class="btn btn-secondary size-8 p-0 text-base"
+            class="btn btn-secondary size-8 p-0"
             :aria-label="t('view.zoomIn')"
             @click="zoomBy(1.6)"
           >
-            +
+            <Icon name="plus" class="size-4" />
           </button>
           <button
             type="button"
-            class="btn btn-secondary size-8 p-0 text-base"
+            class="btn btn-secondary size-8 p-0"
             :aria-label="t('view.zoomOut')"
             @click="zoomBy(1 / 1.6)"
           >
-            −
+            <Icon name="minus" class="size-4" />
           </button>
           <button
             type="button"
@@ -620,7 +624,9 @@ watch(only, () => fit());
           </li>
         </ul>
         <p v-else class="mt-2 text-xs text-muted">{{ t("files.empty") }}</p>
-        <label class="btn btn-secondary mt-3 w-full cursor-pointer text-xs">
+        <label
+          class="btn btn-secondary mt-3 w-full cursor-pointer text-xs has-[:focus-visible]:shadow-[0_0_0_2px_var(--surface),0_0_0_4px_var(--ring-brand)]"
+        >
           <span v-if="busy">{{ t("busy") }}</span>
           <span v-else>{{ t("files.add") }}</span>
           <input type="file" multiple class="sr-only" @change="onPick" />

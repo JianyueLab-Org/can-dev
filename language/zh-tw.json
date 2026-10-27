@@ -133,6 +133,7 @@
       "empty": "還沒有應用程式。註冊一個，就能讓成員用 CAN 帳號登入它。",
       "networkError": "網路不通，稍後再試。",
       "requestFailed": "請求失敗（{status}）",
+      "copied": "已複製",
       "secret": {
         "title": "這是 client_secret，只顯示這一次",
         "detail": "我們只存它的雜湊值，關掉之後誰也找不回來。丟了就得再換一把。",
