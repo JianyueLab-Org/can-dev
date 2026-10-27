@@ -1,6 +1,6 @@
 ---
 import SiteLayout from "@/layouts/SiteLayout.astro";
-import { AlertBox } from "@jianyuelab-org/can-ui";
+import { AlertBox, PageHeader } from "@jianyuelab-org/can-ui";
 import AppManager from "@/components/AppManager.vue";
 import { listClients } from "@/lib/canApi";
 import { getLocale, getMessages, useTranslations } from "@/lib/i18n";
@@ -44,12 +44,11 @@ const scopes = SCOPE_NAMES.map((name) => ({
 ---
 
 <SiteLayout title={t("apps.title")}>
-  <h1 class="text-2xl font-semibold tracking-tight text-ink">
-    {t("apps.title")}
-  </h1>
-  <p class="mb-8 mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-    {t("apps.description")}
-  </p>
+  <PageHeader title={t("apps.title")}>
+    <span slot="description" class="block max-w-3xl">
+      {t("apps.description")}
+    </span>
+  </PageHeader>
 
   {
     result.ok ? (
