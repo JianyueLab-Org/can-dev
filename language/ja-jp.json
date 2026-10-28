@@ -128,6 +128,11 @@
       "loadFailed": "アプリを読み込めませんでした：{message}",
       "loadFailedHint": "セッションの期限が切れている可能性があります。",
       "signInAgain": "ログインし直す",
+      "unreachable": {
+        "title": "アプリを一時的に読み込めません",
+        "description": "CAN のサーバーに接続できません。アプリ自体には影響ありません。",
+        "retry": "再試行"
+      },
       "count": "アプリ {count} 件",
       "register": "アプリを登録",
       "empty": "まだアプリがありません。登録すると、メンバーが CAN アカウントでログインできるようになります。",
@@ -198,13 +203,25 @@
             "path": "Sector/<FIR>/Plugins/GroundMap/ground.json",
             "what": "マージ済みの成果物。プラグインが読むのはこれ"
           },
+          "layers": {
+            "path": "Ground/<FIR>/layers/<ICAO>.json",
+            "what": "任意：プリレンダー済みのレイヤー。ある空港は OSM ではなくこちらで描画します"
+          },
           "sct": {
             "path": "Sector/<FIR>/<FIR>.sct",
             "what": "任意：滑走路末端。無い場合は OSM 中心線から近似します"
           },
+          "ese": {
+            "path": "Sector/<FIR>/<FIR>.ese",
+            "what": "任意：停止位置の名称と滑走路長"
+          },
           "stands": {
             "path": "Sector/<FIR>/Plugins/GRplugin/GRpluginStands.txt",
             "what": "任意：OSM にスポット番号が無いときの補完元"
+          },
+          "naip": {
+            "path": "Ground/NavData/naip.json",
+            "what": "任意：NAIP のスポット座標と滑走路幅。スポット番号はまずこれで照合します"
           },
           "style": {
             "path": "Ground/<FIR>/style.json",
@@ -224,7 +241,10 @@
       },
       "kinds": {
         "boundaries": "ACC",
+        "ese": "ラベル",
         "ground": "マージ",
+        "layers": "プリレンダー",
+        "naip": "NAIP",
         "sct": "セクター",
         "source": "空港",
         "stands": "スポット",
@@ -278,7 +298,8 @@
       },
       "notes": {
         "runwaysFromOsm": "滑走路は OSM 中心線の両端から近似した形です。実際に配布される滑走路の矩形はセクターファイルの滑走路末端から作られるので、<FIR>.sct も一緒に入れると完全に一致します。",
-        "standNamesMissing": "この空港のスポット番号は OSM にありません。マージ時は GRpluginStands.txt から補完するので、そのファイルも入れると表示されます。"
+        "standNamesMissing": "この空港のスポット番号は OSM にありません。マージ時は GRpluginStands.txt から補完するので、そのファイルも入れると表示されます。",
+        "naipMissing": "スポット番号はまだ NAIP で照合されておらず、滑走路幅も NAIP の公示値ではありません。マージ時はどちらも Ground/NavData/naip.json に従うので、それも入れると完全に一致します。"
       },
       "errors": {
         "rejected": "認識できずスキップしました：{names}"

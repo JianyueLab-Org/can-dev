@@ -128,6 +128,11 @@
       "loadFailed": "沒能讀到你的應用程式：{message}",
       "loadFailedHint": "登入可能已經過期。",
       "signInAgain": "重新登入",
+      "unreachable": {
+        "title": "暫時讀不到你的應用程式",
+        "description": "連不上 CAN 伺服器。你的應用程式本身不受影響。",
+        "retry": "重試"
+      },
       "count": "{count} 個應用程式",
       "register": "註冊新應用程式",
       "empty": "還沒有應用程式。註冊一個，就能讓成員用 CAN 帳號登入它。",
@@ -198,13 +203,25 @@
             "path": "Sector/<FIR>/Plugins/GroundMap/ground.json",
             "what": "合併產物，外掛直接讀的那一份"
           },
+          "layers": {
+            "path": "Ground/<FIR>/layers/<ICAO>.json",
+            "what": "選用：預渲染機場的圖層，有它就不用 OSM 原始檔畫"
+          },
           "sct": {
             "path": "Sector/<FIR>/<FIR>.sct",
             "what": "選用：跑道頭。沒有就拿 OSM 中線近似"
           },
+          "ese": {
+            "path": "Sector/<FIR>/<FIR>.ese",
+            "what": "選用：等待點名稱和跑道長度"
+          },
           "stands": {
             "path": "Sector/<FIR>/Plugins/GRplugin/GRpluginStands.txt",
             "what": "選用：OSM 沒有停機位號時從這裡補"
+          },
+          "naip": {
+            "path": "Ground/NavData/naip.json",
+            "what": "選用：NAIP 的停機位坐標和跑道寬度，停機位號先按它校正"
           },
           "style": {
             "path": "Ground/<FIR>/style.json",
@@ -224,7 +241,10 @@
       },
       "kinds": {
         "boundaries": "管制區",
+        "ese": "標牌",
         "ground": "合併",
+        "layers": "預渲染",
+        "naip": "NAIP",
         "sct": "扇區",
         "source": "機場",
         "stands": "機位",
@@ -278,7 +298,8 @@
       },
       "notes": {
         "runwaysFromOsm": "跑道是拿 OSM 中線的兩端撐出來的近似。裝到管制員電腦上的跑道矩形來自扇區檔的跑道頭，把 <FIR>.sct 一起拖進來就完全一致。",
-        "standNamesMissing": "這個場的停機位號 OSM 裡沒有。合併時會從 GRpluginStands.txt 補，把那份檔案也拖進來就看得到。"
+        "standNamesMissing": "這個場的停機位號 OSM 裡沒有。合併時會從 GRpluginStands.txt 補，把那份檔案也拖進來就看得到。",
+        "naipMissing": "停機位號還沒經過 NAIP 校正，跑道寬度也不是 NAIP 公布的。合併時兩者都以 Ground/NavData/naip.json 為準，把它也拖進來就完全一致。"
       },
       "errors": {
         "rejected": "這些檔案認不出來，已跳過：{names}"

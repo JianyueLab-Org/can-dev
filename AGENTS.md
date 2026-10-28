@@ -82,14 +82,16 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 工具唯一不能犯的错。
 
 对得上是**可以证明的**，改完跑一次 `bun run verify:ground`：它
-拿 `Ground/<FIR>/airports/*.json` 加 `<FIR>.sct`、`GRpluginStands.txt` 跑一遍
-`buildAirportFromSource`，和 `Sector/<FIR>/Plugins/GroundMap/ground.json` 里对
-应的机场逐字节比较，漂了就非零退出。写下这段时十个 FIR、137 处检查（117 个机
-场加 20 个 world 图层）全部相同。两个参数的 `undefined` 和 `[]` 不是一回事：
+拿 `Ground/<FIR>/airports/*.json` 加 `<FIR>.sct`、`<FIR>.ese`、`GRpluginStands.txt`
+和 `Ground/NavData/naip.json` 跑一遍 `buildAirportFromSource`（有
+`Ground/<FIR>/layers/<ICAO>.json` 的机场跑 `buildPrebuiltAirport`），和
+`Sector/<FIR>/Plugins/GroundMap/ground.json` 里对应的机场逐字节比较，漂了就非零
+退出。写下这段时十个 FIR、325 处检查（305 个机场加 20 个 world 图层）全部相同。
+两个参数的 `undefined` 和 `[]` 不是一回事：
 `undefined` 是"没有扇区文件，跑道用 OSM 近似"，`[]` 是"扇区文件在，但它没有这
 个机场的跑道行"（ZL02、ZL03 那种只在站位表里的场，产物里本来就没有跑道层）。
 
-**文件编码也是移植的一部分**，而且是这个校验唯一一次真的抓到东西的地方。十个大
+**文件编码也是移植的一部分**。十个大
 陆 `.sct` 和九份 `GRpluginStands.txt` 里的五份是 GBK，剩下的是 UTF-8，文件里没有
 一个字说自己是哪种。`decodeGroundText()` 是 `common.read_text()` 的逐行移植：先
 严格 UTF-8（两种里只有它能被证明），再 GBK，最后才有损兜底。一律 `file.text()` 或
@@ -142,6 +144,8 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
   can-web 和本站都要在 `127.0.0.1` 上，否则每个请求都像已在别处退出。
 - 已登录但不是开发者：中间件把 `/apps`、`/docs` 改写到 `/no-access`，地址不变，
   渲染 `NoAccess`，403。直接访问 `/no-access` 跳回首页。
+- `/apps`：can-api 连不上（`listClients` 抛出）时页面回 503，渲染重试链接；can-api
+  答了话的失败（含 401）照旧显示「重新登录」。
 - 写操作的 Origin 检查在 `src/lib/guard.ts`，比对显式的 `PUBLIC_ORIGIN` 而不
   是用 Astro 的 `checkOrigin` —— 反代终止 TLS，Astro 从 Host 推出来的 origin
   是 `http://…`，永远对不上（can-web 关掉那个检查也是这个原因）。
