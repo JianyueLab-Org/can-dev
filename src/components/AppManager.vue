@@ -10,8 +10,8 @@ import { AlertBox, EmptyState, useOverlay } from "@jianyuelab-org/can-ui";
  * 话 cookie 里，这个组件从头到尾看不到它（原因见 src/lib/session.ts）。
  *
  * 校验也不在这里做第二遍。回调地址是不是 https、应用名是不是像官方的，规则
- * 只有 can-api 的 registry.go 说了算；这里把它返回的 message 原样显示出来。
- * 前端再抄一份的下场是两份规则慢慢对不上，而**宽的那一份**会先被人发现。
+ * 只有 can-api 的 registry.go 说了算；这里翻译 invalid_name，其余错误显示上游
+ * message，不在前端重复校验。
  *
  * 颜色一律走设计系统的语义记号（`badge-*`、`AlertBox`、`bg-surface-*`），不
  * 写 `bg-red-50`/`bg-slate-100` 这类固定色阶。这个文件原来通篇是后者，于是深
@@ -115,7 +115,9 @@ async function send<T>(
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
       error.value =
-        body.message || t("requestFailed", { status: response.status });
+        body.error === "invalid_name"
+          ? t("errors.invalid_name")
+          : body.message || t("requestFailed", { status: response.status });
       return null;
     }
     return body.data as T;
@@ -173,10 +175,13 @@ async function rotate(client: ManagedClient) {
 }
 
 async function toggle(client: ManagedClient) {
-  const data = await send<ManagedClient>(`/api/clients/${client.id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ disabled: !client.disabled }),
-  });
+  const data = await send<{ disabled: boolean }>(
+    `/api/clients/${encodeURIComponent(client.id)}/disabled`,
+    {
+      method: "POST",
+      body: JSON.stringify({ disabled: !client.disabled }),
+    },
+  );
   if (data) await refresh();
 }
 
