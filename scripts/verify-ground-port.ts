@@ -9,8 +9,8 @@
  * **不在 CI 里**（CI 的机器上没有那两个仓库），改过 `groundMap.ts` 或者改过
  * merge.py 之后手工跑一次：
  *
- *   GROUND_REPO=~/Documents/Dev/CeruleanAviationNetwork/Ground \
- *   SECTOR_REPO=~/Documents/Dev/CeruleanAviationNetwork/Sector \
+ *   GROUND_REPO=~/Documents/Dev/CeruleanAviationNetwork/utils/Ground \
+ *   SECTOR_REPO=~/Documents/Dev/CeruleanAviationNetwork/utils/Sector \
  *   bun run scripts/verify-ground-port.ts
  *
  * 退出码非零就是漂了。差异会打印出第一处不同的位置 —— 通常是某个常量，或者
@@ -22,18 +22,23 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildAirportFromSource,
+  buildPrebuiltAirport,
   decodeGroundText,
+  naipSlice,
+  ours,
   parseEse,
   buildWorldLayer,
   parseSct,
   parseStands,
+  type NaipDoc,
+  type PrebuiltDoc,
   type SourceFeature,
 } from "../src/lib/groundMap";
 
 // 默认按开发单体仓库的布局找同级的两个仓库；单独克隆 can-dev 时用环境变量指
 const here = fileURLToPath(new URL(".", import.meta.url));
-const GROUND = process.env.GROUND_REPO ?? join(here, "../../Ground");
-const SECTOR = process.env.SECTOR_REPO ?? join(here, "../../Sector");
+const GROUND = process.env.GROUND_REPO ?? join(here, "../../../utils/Ground");
+const SECTOR = process.env.SECTOR_REPO ?? join(here, "../../../utils/Sector");
 
 /** FIR -> 扇区文件名。PRC_FSS 的扇区文件不叫它自己的名字。 */
 const FIRS: Record<string, string> = {
@@ -54,6 +59,17 @@ const FIRS: Record<string, string> = {
 const read = (p: string) => decodeGroundText(readFileSync(p));
 const json = (p: string) => JSON.parse(read(p));
 
+// NAIP 摘录是全网一份；没有它 merge.py 照样跑，只是不校机位、不取跑道宽度
+const naipPath = join(GROUND, "NavData", "naip.json");
+const naip: NaipDoc = existsSync(naipPath) ? json(naipPath) : {};
+
+const jsonNames = (dir: string) =>
+  existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => f.slice(0, -5))
+    : [];
+
 function firstDiff(a: string, b: string): string {
   let i = 0;
   while (i < a.length && i < b.length && a[i] === b[i]) i++;
@@ -67,6 +83,7 @@ let failed = 0;
 for (const [fir, sctName] of Object.entries(FIRS)) {
   const groundJson = join(SECTOR, fir, "Plugins/GroundMap/ground.json");
   const airportsDir = join(GROUND, fir, "airports");
+  const layersDir = join(GROUND, fir, "layers");
   if (!existsSync(groundJson)) {
     console.log(`${fir}: 扇区包里没有 ground.json，跳过`);
     continue;
@@ -81,24 +98,39 @@ for (const [fir, sctName] of Object.entries(FIRS)) {
   const esePath = join(SECTOR, fir, sctName.replace(/\.sct$/, ".ese"));
   const freetext = existsSync(esePath) ? parseEse(read(esePath)) : {};
 
-  const files = existsSync(airportsDir)
-    ? readdirSync(airportsDir)
-        .filter((f) => f.endsWith(".json"))
-        .sort()
-    : [];
+  // 预渲染图层（layers/<ICAO>.json）盖过 OSM 源文件，和 merge.py 同一个顺序
+  const prebuilt = new Set(jsonNames(layersDir));
+  const icaoList = [
+    ...new Set([...jsonNames(airportsDir), ...prebuilt]),
+  ].sort();
 
   let same = 0;
-  for (const file of files) {
-    const icao = file.slice(0, -5);
-    const els = json(join(airportsDir, file)) as SourceFeature[];
+  const checkedBefore = checked;
+  for (const icao of icaoList) {
+    // VH/VM 属于香港情报区，merge.py 不画
+    if (!ours(icao)) continue;
+    const src = join(airportsDir, `${icao}.json`);
+    const els = existsSync(src) ? (json(src) as SourceFeature[]) : null;
+    const np = naipSlice(naip, icao);
     // `?? []` 而不是 `undefined`：扇区文件在，只是这个场没有跑道行
-    const { airport } = buildAirportFromSource(
-      icao,
-      els,
-      runways[icao] ?? [],
-      stands[icao] ?? [],
-      freetext[icao] ?? [],
-    );
+    const { airport } = prebuilt.has(icao)
+      ? buildPrebuiltAirport(
+          icao,
+          json(join(layersDir, `${icao}.json`)) as PrebuiltDoc,
+          runways[icao] ?? [],
+          stands[icao] ?? [],
+          freetext[icao] ?? [],
+          els,
+          np,
+        )
+      : buildAirportFromSource(
+          icao,
+          els ?? [],
+          runways[icao] ?? [],
+          stands[icao] ?? [],
+          freetext[icao] ?? [],
+          np,
+        );
     const want = truth.airports?.[icao];
     checked++;
     const mine = JSON.stringify(airport);
@@ -134,7 +166,7 @@ for (const [fir, sctName] of Object.entries(FIRS)) {
     );
   }
 
-  console.log(`${fir}: ${same} 处相同，${files.length + 2} 处检查`);
+  console.log(`${fir}: ${same} 处相同，${checked - checkedBefore} 处检查`);
 }
 
 console.log(

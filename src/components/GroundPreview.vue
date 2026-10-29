@@ -16,20 +16,24 @@
  *   不用先合并再开 EuroScope。
  *
  * 源文件这条路上，跑道头和机位号本来在扇区包那边（`.sct` 的 `[RUNWAY]` 和
- * `GRpluginStands.txt`）。两份文件一起拖进来就和 merge.py 走同一条路；不拖也
- * 能看，但跑道是拿 OSM 中心线两端撑出来的 —— 那时候上面会挂一条提示，预览可
- * 以近似，但不能让人以为那就是装机的样子。
+ * `GRpluginStands.txt`），NAIP 的机位坐标和跑道宽度在 `Ground/NavData/naip.json`，
+ * 预渲染机场的图层在 `Ground/<FIR>/layers/`。一起拖进来就和 merge.py 走同一条路；
+ * 不拖也能看，但跑道是拿 OSM 中心线两端撑出来的、机位号没经 NAIP 校过 —— 那时
+ * 候上面会挂一条提示，预览可以近似，但不能让人以为那就是装机的样子。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { createTranslator } from "@/lib/i18n";
 import { AlertBox, Icon } from "@jianyuelab-org/can-ui";
 import {
   buildAirportFromSource,
+  buildPrebuiltAirport,
   buildWorldLayer,
   classify,
   decodeGroundText,
   DEFAULT_STYLE_DOC,
   icaoFromName,
+  naipSlice,
+  ours,
   parseSct,
   parseStands,
   parseEse,
@@ -37,6 +41,8 @@ import {
   type FileKind,
   type GroundDoc,
   type MapLayer,
+  type NaipDoc,
+  type PrebuiltDoc,
   type SctRunway,
   type SourceFeature,
   type StandRow,
@@ -92,10 +98,12 @@ interface LoadedFile {
 
 const files = ref<LoadedFile[]>([]);
 const sources = ref(new Map<string, SourceFeature[]>());
+const prebuilt = ref(new Map<string, PrebuiltDoc>());
 const merged = ref<GroundDoc[]>([]);
 const sct = ref<Record<string, SctRunway[]> | null>(null);
 const stands = ref<Record<string, StandRow[]> | null>(null);
 const ese = ref<Record<string, FreetextLabel[]> | null>(null);
+const naip = ref<NaipDoc | null>(null);
 const styleDoc = ref<Record<string, unknown> | null>(null);
 const geo = ref<{ boundaries?: unknown; tracon?: unknown }>({});
 const rejected = ref<string[]>([]);
@@ -118,22 +126,49 @@ const styles = computed(() =>
   parseStyleSheet(styleDoc.value ?? DEFAULT_STYLE_DOC),
 );
 
-/** 源文件走 merge.py 那条路：有扇区文件就用它，`[]` 和 `undefined` 不一样。 */
+/**
+ * 源文件走 merge.py 那条路：有扇区文件就用它，`[]` 和 `undefined` 不一样；有
+ * 预渲染图层的机场用图层，源文件只补机场范围。
+ */
 const built = computed(() => {
   const airports: GroundDoc["airports"] = {};
-  const notes = { runwaysFromOsm: false, standNamesMissing: false };
-  for (const [icao, els] of sources.value) {
-    const b = buildAirportFromSource(
-      icao,
-      els,
-      sct.value ? (sct.value[icao] ?? []) : undefined,
-      stands.value ? (stands.value[icao] ?? []) : undefined,
-      ese.value ? (ese.value[icao] ?? []) : undefined,
-    );
+  const notes = {
+    runwaysFromOsm: false,
+    standNamesMissing: false,
+    naipMissing: false,
+  };
+  const keys = [
+    ...new Set([...sources.value.keys(), ...prebuilt.value.keys()]),
+  ];
+  for (const icao of keys.sort()) {
+    // merge.py 不画香港情报区的机场
+    if (!ours(icao)) continue;
+    const np = naip.value ? naipSlice(naip.value, icao) : undefined;
+    const body = prebuilt.value.get(icao);
+    const els = sources.value.get(icao);
+    const b = body
+      ? buildPrebuiltAirport(
+          icao,
+          body,
+          sct.value?.[icao] ?? [],
+          stands.value?.[icao] ?? [],
+          ese.value?.[icao] ?? [],
+          els ?? null,
+          np,
+        )
+      : buildAirportFromSource(
+          icao,
+          els ?? [],
+          sct.value ? (sct.value[icao] ?? []) : undefined,
+          stands.value ? (stands.value[icao] ?? []) : undefined,
+          ese.value ? (ese.value[icao] ?? []) : undefined,
+          np,
+        );
     if (b.airport) airports[icao] = b.airport;
     notes.runwaysFromOsm ||= b.notes.runwaysFromOsm;
     notes.standNamesMissing ||= b.notes.standNamesMissing;
   }
+  notes.naipMissing = !naip.value && Object.keys(airports).length > 0;
   return { airports, notes };
 });
 
@@ -245,11 +280,21 @@ async function ingest(list: File[]) {
         const st = parseStands(text);
         stands.value = st;
         detail = String(Object.keys(st).length);
+      } else if (kind === "naip") {
+        const n = JSON.parse(text) as NaipDoc;
+        naip.value = n;
+        detail = String(Object.keys(n.stands ?? {}).length);
+      } else if (kind === "layers") {
+        // 预渲染图层和每机场源文件同名（都是 <ICAO>.json），只在目录上不同
+        const body = JSON.parse(text) as PrebuiltDoc;
+        const icao = icaoFromName(file.name);
+        prebuilt.value.set(icao, body);
+        detail = `${icao} · ${body.layers?.length ?? 0}`;
       } else if (kind === "boundaries" || kind === "tracon") {
         geo.value = { ...geo.value, [kind]: JSON.parse(text) };
       }
       files.value = [
-        ...files.value.filter((f) => f.name !== file.name),
+        ...files.value.filter((f) => f.name !== file.name || f.kind !== kind),
         { name: file.name, kind, detail },
       ];
     } catch {
@@ -259,6 +304,7 @@ async function ingest(list: File[]) {
   }
   // 源文件是响应式 Map，替换一次好让 computed 重算
   sources.value = new Map(sources.value);
+  prebuilt.value = new Map(prebuilt.value);
   busy.value = false;
   rejected.value = bad;
   if (!view.value || !only.value) autoFocus();
@@ -273,10 +319,12 @@ function autoFocus() {
 function clearAll() {
   files.value = [];
   sources.value = new Map();
+  prebuilt.value = new Map();
   merged.value = [];
   sct.value = null;
   stands.value = null;
   ese.value = null;
+  naip.value = null;
   styleDoc.value = null;
   geo.value = {};
   rejected.value = [];
@@ -493,35 +541,42 @@ watch(only, () => fit());
         <!-- 空状态：说清楚它吃哪些文件，以及它们在仓库里的位置 -->
         <div
           v-if="empty"
-          class="absolute inset-0 flex items-center justify-center bg-surface p-6"
+          class="absolute inset-0 flex overflow-y-auto bg-surface p-6"
         >
-          <div class="max-w-lg text-center">
+          <div class="m-auto max-w-lg text-center">
             <Icon name="mapPin" class="mx-auto size-8 text-faint" />
             <p class="mt-3 font-semibold text-ink">{{ t("empty.title") }}</p>
             <p class="mt-2 text-sm leading-relaxed text-muted">
               {{ t("empty.detail") }}
             </p>
-            <ul class="mt-4 space-y-1 text-left text-xs text-muted">
+            <label
+              class="btn btn-primary mt-5 cursor-pointer has-[:focus-visible]:shadow-[0_0_0_2px_var(--surface),0_0_0_4px_var(--ring-brand)]"
+            >
+              {{ t("pick") }}
+              <input type="file" multiple class="sr-only" @change="onPick" />
+            </label>
+            <p class="mt-3 text-xs text-faint">{{ t("local") }}</p>
+            <ul class="mt-6 space-y-1 text-left text-xs text-muted">
               <li
                 v-for="k in [
                   'source',
                   'ground',
+                  'layers',
                   'sct',
+                  'ese',
                   'stands',
+                  'naip',
                   'style',
                   'geo',
                 ]"
                 :key="k"
               >
-                <code class="text-faint">{{ t(`empty.paths.${k}.path`) }}</code>
+                <code class="break-all text-faint">{{
+                  t(`empty.paths.${k}.path`)
+                }}</code>
                 — {{ t(`empty.paths.${k}.what`) }}
               </li>
             </ul>
-            <label class="btn btn-primary mt-5 cursor-pointer">
-              {{ t("pick") }}
-              <input type="file" multiple class="sr-only" @change="onPick" />
-            </label>
-            <p class="mt-3 text-xs text-faint">{{ t("local") }}</p>
           </div>
         </div>
 
@@ -547,19 +602,19 @@ watch(only, () => fit());
         <div v-if="!empty" class="absolute right-2 top-2 flex gap-1">
           <button
             type="button"
-            class="btn btn-secondary size-8 p-0 text-base"
+            class="btn btn-secondary size-8 p-0"
             :aria-label="t('view.zoomIn')"
             @click="zoomBy(1.6)"
           >
-            +
+            <Icon name="plus" class="size-4" />
           </button>
           <button
             type="button"
-            class="btn btn-secondary size-8 p-0 text-base"
+            class="btn btn-secondary size-8 p-0"
             :aria-label="t('view.zoomOut')"
             @click="zoomBy(1 / 1.6)"
           >
-            −
+            <Icon name="minus" class="size-4" />
           </button>
           <button
             type="button"
@@ -586,6 +641,9 @@ watch(only, () => fit());
       <AlertBox v-else-if="built.notes.standNamesMissing" variant="info">
         {{ t("notes.standNamesMissing") }}
       </AlertBox>
+      <AlertBox v-if="built.notes.naipMissing" variant="info">
+        {{ t("notes.naipMissing") }}
+      </AlertBox>
 
       <!-- 文件 -->
       <section class="card p-4">
@@ -603,7 +661,7 @@ watch(only, () => fit());
         <ul v-if="files.length" class="mt-3 space-y-1.5">
           <li
             v-for="f in files"
-            :key="f.name"
+            :key="`${f.kind}:${f.name}`"
             class="flex items-center gap-2 text-xs"
           >
             <span
@@ -620,7 +678,9 @@ watch(only, () => fit());
           </li>
         </ul>
         <p v-else class="mt-2 text-xs text-muted">{{ t("files.empty") }}</p>
-        <label class="btn btn-secondary mt-3 w-full cursor-pointer text-xs">
+        <label
+          class="btn btn-secondary mt-3 w-full cursor-pointer text-xs has-[:focus-visible]:shadow-[0_0_0_2px_var(--surface),0_0_0_4px_var(--ring-brand)]"
+        >
           <span v-if="busy">{{ t("busy") }}</span>
           <span v-else>{{ t("files.add") }}</span>
           <input type="file" multiple class="sr-only" @change="onPick" />

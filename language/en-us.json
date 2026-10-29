@@ -128,11 +128,17 @@
       "loadFailed": "Could not read your applications: {message}",
       "loadFailedHint": "Your session may have expired.",
       "signInAgain": "Sign in again",
+      "unreachable": {
+        "title": "Your applications can't be loaded right now",
+        "description": "The CAN servers can't be reached. Your applications themselves are unaffected.",
+        "retry": "Try again"
+      },
       "count": "{count} registered",
       "register": "Register an application",
       "empty": "No applications yet. Register one and members can sign in to it with their CAN account.",
       "networkError": "The network is unreachable. Try again shortly.",
       "requestFailed": "Request failed ({status})",
+      "copied": "Copied",
       "errors": {
         "invalid_name": "Enter an application name of 1–120 UTF-8 bytes after trimming whitespace."
       },
@@ -200,13 +206,25 @@
             "path": "Sector/<FIR>/Plugins/GroundMap/ground.json",
             "what": "The merged artefact the plugin actually reads"
           },
+          "layers": {
+            "path": "Ground/<FIR>/layers/<ICAO>.json",
+            "what": "Optional: pre-rendered layers. An airport that has them is drawn from these instead of OSM"
+          },
           "sct": {
             "path": "Sector/<FIR>/<FIR>.sct",
             "what": "Optional: runway thresholds. Without it runways are approximated from OSM"
           },
+          "ese": {
+            "path": "Sector/<FIR>/<FIR>.ese",
+            "what": "Optional: holding-point names and runway lengths"
+          },
           "stands": {
             "path": "Sector/<FIR>/Plugins/GRplugin/GRpluginStands.txt",
             "what": "Optional: stand numbers, where OSM has none"
+          },
+          "naip": {
+            "path": "Ground/NavData/naip.json",
+            "what": "Optional: NAIP stand positions and runway widths. Stand numbers are checked against it first"
           },
           "style": {
             "path": "Ground/<FIR>/style.json",
@@ -226,7 +244,10 @@
       },
       "kinds": {
         "boundaries": "ACC",
+        "ese": "labels",
         "ground": "merged",
+        "layers": "prebuilt",
+        "naip": "NAIP",
         "sct": "sector",
         "source": "airport",
         "stands": "stands",
@@ -280,7 +301,8 @@
       },
       "notes": {
         "runwaysFromOsm": "Runways are approximated from the ends of the OSM centreline. The rectangles that ship to controllers come from the sector file's thresholds — drop <FIR>.sct in as well and the two match exactly.",
-        "standNamesMissing": "OSM has no stand numbers for this field. The merge takes them from GRpluginStands.txt; drop that file in to see them."
+        "standNamesMissing": "OSM has no stand numbers for this field. The merge takes them from GRpluginStands.txt; drop that file in to see them.",
+        "naipMissing": "Stand numbers have not been checked against NAIP, and runway widths are not NAIP's published ones. The merge takes both from Ground/NavData/naip.json; drop it in as well and the two match exactly."
       },
       "errors": {
         "rejected": "Not recognised, skipped: {names}"

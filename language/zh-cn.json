@@ -128,11 +128,17 @@
       "loadFailed": "没能读到你的应用：{message}",
       "loadFailedHint": "登录可能已经过期。",
       "signInAgain": "重新登录",
+      "unreachable": {
+        "title": "暂时读不到你的应用",
+        "description": "连不上 CAN 服务端。你的应用本身不受影响。",
+        "retry": "重试"
+      },
       "count": "{count} 个应用",
       "register": "注册新应用",
       "empty": "还没有应用。注册一个，就能让成员用 CAN 账号登录它。",
       "networkError": "网络不通，稍后再试。",
       "requestFailed": "请求失败（{status}）",
+      "copied": "已复制",
       "errors": {
         "invalid_name": "应用名称去除首尾空白后须为 1–120 个 UTF-8 字节。"
       },
@@ -200,13 +206,25 @@
             "path": "Sector/<FIR>/Plugins/GroundMap/ground.json",
             "what": "合并产物，插件直接读的那一份"
           },
+          "layers": {
+            "path": "Ground/<FIR>/layers/<ICAO>.json",
+            "what": "可选：预渲染机场的图层，有它就不用 OSM 源文件画"
+          },
           "sct": {
             "path": "Sector/<FIR>/<FIR>.sct",
             "what": "可选：跑道头。不给就拿 OSM 中心线近似"
           },
+          "ese": {
+            "path": "Sector/<FIR>/<FIR>.ese",
+            "what": "可选：等待点名称和跑道长度"
+          },
           "stands": {
             "path": "Sector/<FIR>/Plugins/GRplugin/GRpluginStands.txt",
             "what": "可选：OSM 没有机位号时从这里补"
+          },
+          "naip": {
+            "path": "Ground/NavData/naip.json",
+            "what": "可选：NAIP 的机位坐标和跑道宽度，机位号先按它校"
           },
           "style": {
             "path": "Ground/<FIR>/style.json",
@@ -226,7 +244,10 @@
       },
       "kinds": {
         "boundaries": "管制区",
+        "ese": "标牌",
         "ground": "合并",
+        "layers": "预渲染",
+        "naip": "NAIP",
         "sct": "扇区",
         "source": "机场",
         "stands": "机位",
@@ -280,7 +301,8 @@
       },
       "notes": {
         "runwaysFromOsm": "跑道是拿 OSM 中心线的两端撑出来的近似。装到管制员机器上的跑道矩形来自扇区文件的跑道头，把 <FIR>.sct 一起拖进来就完全一致。",
-        "standNamesMissing": "这个场的机位号 OSM 里没有。合并时会从 GRpluginStands.txt 补，把那份文件也拖进来就看得到。"
+        "standNamesMissing": "这个场的机位号 OSM 里没有。合并时会从 GRpluginStands.txt 补，把那份文件也拖进来就看得到。",
+        "naipMissing": "机位号还没经过 NAIP 校对，跑道宽度也不是 NAIP 公布的。合并时两者都以 Ground/NavData/naip.json 为准，把它也拖进来就完全一致。"
       },
       "errors": {
         "rejected": "这些文件认不出来，跳过了：{names}"

@@ -15,7 +15,9 @@
  * 只有一处是**近似**，而且只在缺料时才发生：merge.py 的跑道矩形来自扇区文件
  * 的 `[RUNWAY]` 跑道头，站位号在 OSM 没有时来自 `GRpluginStands.txt`。两份文
  * 件都可以一起拖进来（`parseSct` / `parseStands`），拖了就走和 merge.py 完全
- * 一样的路；没拖才退回用 OSM 跑道中心线的两端撑出矩形。
+ * 一样的路；没拖才退回用 OSM 跑道中心线的两端撑出矩形。NAIP 摘录
+ * （`Ground/NavData/naip.json`）和预渲染图层（`Ground/<FIR>/layers/`）也一样：
+ * 拖了才有，没拖就少那一层，和 merge.py 找不到那份文件时一样。
  */
 
 export type LatLon = [number, number];
@@ -96,10 +98,7 @@ export const DEFAULT_STYLE_DOC: Record<string, unknown> = {
   version: 2,
   colors: {
     field: [122, 122, 122],
-    apron: [135, 135, 135],
     "apron-edge": [96, 104, 128],
-    terminal: [77, 77, 77],
-    runway: [84, 84, 84],
     "runway-mark": [235, 235, 235],
     pavement: [109, 109, 109],
     "twy-edge": [74, 86, 124],
@@ -108,7 +107,6 @@ export const DEFAULT_STYLE_DOC: Record<string, unknown> = {
     "edge-line": [196, 196, 196],
     stand: [135, 135, 135],
     "stand-centre": [170, 170, 170],
-    holding: [255, 120, 0],
     black: [0, 0, 0],
     white: [245, 245, 245],
     "label-bg": [18, 18, 18],
@@ -121,44 +119,53 @@ export const DEFAULT_STYLE_DOC: Record<string, unknown> = {
     "term-edge": [122, 122, 122],
     "acc-bound": [120, 120, 120],
     "tracon-bound": [150, 150, 150],
+    aerodrome: [115, 115, 115],
+    apron: [85, 85, 85],
+    shoulder: [115, 115, 115],
+    runway: [0, 0, 0],
+    runway_mark: [245, 245, 247],
+    terminal: [77, 77, 77],
+    parking: [127, 127, 127],
+    taxiway: [171, 171, 171],
+    holding: [255, 126, 0],
+    holding_point: [255, 126, 0],
+    holding_spot: [255, 0, 0, 32],
+    text: [212, 212, 212],
+    terminal_text: [250, 205, 137],
+    holding_text: [255, 0, 0],
+    parking_text: [126, 206, 244, 128],
+    taxiway_text: [212, 212, 212],
+    runway_text: [255, 255, 255],
+    bg: [0, 0, 0, 100],
   },
   layers: {
-    aerodrome: { fill: "field", line: "apron-edge", "line-width": 1.0 },
-    apron: { fill: "apron", line: "apron-edge", "line-width": 1.0 },
-    terminal: { fill: "terminal" },
-    runway: { fill: "runway", line: "runway-mark", "line-width": 1.5 },
-    taxiway: {
-      fill: "pavement",
-      line: "twy-edge",
-      centre: "twy-centre",
-      "centre-width": 1.0,
-      "line-width": 1.4,
-    },
+    aerodrome: { fill: "aerodrome", line: "aerodrome" },
+    apron: { fill: "apron", line: "apron" },
+    shoulder: { fill: "shoulder", line: "shoulder" },
+    runway: { fill: "runway", line: "runway" },
+    runway_mark: { fill: "runway_mark", line: "runway_mark" },
+    terminal: { fill: "terminal", line: "terminal" },
+    parking: { line: "parking", "line-width": 1.0 },
+    taxiway: { fill: "apron", centre: "taxiway", "centre-width": 1.1 },
+    taxiway_line: { line: "taxiway", "line-width": 1.1 },
+    holding_spot: { fill: "holding_spot", line: "holding_spot" },
+    holding_point: { line: "holding_point", "line-width": 2.5 },
+    holding: { line: "holding", "line-width": 2.5 },
+    text: { text: "white", "font-size": 10.0 },
+    terminal_text: { text: "terminal_text", "font-size": 14.0 },
+    taxiway_text: { text: "taxiway_text", "text-bg": "bg", "font-size": 12.0 },
+    parking_text: { text: "parking_text", "font-size": 12.0 },
+    holding_text: { text: "holding_text", "text-bg": "bg", "font-size": 12.0 },
+    runway_text: { text: "runway_text", "text-bg": "bg", "font-size": 18.0 },
     taxiwayplain: { fill: "pavement", line: "twy-edge", "line-width": 1.4 },
     taxiline: { line: "twy-line", "line-width": 1.1 },
     edgeline: { line: "edge-line", "line-width": 1.0 },
-    stand: { line: "stand-centre", "line-width": 1.6 },
-    holding: { line: "holding", "line-width": 2.5 },
-    twylabel: {
-      text: "white",
-      "text-bg": "black",
-      "text-outline": "white",
-      "font-size": 12.0,
-    },
-    standlabel: { text: "white", "font-size": 11.0 },
-    runwaylabel: {
-      text: "white",
-      "text-bg": "black",
-      "text-outline": "white",
-      "font-size": 16.0,
-    },
-    holdinglabel: {
-      text: "orange",
-      "text-bg": "black",
-      "text-outline": "orange",
-      "font-size": 12.0,
-    },
-    runavaillabel: { text: "orange", "text-bg": "black", "font-size": 11.0 },
+    stand: { line: "parking", "line-width": 1.0 },
+    twylabel: { text: "taxiway_text", "text-bg": "bg", "font-size": 12.0 },
+    standlabel: { text: "parking_text", "font-size": 12.0 },
+    runwaylabel: { text: "runway_text", "text-bg": "bg", "font-size": 18.0 },
+    holdinglabel: { text: "holding_text", "text-bg": "bg", "font-size": 12.0 },
+    runavaillabel: { text: "orange", "text-bg": "bg", "font-size": 11.0 },
     runwaycentre: { line: "rwy-centre", "line-width": 1.6, dash: true },
     grass: { fill: "grass" },
     building: { fill: "building", line: "bldg-edge", "line-width": 1.0 },
@@ -266,6 +273,26 @@ const DEFAULT_RWY_WIDTH = 45.0;
 const DEFAULT_TWY_WIDTH = 23.0;
 /** merge.py 全程按 1 度纬度 = 111000 米算，这里也是 —— 换个数就对不上了。 */
 const M_PER_DEG = 111000.0;
+/** merge.py 的 `LABEL_SPACING_M`：同名标签之间至少隔开多远。 */
+const LABEL_SPACING_M: Record<string, number> = {
+  rwylbl: 5.0,
+  runlbl: 5.0,
+  twylbl: TWY_LABEL_SPACING_M,
+  hldlbl: STD_LABEL_SPACING_M,
+  stdlbl: STD_LABEL_SPACING_M,
+};
+
+/**
+ * `common.FOREIGN_PREFIXES`：VH（香港）和 VM（澳门）属于香港情报区，有自己的扇区
+ * 包。ZGZU 的 `[AIRPORT]` 里带着 VMMC，merge.py 遇到就跳过，这边也跳过。
+ */
+const FOREIGN_PREFIXES = ["VH", "VM"];
+
+/** `common.ours`：这个机场归不归我们画。 */
+export function ours(icao: string): boolean {
+  const u = icao.toUpperCase();
+  return !FOREIGN_PREFIXES.some((p) => u.startsWith(p));
+}
 
 // ---------------------------------------------------------------- 小工具
 
@@ -414,6 +441,41 @@ function thin(items: TextItem[], minM: number, kx: number): TextItem[] {
   return kept;
 }
 
+/** `"01"` → `"1"`：merge.py 的 `_unpad`，同一个机位号的两种写法。 */
+function unpad(name: string): string {
+  return name.replace(/(?<!\d)0+(?=\d)/g, "");
+}
+
+/** merge.py 的 `_pts`：把几何或标签里的每个坐标点收出来，算外框用。 */
+function collectPts(x: unknown, out: LatLon[]): LatLon[] {
+  if (x && typeof x === "object" && !Array.isArray(x) && "p" in x) x = x.p;
+  if (Array.isArray(x) && x.length && typeof x[0] === "number") {
+    out.push(x as LatLon);
+  } else if (Array.isArray(x)) {
+    for (const y of x) collectPts(y, out);
+  }
+  return out;
+}
+
+/** merge.py 的 `with_bounds`：没有一个点就是 `null`。 */
+function withBounds(layers: MapLayer[]): AirportDoc | null {
+  const pts: LatLon[] = [];
+  for (const lay of layers) {
+    collectPts(lay.geom ?? [], pts);
+    collectPts(lay.items ?? [], pts);
+  }
+  if (!pts.length) return null;
+  let [s, w] = pts[0];
+  let [n, e] = pts[0];
+  for (const [y, x] of pts) {
+    if (y < s) s = y;
+    if (y > n) n = y;
+    if (x < w) w = x;
+    if (x > e) e = x;
+  }
+  return { bounds: [s, w, n, e], layers };
+}
+
 // ---------------------------------------------------------------- 扇区包侧的两份料
 
 export interface SctRunway {
@@ -550,6 +612,67 @@ export function parseStands(text: string): Record<string, StandRow[]> {
   return out;
 }
 
+// ---------------------------------------------------------------- NAIP
+
+/** NAIP 停机位置坐标图上的一个机位：`[名字, 纬度, 经度]`。 */
+export type NaipStand = [string, number, number];
+
+/** `Ground/NavData/naip.json`，`tools/naip.py` 从 NAIP 里抽出来的那一份。 */
+export interface NaipDoc {
+  stands?: Record<string, NaipStand[]>;
+  runway_width?: Record<string, Record<string, number>>;
+}
+
+/** 一个机场的那一片：merge.py 的 `naip_slice`。 */
+export interface NaipSlice {
+  stands: NaipStand[] | null;
+  /** 按跑道头编号，`.sct` 的哪一头都查得到。 */
+  width: Record<string, number>;
+}
+
+export function naipSlice(doc: NaipDoc, icao: string): NaipSlice {
+  return {
+    stands: doc.stands?.[icao] ?? null,
+    width: doc.runway_width?.[icao] ?? {},
+  };
+}
+
+/**
+ * 用 NAIP 的停机位置坐标图校一遍机位标签 —— merge.py 的 `naip_stands`。
+ *
+ * NAIP 是公布的那一份，所以它说了算：名字 NAIP 也有的标签留在原处；名字 NAIP
+ * 没有、又在某个 NAIP 机位 `STD_NAME_MERGE_M` 以内的，是那个机位的旧名，去掉；
+ * 还没有标签的 NAIP 机位按公布坐标补上。离哪个 NAIP 机位都远的标签不动 —— NAIP
+ * 只列管制分配的机位，不列每一个通航和维修位。
+ */
+function naipStands(
+  items: TextItem[],
+  naip: NaipStand[] | null | undefined,
+  kx: number,
+): TextItem[] {
+  if (!naip?.length) return items;
+  const names = new Set(naip.map(([n]) => n));
+  // "1" 和 "01" 是同一个机位的两种写法 —— 除非 NAIP 两个都列了（ZSFZ 的直升机
+  // 位 01-03 和固定翼的 1、2）
+  const loose = new Set([...names].map(unpad));
+  const near = (it: TextItem) =>
+    naip.some(
+      ([, la, lo]) =>
+        Math.hypot(
+          (it.p[0] - la) * M_PER_DEG,
+          (it.p[1] - lo) * M_PER_DEG * kx,
+        ) < STD_NAME_MERGE_M,
+    );
+  const out = items.filter(
+    (it) => names.has(it.t) || (!loose.has(unpad(it.t)) && !near(it)),
+  );
+  const shown = new Set(out.map((it) => it.t));
+  for (const [n, la, lo] of naip) {
+    if (!shown.has(n)) out.push({ t: n, p: [r7(la), r7(lo)] });
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- 合并
 
 /** 这一次预览里，哪些东西没有按 merge.py 的正路走。 */
@@ -576,6 +699,9 @@ export interface AirportBuild {
  * 件"，要近似；`[]` 是"扇区文件在，但它没有这个机场的跑道行"，那就照 merge.py
  * 一条都不画。ZL02、ZL03 这些只在站位表里、不在 `.sct` 里的场，产物里本来就没
  * 有跑道层。
+ *
+ * `naip` 是这个机场在 `naip.json` 里的那一片：机位号和坐标、跑道宽度都先听它的。
+ * 没有 OSM 几何的场（只有 NAIP 机位和 `.sct` 跑道）也照样出图。
  */
 export function buildAirportFromSource(
   icao: string,
@@ -583,15 +709,19 @@ export function buildAirportFromSource(
   runways?: SctRunway[],
   stands?: StandRow[],
   freetext?: FreetextLabel[],
+  naip?: NaipSlice,
 ): AirportBuild {
   const notes: BuildNotes = {
     runwaysFromOsm: false,
     standNamesMissing: false,
   };
   const usable = els.filter((e) => Array.isArray(e?.g) && e.g.length > 0);
-  if (!usable.length) return { icao, airport: null, notes };
-
-  const la0 = usable[0].g[0][0];
+  let la0: number;
+  if (usable.length) la0 = usable[0].g[0][0];
+  // 没有 OSM：NAIP 机位加 .sct 跑道
+  else if (runways?.length) la0 = runways[0].la1;
+  else if (naip?.stands?.length) la0 = naip.stands[0][1];
+  else return { icao, airport: null, notes };
   const kx = Math.cos(rad(la0));
 
   const L: Record<string, Geometry[]> = {};
@@ -723,6 +853,11 @@ export function buildAirportFromSource(
     const brg = bearing([rw.la1, rw.lo1], [rw.la2, rw.lo2], kx);
     let width = rw.width;
     if (width === null) {
+      // NAIP 公布的宽度优先：OSM 的 width 常常缺或是估的，.sct 根本不带
+      const nw = naip?.width ?? {};
+      width = nw[rw.n1 ?? ""] || nw[rw.n2 ?? ""] || null;
+    }
+    if (width === null) {
       let best: SourceFeature | null = null;
       let bd = 1e9;
       for (const e of osmRwy) {
@@ -845,12 +980,16 @@ export function buildAirportFromSource(
   // 按位置去重会连隔壁机位一起吞掉。再加一个很紧的位置兜底，管的是两边命名体系
   // 不同的少数场（ZHHH 的 P1..P13 对站位表的数字号），那里「别在已有标牌上再压
   // 一个」比「哪个名字胜出」更重要。
+  //
+  // NAIP 的停机位置坐标图先校一遍（`naipStands`），站位表只补它之后还缺的。
+  texts.stdlbl = naipStands(texts.stdlbl ?? [], naip?.stands, kx);
   const rows = stands ?? [];
   if (rows.length) {
-    const named = new Set((texts.stdlbl ?? []).map((it) => it.t));
-    const anchors = (texts.stdlbl ?? []).map((it) => it.p);
+    const named = new Set(texts.stdlbl.map((it) => it.t));
+    const loose = new Set([...named].map(unpad));
+    const anchors = texts.stdlbl.map((it) => it.p);
     for (const s of rows) {
-      if (named.has(s.name)) continue;
+      if (named.has(s.name) || loose.has(unpad(s.name))) continue;
       if (
         anchors.some(
           ([py, px]) =>
@@ -899,49 +1038,172 @@ export function buildAirportFromSource(
   for (const key of TEXT_KEYS) {
     const items = texts[key];
     if (!items?.length) continue;
-    const spacing =
-      key === "rwylbl" || key === "runlbl"
-        ? 5.0
-        : key === "twylbl"
-          ? TWY_LABEL_SPACING_M
-          : STD_LABEL_SPACING_M;
     const meta = LAYER_TABLE.find((l) => l.key === key)!;
     layers.push({
       id: key,
       style: meta.style,
       kind: meta.kind,
       lod: meta.lod,
-      items: thin(items, spacing, kx),
+      items: thin(items, LABEL_SPACING_M[key], kx),
     });
   }
 
-  const ys: number[] = [];
-  const xs: number[] = [];
-  for (const lay of layers) {
-    for (const it of lay.geom ?? []) {
-      for (const [y, x] of Array.isArray(it) ? it : it.p) {
-        ys.push(y);
-        xs.push(x);
+  return { icao, airport: withBounds(layers), notes };
+}
+
+/** 预渲染图层的文字层，按它顶替的那一种标签：`[图层 id, 样式, lod]`。 */
+const PREBUILT_TEXT: Record<
+  "rwylbl" | "hldlbl" | "stdlbl",
+  [string, string, [number, number]]
+> = {
+  rwylbl: ["runway_text", "runway_text", [0, 25]],
+  hldlbl: ["holding_text", "holding_text", [0, 5]],
+  stdlbl: ["parking_text", "parking_text", [0, 5]],
+};
+
+/** `Ground/<FIR>/layers/<ICAO>.json`：`import_layers.py` 导进来的预渲染图层。 */
+export interface PrebuiltDoc {
+  layers?: MapLayer[];
+}
+
+/**
+ * 预渲染图层加上它缺的东西 —— merge.py 的 `prebuilt_airport`。
+ *
+ * 导进来的几何原样照抄。它不带的，从 `build_airport` 用的同几个来源补，也只补
+ * 这些：没有机场范围时用 OSM 文件里的（ZSLQ）；一个跑道号都没有时用 `.sct`
+ * 的（ZSAM）；跑道长度总是从 `.ese` 补；机位号先过 NAIP；等待点名和机位名按名
+ * 字补，这个场已经在别处显示过的名字、或离某个已有标签不到 `STD_NAME_MERGE_M`
+ * 的，不补 —— 不画两遍。
+ *
+ * 补的标签放进导入件自己的文字层，用它的写法（`05`，不是 `RW05`），一个机场不
+ * 混两种标牌。
+ *
+ * 输入不改：图层是浅拷贝，要动的 `items` 换成新数组 —— 预览每次重算都从同一份
+ * 导入件出发。
+ */
+export function buildPrebuiltAirport(
+  icao: string,
+  body: PrebuiltDoc,
+  runways: SctRunway[],
+  stands: StandRow[],
+  freetext: FreetextLabel[],
+  els: SourceFeature[] | null,
+  naip?: NaipSlice,
+): AirportBuild {
+  const notes: BuildNotes = {
+    runwaysFromOsm: false,
+    standNamesMissing: false,
+  };
+  const layers: MapLayer[] = (body.layers ?? []).map((L) => ({ ...L }));
+  if (!layers.length) return { icao, airport: null, notes };
+  const ref = collectPts(layers[0].geom ?? layers[0].items, []);
+  const kx = ref.length ? Math.cos(rad(ref[0][0])) : 1.0;
+
+  if (els?.length && !layers.some((L) => L.style === "aerodrome")) {
+    const ad: LatLon[][] = [];
+    for (const e of els) {
+      if (e.a !== "aerodrome" || e.g.length < 4) continue;
+      const r = dp(e.g, TOL_M, e.g[0][0]);
+      while (
+        r.length > 3 &&
+        r[0][0] === r[r.length - 1][0] &&
+        r[0][1] === r[r.length - 1][1]
+      ) {
+        r.pop();
       }
+      ad.push(r.map(([y, x]) => [r7(y), r7(x)] as LatLon));
     }
-    for (const it of lay.items ?? []) {
-      ys.push(it.p[0]);
-      xs.push(it.p[1]);
+    if (ad.length) {
+      const meta = LAYER_TABLE.find((l) => l.key === "ad")!;
+      layers.unshift({
+        id: "aerodrome",
+        style: meta.style,
+        kind: meta.kind,
+        lod: meta.lod,
+        geom: ad,
+      });
     }
   }
-  if (!ys.length) return { icao, airport: null, notes };
 
+  const layer = (
+    key: keyof typeof PREBUILT_TEXT,
+  ): MapLayer & { items: TextItem[] } => {
+    const [id, style, lod] = PREBUILT_TEXT[key];
+    const found = layers.find((L) => L.kind === "text" && L.style === style);
+    if (found) return Object.assign(found, { items: [...(found.items ?? [])] });
+    const L = {
+      id,
+      style,
+      kind: "text" as const,
+      lod,
+      items: [] as TextItem[],
+    };
+    layers.push(L);
+    return L;
+  };
+
+  const fresh = (items: TextItem[], name: string, la: number, lo: number) =>
+    !items.some((it) => unpad(it.t) === unpad(name)) &&
+    !items.some(
+      (it) =>
+        Math.hypot(
+          (la - it.p[0]) * M_PER_DEG,
+          (lo - it.p[1]) * M_PER_DEG * kx,
+        ) < STD_NAME_MERGE_M,
+    );
+
+  const rw = layer("rwylbl");
+  if (!rw.items.length) {
+    for (const r of runways) {
+      const dist = Math.hypot(
+        (r.la2 - r.la1) * M_PER_DEG,
+        (r.lo2 - r.lo1) * M_PER_DEG * kx,
+      );
+      if (dist <= 300) continue;
+      const f = 120.0 / dist;
+      rw.items.push(
+        {
+          t: r.n1,
+          p: [r7(r.la1 + (r.la2 - r.la1) * f), r7(r.lo1 + (r.lo2 - r.lo1) * f)],
+        },
+        {
+          t: r.n2,
+          p: [r7(r.la2 - (r.la2 - r.la1) * f), r7(r.lo2 - (r.lo2 - r.lo1) * f)],
+        },
+      );
+    }
+  }
+  const pk = layer("stdlbl");
+  pk.items = naipStands(pk.items, naip?.stands, kx);
+  const hp = freetext.filter((f) => f.kind === "HP");
+  for (const [key, src] of [
+    ["hldlbl", hp.map((f) => [f.text, f.lat, f.lon] as const)],
+    ["stdlbl", stands.map((s) => [s.name, s.lat, s.lon] as const)],
+  ] as const) {
+    const L = layer(key);
+    const add = src
+      .filter(([t, la, lo]) => fresh(L.items, t, la, lo))
+      .map(([t, la, lo]): TextItem => ({ t, p: [r7(la), r7(lo)] }));
+    L.items = [...L.items, ...thin(add, LABEL_SPACING_M[key], kx)];
+  }
+  const run = freetext
+    .filter((f) => f.kind === "RUN")
+    .map((f): TextItem => ({ t: f.text, p: [r7(f.lat), r7(f.lon)] }));
+  if (run.length) {
+    const meta = LAYER_TABLE.find((l) => l.key === "runlbl")!;
+    layers.push({
+      id: "runlbl",
+      style: meta.style,
+      kind: meta.kind,
+      lod: meta.lod,
+      items: thin(run, LABEL_SPACING_M.runlbl, kx),
+    });
+  }
   return {
     icao,
-    airport: {
-      bounds: [
-        Math.min(...ys),
-        Math.min(...xs),
-        Math.max(...ys),
-        Math.max(...xs),
-      ],
-      layers,
-    },
+    airport: withBounds(
+      layers.filter((L) => L.geom?.length || L.items?.length),
+    ),
     notes,
   };
 }
@@ -1056,12 +1318,14 @@ export type FileKind =
   | "tracon"
   | "sct"
   | "stands"
-  | "ese";
+  | "ese"
+  | "naip"
+  | "layers";
 
 /**
- * 拖进来的是什么？**只看内容，不看扩展名** —— `.json` 这一个后缀底下装着四种
- * 完全不同的东西（合并产物、每机场源文件、样式、边界 GeoJSON），而扇区文件和
- * 站位表又都是以 `;` 注释开头的纯文本。
+ * 拖进来的是什么？**只看内容，不看扩展名** —— `.json` 这一个后缀底下装着六种
+ * 完全不同的东西（合并产物、每机场源文件、预渲染图层、样式、NAIP 摘录、边界
+ * GeoJSON），而扇区文件和站位表又都是以 `;` 注释开头的纯文本。
  */
 export function classify(_name: string, text: string): FileKind | null {
   if (/\[RUNWAY\]/.test(text) && /\[AIRPORT\]/.test(text)) return "sct";
@@ -1085,6 +1349,9 @@ export function classify(_name: string, text: string): FileKind | null {
     const o = doc as Record<string, unknown>;
     if (o.airports && typeof o.airports === "object") return "ground";
     if (o.colors && o.layers) return "style";
+    // style.json 的 layers 是对象，预渲染图层的是数组
+    if (Array.isArray(o.layers)) return "layers";
+    if (o.stands && o.runway_width) return "naip";
     if (o.type === "FeatureCollection") {
       const feats =
         (o.features as { properties?: Record<string, unknown> }[]) ?? [];

@@ -1,6 +1,6 @@
 ---
 import SiteLayout from "@/layouts/SiteLayout.astro";
-import { AlertBox } from "@jianyuelab-org/can-ui";
+import { AlertBox, EmptyState, PageHeader } from "@jianyuelab-org/can-ui";
 import AppManager from "@/components/AppManager.vue";
 import { listClients } from "@/lib/canApi";
 import { getLocale, getMessages, useTranslations } from "@/lib/i18n";
@@ -14,7 +14,20 @@ import { getLocale, getMessages, useTranslations } from "@/lib/i18n";
  * 中间件保证到这里一定有会话（/apps 在 `PROTECTED_PREFIXES` 里）。
  */
 const session = Astro.locals.session!;
-const result = await listClients(session.accessToken);
+
+/**
+ * `listClients` 只在 can-api 根本连不上（网络断了、超时）时抛。那不是会话的
+ * 问题，叫人重新登录也没用：这里接住它，换一句「稍后再试」和一个重试链接，
+ * 而不是一个 500 页。can-api 答了话的失败（401 也在内）不经过这里，照旧走下
+ * 面那条「重新登录」。
+ */
+let result: Awaited<ReturnType<typeof listClients>> | null = null;
+try {
+  result = await listClients(session.accessToken);
+} catch (error) {
+  console.error("apps: can-api unreachable", error);
+  Astro.response.status = 503;
+}
 
 const locale = getLocale(Astro.cookies);
 const t = useTranslations(locale, "dev");
@@ -44,15 +57,26 @@ const scopes = SCOPE_NAMES.map((name) => ({
 ---
 
 <SiteLayout title={t("apps.title")}>
-  <h1 class="text-2xl font-semibold tracking-tight text-ink">
-    {t("apps.title")}
-  </h1>
-  <p class="mb-8 mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-    {t("apps.description")}
-  </p>
+  <PageHeader title={t("apps.title")}>
+    <span slot="description" class="block max-w-3xl">
+      {t("apps.description")}
+    </span>
+  </PageHeader>
 
   {
-    result.ok ? (
+    result === null ? (
+      <div class="card">
+        <EmptyState
+          icon="cloud"
+          title={t("apps.unreachable.title")}
+          description={t("apps.unreachable.description")}
+        >
+          <a slot="action" class="btn btn-secondary" href="/apps">
+            {t("apps.unreachable.retry")}
+          </a>
+        </EmptyState>
+      </div>
+    ) : result.ok ? (
       <AppManager
         client:load
         initial={result.data}

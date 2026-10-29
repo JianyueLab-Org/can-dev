@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { createTranslator } from "@/lib/i18n";
-import { AlertBox, useOverlay } from "@jianyuelab-org/can-ui";
+import { AlertBox, EmptyState, useOverlay } from "@jianyuelab-org/can-ui";
 
 /**
  * 「我的应用」的全部交互。
@@ -66,11 +66,18 @@ const formTitle = computed(() =>
   editing.value ? t("form.editTitle") : t("form.createTitle"),
 );
 
+/** 打开表单后把焦点放进第一个输入框：编辑列表下方的应用时，表单出现在页顶。 */
+async function openForm() {
+  creating.value = true;
+  error.value = "";
+  await nextTick();
+  document.getElementById("f-name")?.focus();
+}
+
 function openCreate() {
   form.value = blank();
   editing.value = null;
-  creating.value = true;
-  error.value = "";
+  void openForm();
 }
 
 function openEdit(client: ManagedClient) {
@@ -84,13 +91,13 @@ function openEdit(client: ManagedClient) {
     isPublic: client.isPublic,
   };
   editing.value = client.id;
-  creating.value = true;
-  error.value = "";
+  void openForm();
 }
 
 function close() {
   creating.value = false;
   editing.value = null;
+  error.value = "";
 }
 
 /** 所有请求走这里，好让「正在忙」和错误显示只写一遍。 */
@@ -217,8 +224,19 @@ async function confirmDelete() {
   }
 }
 
-function copy(text: string) {
-  navigator.clipboard?.writeText(text);
+/** 刚复制的那段文字，按钮据此显示「已复制」。 */
+const copied = ref<string | null>(null);
+let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function copy(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    return;
+  }
+  copied.value = text;
+  clearTimeout(copiedTimer);
+  copiedTimer = setTimeout(() => (copied.value = null), 1500);
 }
 </script>
 
@@ -233,7 +251,10 @@ function copy(text: string) {
       </button>
     </div>
 
-    <AlertBox v-if="error" variant="danger" class="mb-4">{{ error }}</AlertBox>
+    <!-- 表单开着时，错误显示在表单里、提交按钮上方：表单长，页顶那一条看不见。 -->
+    <AlertBox v-if="error && !creating" variant="danger" class="mb-4">{{
+      error
+    }}</AlertBox>
 
     <!-- 密钥只在这一刻存在。刷新之后就再也拿不到了，所以说得直白些。 -->
     <AlertBox
@@ -252,7 +273,7 @@ function copy(text: string) {
           class="btn btn-primary px-3 py-1.5 text-xs"
           @click="copy(freshSecret.secret)"
         >
-          {{ t("secret.copy") }}
+          {{ copied === freshSecret.secret ? t("copied") : t("secret.copy") }}
         </button>
         <button
           class="btn btn-ghost px-3 py-1.5 text-xs"
@@ -264,7 +285,7 @@ function copy(text: string) {
     </AlertBox>
 
     <!-- 表单 -->
-    <div v-if="creating" class="card mb-6">
+    <div v-if="creating" class="card mb-6 p-5 sm:p-6">
       <h2 class="mb-4 font-semibold text-ink">{{ formTitle }}</h2>
 
       <div class="grid gap-4">
@@ -356,6 +377,10 @@ function copy(text: string) {
         </label>
       </div>
 
+      <AlertBox v-if="error" variant="danger" class="mt-5">{{
+        error
+      }}</AlertBox>
+
       <div class="mt-5 flex gap-2">
         <button class="btn btn-primary" :disabled="busy" @click="submit">
           {{ editing ? t("form.save") : t("form.create") }}
@@ -367,15 +392,15 @@ function copy(text: string) {
     </div>
 
     <!-- 列表 -->
-    <p v-if="!clients.length" class="card text-sm text-muted">
-      {{ t("empty") }}
-    </p>
+    <div v-if="!clients.length" class="card px-6">
+      <EmptyState compact icon="squaresPlus" :title="t('empty')" />
+    </div>
 
     <ul class="grid gap-4">
-      <li v-for="client in clients" :key="client.id" class="card">
+      <li v-for="client in clients" :key="client.id" class="card p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
-            <h3
+            <h2
               class="flex flex-wrap items-center gap-2 font-semibold text-ink"
             >
               {{ client.name }}
@@ -392,13 +417,19 @@ function copy(text: string) {
               <span v-if="client.isPublic" class="badge badge-neutral">{{
                 t("card.publicClient")
               }}</span>
-            </h3>
+            </h2>
             <button
               class="mt-1 font-mono text-xs text-faint hover:text-ink"
               :title="t('card.copyClientId')"
               @click="copy(client.id)"
             >
               {{ client.id }}
+              <span
+                v-if="copied === client.id"
+                class="ml-2 font-sans text-success-fg"
+                aria-live="polite"
+                >{{ t("copied") }}</span
+              >
             </button>
           </div>
 
@@ -433,7 +464,7 @@ function copy(text: string) {
           </div>
         </div>
 
-        <dl class="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+        <dl class="mt-4 grid gap-x-6 gap-y-3 text-xs sm:grid-cols-2">
           <div>
             <dt class="text-faint">{{ t("card.redirectUris") }}</dt>
             <dd class="mt-1 space-y-0.5">
@@ -466,7 +497,8 @@ function copy(text: string) {
       class="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
       <div
-        class="animate-overlay-in absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+        aria-hidden="true"
+        class="animate-overlay-in absolute inset-0 bg-[var(--scrim)]"
         @click="closeDelete"
       ></div>
       <div
@@ -475,17 +507,21 @@ function copy(text: string) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-title"
-        class="animate-panel-in card relative w-full max-w-md overscroll-contain"
+        aria-describedby="delete-detail"
+        class="animate-panel-in card relative w-full max-w-md overscroll-contain p-6"
       >
-        <h3 id="delete-title" class="font-semibold text-ink">
+        <h2 id="delete-title" class="font-semibold text-ink">
           {{ t("delete.title", { name: deleting.name }) }}
-        </h3>
-        <p class="mt-2 text-sm leading-relaxed text-muted">
+        </h2>
+        <p id="delete-detail" class="mt-2 text-sm leading-relaxed text-muted">
           {{ t("delete.detail") }}
         </p>
         <input
           v-model="deleteTyped"
           class="input mt-3"
+          autocomplete="off"
+          spellcheck="false"
+          aria-labelledby="delete-detail"
           :placeholder="deleting.name"
         />
         <div class="mt-4 flex justify-end gap-2">
