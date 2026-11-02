@@ -119,7 +119,8 @@
         "exchange_failed": "The token exchange failed. Try again shortly.",
         "access_denied": "You pressed deny on the consent screen.",
         "unknown": "Sign-in failed: {error}",
-        "network_session_missing": "No network session was found. Sign in on the main site first, then sign in here."
+        "network_session_missing": "No network session was found. Sign in on the main site first, then sign in here.",
+        "network_session_mismatch": "Your network account changed during sign-in. Sign in here again."
       }
     },
     "apps": {

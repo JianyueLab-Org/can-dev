@@ -2,7 +2,11 @@ import type { APIRoute } from "astro";
 import crypto from "node:crypto";
 
 import { exchangeCode, userinfo } from "@/lib/canApi";
-import { NETWORK_SESSION_COOKIE } from "@/lib/networkSession";
+import {
+  endDevSession,
+  readNetworkMember,
+  revokeToken,
+} from "@/lib/networkSession";
 import { safeNext, takePending, writeSession } from "@/lib/session";
 
 /**
@@ -39,30 +43,37 @@ export const GET: APIRoute = async ({ cookies, url, redirect }) => {
     return redirect("/?error=state_mismatch", 302);
   }
 
-  // 网络会话看不见时不发本站会话：中间件会立刻把它当孤儿清掉，登录会绕圈。
-  if (!cookies.has(NETWORK_SESSION_COOKIE)) {
-    return redirect("/?error=network_session_missing", 302);
-  }
+  // 回调不消费旧会话；无论登录结果如何，都不能留下旧账号的管理令牌。
+  void endDevSession(cookies);
+  const member = await readNetworkMember(cookies);
+  if (!member) return redirect("/?error=network_session_missing", 302);
 
+  let accessToken: string | undefined;
   try {
     const tokens = await exchangeCode(code, pending.verifier);
+    accessToken = tokens.access_token;
     const who = await userinfo(tokens.access_token);
+    if (who.sub !== member.username) {
+      void revokeToken(accessToken);
+      return redirect("/?error=network_session_mismatch", 302);
+    }
 
     writeSession(cookies, {
-      username: who.sub,
-      name: who.name ?? null,
+      username: member.username,
+      name: member.name,
       accessToken: tokens.access_token,
       // 比令牌自己早 30 秒过期：一个「刚好还没过期」的令牌发出去，会在
       // can-web 那边变成 401，而这里表现为一次莫名其妙的失败。
       expiresAt: Date.now() + Math.max(0, tokens.expires_in - 30) * 1000,
-      developer: who.developer,
-      rating: who.rating,
+      developer: member.developer,
+      rating: member.rating,
     });
 
     // 不是开发者的人照样发会话。到 `/apps`、`/docs` 时中间件在原地址渲染
     // NoAccess（403），那一页报出他的 CAN ID。
     return redirect(safeNext(pending.next), 302);
   } catch {
+    if (accessToken) void revokeToken(accessToken);
     return redirect("/?error=exchange_failed", 302);
   }
 };

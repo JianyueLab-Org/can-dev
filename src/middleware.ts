@@ -6,9 +6,9 @@ import { resolveDevSession } from "@/lib/networkSession";
 /**
  * 会话解析 + 路由保护 + 安全响应头。
  *
- * 会话在这里解一次，挂到 `locals.session` 上。带 `can_dev_session` 却没有
- * `can_session` 的请求，本站会话在这里被清掉、令牌被吊销
- * （`lib/networkSession.ts`）。
+ * 会话在这里解一次，并验证网络身份，挂到 `locals.session` 上。
+ * 网络身份缺失、失效、换号或无法核实时，清本站会话并后台吊销令牌。
+ * OAuth 回调自己验证身份和发放会话，不消费旧会话。
  *
  * `/api/*` 不在保护范围里：那些路由自己检查会话（`requireSession`）。
  *
@@ -17,8 +17,8 @@ import { resolveDevSession } from "@/lib/networkSession";
  * 名单在 `lib/nav.ts`，导航和退出去向读同一份。
  *
  * 登录了但不是开发者：改写到 `/no-access`，地址不变，渲染 `NoAccess`，403。
- * 这道判断读会话里的缓存，是门面，不是边界。边界是 can-api 的
- * `/api/v1/dev/clients`，每次请求都重读 `user.developer`。
+ * 开发者资格来自当前网络身份。can-api 的 `/api/v1/dev/clients`
+ * 仍独立检查令牌、开发者资格和应用所有权。
  */
 function withSecurityHeaders(response: Response): Response {
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -28,7 +28,10 @@ function withSecurityHeaders(response: Response): Response {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const session = resolveDevSession(context.cookies);
+  const session =
+    context.url.pathname === "/auth/callback"
+      ? null
+      : await resolveDevSession(context.cookies);
   context.locals.session = session;
 
   const path = context.url.pathname;

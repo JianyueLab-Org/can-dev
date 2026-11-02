@@ -119,7 +119,8 @@
         "exchange_failed": "沒能換到權杖，稍後再試。",
         "access_denied": "你在授權頁上點了拒絕。",
         "unknown": "登入失敗：{error}",
-        "network_session_missing": "沒有讀到網路連線階段。請先在主站登入，再回到這裡登入。"
+        "network_session_missing": "沒有讀到網路連線階段。請先在主站登入，再回到這裡登入。",
+        "network_session_mismatch": "登入期間網路帳號已切換，請重新登入開發者中心。"
       }
     },
     "apps": {

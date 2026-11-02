@@ -7,7 +7,7 @@ import { sessionSecret } from "./config";
  * 会话：一个加密的 cookie，里面装着访问令牌。
  *
  * **令牌绝不能到浏览器里去。** 页面上的 Vue 岛屿要改应用时调的是本站自己的
- * `/api/clients/*`，那些路由在服务端把 cookie 解开、拿出令牌、再去问 can-web。
+ * `/api/clients/*`，那些路由在服务端把 cookie 解开、拿出令牌、再去问 can-api。
  * 如果令牌直接发给浏览器，那么开发者中心的任何一处 XSS 都等于把「管理这个成
  * 员名下所有应用」的能力交出去，而这些应用的回调地址是可以改的。
  *
@@ -30,25 +30,14 @@ export interface Session {
   /** epoch 毫秒。到点就当没登录，而不是拿一个必然被拒的令牌去打一次 API。 */
   expiresAt: number;
   /**
-   * 这个成员是不是开发者 —— 登录时从 userinfo 的 `developer` claim 抄下来的。
-   *
-   * **这是一份缓存，不是权威。** 权威在 can-api：`/api/v1/dev/clients` 每次请求
-   * 都重读 `user.developer`，所以撤销立刻生效。这里存一份，是为了每次翻页决定画
-   * 哪几条导航时不必再打一次 userinfo —— 会话最长活一小时（跟着令牌走），所以
-   * 这份副本最多旧一小时，而旧掉的后果是菜单上多了一条点进去会被拦的链接。
-   *
-   * 可选（`?`）而不是必填，是为了**旧 cookie**：这一列上线之前签发的会话里没有
-   * 这个字段，解出来是 `undefined`。判断一律写成 `session.developer === true`，
-   * 于是旧会话按「不是开发者」处理 —— 安全的那个方向，而且下一次登录就自愈。
+   * 开发者资格。OAuth 回调写入，后续请求由 resolveDevSession 从已验证的
+   * 网络身份刷新。can-api 仍逐次检查 apps:manage 和当前开发者资格。
+   * 可选字段兼容已有加密会话；路由只接受 developer === true。
    */
   developer?: boolean;
   /**
-   * 会员评级 —— 登录时从 userinfo 的 `rating` claim 抄下来的，只喂给站头的
-   * 「全网」菜单：教员门户（8）和航行资料库（12）按它露不露。
-   *
-   * **不是权限判断**，和 `developer` 一样是一份会旧掉的缓存；旧掉的后果是菜单
-   * 多一条或少一条链接。可选，是因为这一列上线之前签发的 cookie 里没有它 ——
-   * 解出来是 `undefined`，`visibleSites` 对它少给而不是多给。
+   * 会员评级。OAuth 回调写入，后续请求从已验证的网络身份刷新。
+   * 用于站头的全网菜单；开发者管理没有额外的评级门槛。
    */
   rating?: number;
 }
