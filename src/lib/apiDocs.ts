@@ -558,10 +558,11 @@ const CLIENTS_LATEST: ApiEndpoint = {
   path: "/api/v1/clients/latest",
   summary: "Is there a newer version of a desktop client?",
   body: [
-    "Without parameters this describes the newest can-audio release — its version, when it was published, where the notes are, and one entry per package in `clients` (`audio-for-can`, `atis-for-can`) with its size and a download link — plus `apps`: programs released separately, keyed by name. Today those are `can-pilot` (the pilot client for MSFS 2020/2024 and X-Plane 11.50+/12 on Windows, which replaces `msfs-for-can` and `xpc-for-can`) and `can-downloader`. An app that cannot be resolved is simply absent from `apps`.",
-    "Each `apps` entry carries `name`, `version`, `publishedAt`, `prerelease`, `size`, `sha256` (when GitHub recorded one), `download` (our relay), `notes` (the release page), `origin` (the GitHub asset) and `changelog` (the release body, Markdown). An app's version is its newest stable release; a prerelease is offered only while the app has no stable one.",
+    "Without parameters this returns independently released applications in `apps`: `audio-for-can` (the C# controller voice client), `atis-for-can` (the C# ATIS client), `can-pilot` and `can-downloader`. There is no shared release version and `clients` is empty. A specific audio or ATIS check retains `clients[name]` for existing consumers. An application with no matching release package is absent rather than replaced with a retired Python client.",
+    "Each `apps` entry carries `name`, `version`, `publishedAt`, `prerelease`, `size`, `sha256` (when GitHub recorded one), `download` (our relay), `notes` (the release page), `origin` (the GitHub asset) and `changelog` (the release body, Markdown). Audio and ATIS include `platforms.win-x64` with that platform's download, origin, size and optional SHA-256. An app's version is its newest stable release; a prerelease is offered only while the app has no stable one.",
     'With `client` and `version` it answers the question directly, so every client agrees on what "newer" means rather than each writing its own comparison. Versions are compared numerically field by field and a leading `v` is ignored — as strings, `2.0.10` sorts before `2.0.9` and the check either nags forever or never fires. Every run of digits counts, including one in a suffix: `2.1.0-rc1` reads as `2.1.0.1` and compares *newer* than `2.1.0`.',
     "What to do about an update is the client's business. The design is *tell the user, let them choose* — never a silent self-update.",
+    "The update example below shows only compatibility and update fields. The full response also includes apps.",
   ],
   auth: "none",
   cors: true,
@@ -572,7 +573,7 @@ const CLIENTS_LATEST: ApiEndpoint = {
       name: "client",
       type: "string",
       description:
-        "One of `audio-for-can`, `atis-for-can` (the can-audio bundle — the answer carries no `apps`), `can-pilot`, `can-downloader` (an app — `update` compares against that app's version, and the answer carries `apps` but none of the bundle's `version`, `clients` or `notes`), or the retired `msfs-for-can` / `xpc-for-can` (answered with can-pilot — see below). Adds two top-level keys to the answer: `client` (the name you asked about, as a **string**) and `update` (an object — `available`, `current`, `latest`).",
+        "One of `audio-for-can`, `atis-for-can`, `can-pilot`, `can-downloader`, or the retired `msfs-for-can` / `xpc-for-can` (answered with can-pilot). Every successful response includes `apps`. Audio and ATIS checks also retain top-level `version`, `publishedAt`, `notes` and `clients` for existing consumers. Adds `client` (the requested name as a string) and `update` (`available`, `current`, `latest`), compared against that product's own release.",
     },
     {
       name: "version",
@@ -595,23 +596,22 @@ const CLIENTS_LATEST: ApiEndpoint = {
   ],
   example: {
     request:
-      "curl '{origin}/api/v1/clients/latest?client=atis-for-can&version=2.0.0'",
+      "curl '{origin}/api/v1/clients/latest?client=atis-for-can&version=3.0.4'",
     response: `{
-  "version": "2.0.3",
-  "publishedAt": "2026-07-31T08:35:28Z",
-  "notes": "https://github.com/JianyueLab-Org/can-audio/releases/tag/v2.0.3",
+  "version": "3.0.5",
+  "publishedAt": "2026-11-02T00:00:00Z",
+  "notes": "https://github.com/JianyueLab-Org/can-atis/releases/tag/v3.0.5",
   "clients": {
-    "audio-for-can": { "name": "audio-for-can", "version": "2.0.3", "size": 64583682, "download": "…", "origin": "…" },
     "atis-for-can": {
       "name": "atis-for-can",
-      "version": "2.0.3",
-      "size": 58094371,
-      "download": "{origin}/api/v1/clients/download/atis-for-can?v=2.0.3",
-      "origin": "https://github.com/JianyueLab-Org/can-audio/releases/download/v2.0.3/…"
+      "version": "3.0.5",
+      "size": 60000000,
+      "download": "{origin}/api/v1/clients/download/atis-for-can?v=3.0.5",
+      "origin": "https://github.com/JianyueLab-Org/can-atis/releases/download/v3.0.5/atis-for-can-3.0.5-win-x64.zip"
     }
   },
   "client": "atis-for-can",
-  "update": { "available": true, "current": "2.0.0", "latest": "2.0.3" }
+  "update": { "available": true, "current": "3.0.4", "latest": "3.0.5" }
 }`,
   },
   notes: [
@@ -619,7 +619,7 @@ const CLIENTS_LATEST: ApiEndpoint = {
     "**This endpoint has no `{status, data, timestamp}` envelope.** Most of can-api wraps its answer; this one writes the document at the top level, and the field names are `publishedAt` (camelCase) and `notes`. Read the keys above literally.",
     "**`client` is a string and `update` is an object.** They replaced an earlier `client` object plus an `update_available` boolean, and older shipped desktop clients still read the old shape — so they are the ones that are wrong, not this page. There is no `reason` field anywhere in the answer.",
     "**`msfs-for-can` and `xpc-for-can` are retired; their update check is answered with can-pilot.** `update.latest` is can-pilot's version, `clients[<retired name>]` holds `name`, `version`, `size` and a `download` pointing at can-pilot's relay link, and `notes` is can-pilot's release page — so an old pilot client is told to move on. Only a **stable** can-pilot is offered: while its successor is a prerelease, `update.available` is `false`, `clients` is empty and there is no `notes`. Neither name can be downloaded any more.",
-    "**A package missing from a release still gets an `update` answer.** When one of the builds fails it is simply absent from `clients`, but `update.available` is computed from the release version regardless — so check that `clients[name]` exists before following a download, rather than trusting `available` alone.",
+    "**An unavailable package is not an update.** The full catalogue omits an unresolved product; a check for that product returns 503 `unavailable`. Audio and ATIS checks offer stable C# packages only, never the retired Python releases.",
     "Cached for 5 minutes at the edge, so a release reaches members within minutes without every client startup reaching GitHub.",
   ],
 };
@@ -632,7 +632,7 @@ const CLIENTS_DOWNLOAD: ApiEndpoint = {
   body: [
     "`github.com` and `objects.githubusercontent.com` are unreliable from the mainland — a 60 MB release asset routinely crawls or stops halfway — so the bytes are relayed through this origin, which members can already reach. This is the link `/api/v1/clients/latest` hands out and the one the download centre uses.",
     "It is **not an open proxy**: the upstream URL only ever comes out of the resolved release for a fixed set of repositories, keyed by a whitelist of four names, and nothing the caller sends is used to build it.",
-    "When the release records a SHA-256 for the asset — GitHub's digest for an app (`can-pilot`, `can-downloader`), or a published `SHA256SUMS` for the can-audio bundle — a `GET` downloads and hashes the whole file before sending a byte, and a mismatch is a 502 `checksum_mismatch` rather than bytes nobody published.",
+    "When GitHub records a SHA-256 digest for a release asset, a `GET` downloads and hashes the whole file before sending a byte. A mismatch is a 502 `checksum_mismatch` rather than bytes nobody published.",
   ],
   auth: "none",
   cors: true,
@@ -675,7 +675,7 @@ const CLIENTS_DOWNLOAD: ApiEndpoint = {
     },
     {
       code: 404,
-      when: "`unknown_client` — not one of the four names (including the retired `msfs-for-can` / `xpc-for-can`); or `no_asset` — that bundle package is not in the latest release.",
+      when: "`unknown_client` — an unknown or retired download product name.",
     },
     { code: 405, when: "`method_not_allowed` — anything but `GET` or `HEAD`." },
     {
