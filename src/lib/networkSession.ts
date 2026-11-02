@@ -14,8 +14,8 @@ import {
  * `can_session` 是 can-api 写在父域 `.ceruleanavi.net` 上的网络会话，这个站
  * 看得见。`can_dev_session` 是本站的，装着本站的 OAuth 访问令牌。
  *
- * 网络会话没了（在任何一个站退出），本站会话跟着走：吊销令牌，清 cookie。
- * 第三方应用的令牌不在这里，网络退出不吊销它们。
+ * 每次使用本站会话前向 can-api 核实网络身份，必须与令牌所属成员一致。
+ * 无法核实时清本站 cookie，后台吊销令牌；不改网络 cookie 或第三方令牌。
  */
 export const NETWORK_SESSION_COOKIE = "can_session";
 
@@ -52,21 +52,78 @@ export async function endDevSession(
   if (session) await revoke(session.accessToken);
 }
 
+export interface NetworkMember {
+  username: string;
+  name: string;
+  developer: boolean;
+  rating: number;
+}
+
+/** 网络 cookie 只交给 can-api 验证，不在本站解码或信任其存在。 */
+export async function readNetworkMember(
+  cookies: AstroCookies,
+): Promise<NetworkMember | null> {
+  const cookie = cookies.get(NETWORK_SESSION_COOKIE)?.value;
+  if (!cookie) return null;
+  try {
+    const response = await fetch(new URL("/api/v1/auth/session", apiOrigin()), {
+      headers: { Cookie: `${NETWORK_SESSION_COOKIE}=${cookie}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(REVOKE_TIMEOUT_MS),
+    });
+    if (!response.ok) return null;
+    const body: unknown = await response.json();
+    if (!body || typeof body !== "object" || !("user" in body)) return null;
+    const user = body.user;
+    if (
+      !user ||
+      typeof user !== "object" ||
+      !("username" in user) ||
+      typeof user.username !== "string" ||
+      !user.username ||
+      !("name" in user) ||
+      typeof user.name !== "string" ||
+      !("developer" in user) ||
+      typeof user.developer !== "boolean" ||
+      !("rating" in user) ||
+      typeof user.rating !== "number" ||
+      !Number.isInteger(user.rating)
+    ) {
+      return null;
+    }
+    return {
+      username: user.username,
+      name: user.name,
+      developer: user.developer,
+      rating: user.rating,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
- * 中间件读会话用这一个。
- *
- * 带 `can_dev_session` 却没有 `can_session`：清掉本站会话，后台吊销令牌，
- * 返回 null。吊销不等：`revokeToken` 不抛，页面不必为它多等 5 秒。
+ * 每个请求只验证一次，后续页面和 API 路由共用 locals.session。
+ * 缺失、失效、换号或上游不可用时都不接受旧令牌。
+ * 开发者资格与评级取当前网络身份；是否可管理应用仍由 can-api 复核。
  */
-export function resolveDevSession(
+export async function resolveDevSession(
   cookies: AstroCookies,
   revoke: Revoke = revokeToken,
-): Session | null {
+): Promise<Session | null> {
   if (!cookies.has(SESSION_COOKIE)) return null;
-  if (cookies.has(NETWORK_SESSION_COOKIE)) return readSession(cookies);
+  const session = readSession(cookies);
+  const member = session ? await readNetworkMember(cookies) : null;
+  if (session && member && member.username === session.username) {
+    return {
+      ...session,
+      name: member.name,
+      developer: member.developer,
+      rating: member.rating,
+    };
+  }
 
-  const orphan = readSession(cookies);
   clearSession(cookies);
-  if (orphan) void revoke(orphan.accessToken);
+  if (session) void revoke(session.accessToken);
   return null;
 }

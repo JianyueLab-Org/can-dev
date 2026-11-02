@@ -39,14 +39,14 @@ bun run verify:ground
 
 - `src/lib/signout.test.ts`：`POST /api/v1/auth/signout` 的 Origin 检查、吊销、
   转发和 `Set-Cookie`。它是唯一一条不经过 `requireSession()` 的写操作。
-- `src/lib/networkSession.test.ts`：中间件那条规则 —— 有 `can_dev_session`
-  没有 `can_session`，就吊销令牌、清掉本站会话。
+- `src/lib/networkSession.test.ts`：网络身份与令牌主体绑定、资格刷新、失效和
+  上游故障时清理，以及直接 API 修改请求在发出令牌前被拒绝。
 - `src/lib/nav.test.ts`：导航四项的顺序和要登录的路径。
 - `src/lib/pageTitle.test.ts`：标题格式。
 - `src/lib/notifications.test.ts`：通知铃的五条路径、Origin 检查、只带
   `can_session`、204 和 `Set-Cookie` 原样回来。
-- `src/lib/callback.test.ts`：`GET /auth/callback` 没有 `can_session` 时跳回
-  `/?error=network_session_missing`，不换码，不写 `can_dev_session`。
+- `src/lib/callback.test.ts`：OAuth 回调核实网络身份，拒绝失效会话或主体不符，
+  不写本站会话，并吊销已经换到的令牌。
 - `src/lib/session.test.ts`：`safeNext` 只放行站内路径，其余一律回 `/apps`。
 
 测试文件放在 `src/lib/` 而不是挨着被测的路由：`src/pages/` 下每一个 `.ts` 都是一条
@@ -144,9 +144,11 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 - 通知铃：`Frame.vue` 设 `notifications`。`src/pages/api/v1/notifications/[...path].ts`
   把五条路径转给 can-api，只带 `can_session`；写操作查 Origin。逻辑在
   `src/lib/notifications.ts`。
-- 中间件：带 `can_dev_session` 没有 `can_session` 的请求，吊销令牌、清本站会话。
-  `can_session` 在父域 `.ceruleanavi.net` 上，这个站看得见。本机开发时 can-api、
-  can-web 和本站都要在 `127.0.0.1` 上，否则每个请求都像已在别处退出。
+- 中间件：有 `can_dev_session` 时只向 can-api 的 `/api/v1/auth/session`
+  查一次网络身份，须与本站令牌所属成员一致。缺失、失效、换号或上游不可用时，
+  清本站 cookie 并后台吊销令牌，不改网络 cookie。开发者资格和评级使用当前值，
+  管理应用没有额外评级门槛。OAuth 回调自行核实身份，不消费旧会话。
+  本机开发时 can-api、can-web 和本站都要在 `127.0.0.1` 上。
 - 已登录但不是开发者：中间件把 `/apps`、`/docs` 改写到 `/no-access`，地址不变，
   渲染 `NoAccess`，403。直接访问 `/no-access` 跳回首页。
 - `/apps`：can-api 连不上（`listClients` 抛出）时页面回 503，渲染重试链接；can-api

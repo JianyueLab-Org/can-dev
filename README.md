@@ -75,6 +75,12 @@ bun run build && bun run start
 令牌能改一个应用的回调地址，也就是能决定授权码送到哪儿去 —— 这种东西放进
 `localStorage`，一处 XSS 就等于全交出去。
 
+**本站会话绑定当前网络身份。** 每次使用 `can_dev_session` 前，服务端只带
+`can_session` 查询 can-api 的 `/api/v1/auth/session`，身份须与访问令牌所属成员
+一致。网络会话缺失、失效、换号或无法核实时，清本站会话并后台吊销本站令牌，
+不清网络 cookie。开发者资格和评级取当前网络身份；应用管理没有额外评级门槛。
+OAuth 回调也核实网络身份与 userinfo 的主体一致后才发放本站会话。
+
 **校验只有一份，在 can-api。** 回调地址的规则、保留的应用名、能申请哪些
 scope，全在 can-api 的 `internal/oauth/registry.go`。应用名称去除首尾空白后须为
 1–120 个 UTF-8 字节；`invalid_name` 显示四语言提示，`name_reserved` 和其他错误
