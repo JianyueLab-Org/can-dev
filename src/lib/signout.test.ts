@@ -81,6 +81,20 @@ afterEach(() => {
 });
 
 describe("POST /api/v1/auth/signout", () => {
+  test.each([undefined, "null"])(
+    "rejects Origin %s before clearing sessions",
+    async (sent) => {
+      stubFetch(upstreamOk);
+      const { ctx, deleted } = context(
+        sent === undefined ? {} : { origin: sent },
+        { can_dev_session: sealedSession(), can_session: "net" },
+      );
+      expect((await POST(ctx)).status).toBe(403);
+      expect(deleted).toEqual([]);
+      expect(calls).toEqual([]);
+    },
+  );
+
   test("跨站请求 403，不清 cookie，不发任何请求", async () => {
     stubFetch(upstreamOk);
     const { ctx, deleted } = context(
@@ -121,16 +135,6 @@ describe("POST /api/v1/auth/signout", () => {
     const forwarded = calls[1].init.headers as Record<string, string>;
     expect(forwarded.cookie).toBe("can_session=net-token");
     expect(calls[1].init.method).toBe("POST");
-  });
-
-  test("不带 Origin 头的调用方放行", async () => {
-    stubFetch(upstreamOk);
-    const { ctx, deleted } = context({}, { can_dev_session: sealedSession() });
-
-    const response = await POST(ctx);
-
-    expect(response.status).toBe(200);
-    expect(deleted).toEqual(["can_dev_session"]);
   });
 
   test("没有本站会话：不吊销，照样转发", async () => {

@@ -8,8 +8,8 @@ import { NETWORK_SESSION_COOKIE } from "./networkSession";
  * `/api/v1/notifications…`。
  *
  * - 路径按 `ROUTES` 收紧，表外 404，方法不对 405。
- * - 写操作查 Origin，比对 `PUBLIC_ORIGIN`，不带 Origin 头的放行 —— 和
- *   `signout.ts`、`guard.ts` 同一判法。
+ * - 写操作要求 Origin 完全匹配 `PUBLIC_ORIGIN`；缺失、null 或其他源拒绝，
+ *   与 `signout.ts`、`guard.ts` 使用同一策略。
  * - 只带 `can_session`。这几条在 can-api 上只认 cookie，本站令牌不给它。
  * - 原样带回状态、响应体和每一条 `Set-Cookie`，一律 no-store。
  */
@@ -69,7 +69,7 @@ export async function handleNotifications(
 
   if (method !== "GET") {
     const sent = request.headers.get("origin");
-    if (sent && sent !== origin()) {
+    if (sent !== origin()) {
       return Response.json(
         { error: "bad_origin", message: "跨站请求被拒绝。" },
         { status: 403, headers: NO_STORE },
