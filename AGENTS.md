@@ -75,6 +75,10 @@ can-api。令牌能改回调地址，也就是能决定授权码送到哪儿 —
 `POST /api/v1/dev/clients/{id}/disabled`。`disabled` 是必填 JSON 布尔值，
 由 can-api 校验；成功后才刷新列表。停用吊销已发出的令牌，启用不恢复这些令牌。
 
+Unsafe app mutations, sign-out, and notification writes require `Origin` to equal `PUBLIC_ORIGIN`.
+Missing, `null`, and foreign origins return 403 `bad_origin` before any mutation or forwarding.
+Safe methods do not require Origin. Server-to-server can-api requests remain Origin-less.
+
 ## `/ground` —— 站上唯一没有上游的一页
 
 **它是 `merge.py` 和 `GroundMap.cpp` 的第二份实现。** `src/lib/groundMap.ts` 是

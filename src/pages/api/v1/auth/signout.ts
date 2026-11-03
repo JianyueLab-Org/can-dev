@@ -6,8 +6,7 @@ import { NETWORK_SESSION_COOKIE, endDevSession } from "@/lib/networkSession";
 /**
  * 网络退出。can-ui 的 `AccountMenu` 同源 POST 到这里。
  *
- * 1. Origin 检查，在清 cookie 之前。比对显式的 `PUBLIC_ORIGIN`，不带 Origin
- *    头的放行 —— 和 `lib/guard.ts` 同一判法。
+ * 1. Origin 必须等于显式的 `PUBLIC_ORIGIN`，在清 cookie 之前检查。
  * 2. 吊销本站令牌，清 `can_dev_session`。
  * 3. 转发 can-api 的 `/api/v1/auth/signout`，只带 `can_session`，原样返回它的
  *    状态、响应体和每一条 `Set-Cookie`。
@@ -17,7 +16,7 @@ const NO_STORE = { "cache-control": "no-store, private" };
 
 export const POST: APIRoute = async ({ cookies, request }) => {
   const sent = request.headers.get("origin");
-  if (sent && sent !== origin()) {
+  if (sent !== origin()) {
     return Response.json(
       { error: "bad_origin", message: "跨站请求被拒绝。" },
       { status: 403, headers: NO_STORE },

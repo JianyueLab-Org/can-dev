@@ -56,7 +56,7 @@ export function requireSession(context: APIContext): Guarded {
 
   if (UNSAFE.has(context.request.method)) {
     const sent = context.request.headers.get("origin");
-    if (sent && sent !== origin()) {
+    if (sent !== origin()) {
       return {
         ok: false,
         response: Response.json(

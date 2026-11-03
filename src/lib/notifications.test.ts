@@ -171,18 +171,21 @@ describe("handleNotifications", () => {
     expect(calls[0].init.body).toBeUndefined();
   });
 
-  test("跨站写 403，不问上游", async () => {
-    stub(() => new Response(null, { status: 204 }));
-    const response = await handleNotifications(
-      context("POST", "read-all", {
-        origin: "https://evil.example",
-        jar: { can_session: "net-token" },
-      }),
-    );
-    expect(response.status).toBe(403);
-    expect(await response.json()).toMatchObject({ error: "bad_origin" });
-    expect(calls).toEqual([]);
-  });
+  test.each([undefined, "null", "https://evil.example"])(
+    "rejects untrusted Origin %s before forwarding",
+    async (origin) => {
+      stub(() => new Response(null, { status: 204 }));
+      const response = await handleNotifications(
+        context("POST", "read-all", {
+          origin,
+          jar: { can_session: "net-token" },
+        }),
+      );
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({ error: "bad_origin" });
+      expect(calls).toEqual([]);
+    },
+  );
 
   test("表外 404、方法不对 405，都不问上游", async () => {
     stub(() => Response.json({}));
