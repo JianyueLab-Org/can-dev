@@ -38,6 +38,12 @@ metadata:
   namespace: can-dev
 spec:
   replicas: 2
+  # maxUnavailable: 0：新 Pod 就绪之前不摘老的。配合容器里的 preStop 才不丢请求。
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: can-dev
@@ -77,6 +83,12 @@ spec:
           envFrom:
             - secretRef:
                 name: can-dev
+          # 先睡再退，让端点摘除先传播出去。terminationGracePeriodSeconds 默认 30，
+          # 睡 10 秒后还留 20 秒给进程收尾。运行时镜像是 node:22-alpine，自带 sleep。
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "10"]
           # 首页不碰 can-web，也不需要会话，所以它是一个诚实的探活目标：
           # 200 就代表这个进程真的在服务 HTTP，而不只是端口开着。
           readinessProbe:
