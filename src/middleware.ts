@@ -19,6 +19,8 @@ import { resolveDevSession } from "@/lib/networkSession";
  * 登录了但不是开发者：改写到 `/no-access`，地址不变，渲染 `NoAccess`，403。
  * 开发者资格来自当前网络身份。can-api 的 `/api/v1/dev/clients`
  * 仍独立检查令牌、开发者资格和应用所有权。
+ *
+ * `/health` 在解会话之前直接放行：外部监控不带 cookie，也不该触发上游会话查询。
  */
 function withSecurityHeaders(response: Response): Response {
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -28,6 +30,11 @@ function withSecurityHeaders(response: Response): Response {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  // 外部监控的 `/health`：不解会话、不跳转。
+  if (context.url.pathname === "/health") {
+    return withSecurityHeaders(await next());
+  }
+
   const session =
     context.url.pathname === "/auth/callback"
       ? null

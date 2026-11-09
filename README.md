@@ -15,6 +15,9 @@ Cerulean Aviation Network 的开发者中心：成员在这里自助注册 OAuth
 器，在本地解析。改完一个机场的 `airports/<ICAO>.json` 直接拖进来就能看，不必
 先跑 `merge.py` 再开 EuroScope。
 
+`/health` 给外部监控用：不经会话，查 can-api 的 `/health`，通过 200，失败 503，
+`no-store`，结果缓存 10 秒。k8s 探针不指它。
+
 Astro SSR（standalone Node 适配器）+ Vue 岛屿 + Tailwind v4。外壳是 can-ui 的
 `CanFrame`，四语言词典用 `createSiteI18n`。
 

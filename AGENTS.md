@@ -34,7 +34,7 @@ bun run verify:ground
 
 门禁是 `bun run lint`、`bun run build`、`bun run check:pages`，CI（`.github/workflows/check.yml`）跑同样三条。
 
-**测试有七份**（`bun test`，只多一个 `@types/bun` 让 `astro check` 认得
+**测试**（`bun test`，只多一个 `@types/bun` 让 `astro check` 认得
 `bun:test`）。判据和 can-efb 那边一样 —— 「错了会不会被屏幕出卖」。
 
 - `src/lib/signout.test.ts`：`POST /api/v1/auth/signout` 的 Origin 检查、吊销、
@@ -48,6 +48,7 @@ bun run verify:ground
 - `src/lib/callback.test.ts`：OAuth 回调核实网络身份，拒绝失效会话或主体不符，
   不写本站会话，并吊销已经换到的令牌。
 - `src/lib/session.test.ts`：`safeNext` 只放行站内路径，其余一律回 `/apps`。
+- `src/lib/health.test.ts`：`/health` 的 200、503、超时、10 秒缓存和并发共用一次检查。
 
 测试文件放在 `src/lib/` 而不是挨着被测的路由：`src/pages/` 下每一个 `.ts` 都是一条
 路由。
@@ -138,6 +139,9 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 
 ## 别的
 
+- `/health`：外部监控用，中间件在解会话之前放行。查 can-api 的 `/health`，非 2xx
+  算失败；全过 200，否则 503，`no-store`，每项 3 秒超时，结果缓存 10 秒。k8s
+  探针仍指 `/`，不指它。逻辑在 `src/lib/health.ts`。
 - `PUBLIC_ORIGIN` 拼出回调地址，必须和注册时填的一字不差（服务端整串精确匹
   配）。本机用 `127.0.0.1`，**不是 `localhost`** —— 后者要过名字解析，服务端
   不接受。
