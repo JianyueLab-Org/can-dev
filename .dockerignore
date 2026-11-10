@@ -1,0 +1,20 @@
+# 保留 package.json、bun.lock、源码、public、language、scripts 和构建配置。
+# Dockerfile、.dockerignore 和 deploy 保留；本地环境及认证配置不进入上下文。
+**/node_modules
+**/dist
+**/.astro
+**/.git
+**/.github
+**/.claude
+**/.superpowers
+**/.worktrees
+**/.temp
+**/.vscode
+**/.idea
+**/.DS_Store
+**/.env*
+**/.npmrc
+**/npm-debug.log*
+
+# 商业 AIRAC 数据不进入上下文；其他 data/ 内容保留。
+**/data/navdata
