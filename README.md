@@ -119,3 +119,9 @@ can-api 再检查 `apps:manage`、当前开发者资格和应用所有权。
 流，不再需要手工 `rollout restart`。集群的 kubectl 走 Omni 的 OIDC，CI 里非交
 互地过不去，所以 CI 用的是直连 API server 的 `deployer` 服务账号
 （`KUBECONFIG_B64`）。
+
+Each deployment first calls the local `check.yml` in the same run.
+Lint, build, and page checks must pass before deployment starts.
+Checks use Bun `1.4.2` and only the automatic `GITHUB_TOKEN`; no production secrets are forwarded.
+The shared deployment workflow is pinned to `f88d7b04291aa9076f26949fa35bb04a6baa9cc1` and uses Bun `1.4.2`.
+Only `KUBECONFIG_B64` and `GHCR_PULL_TOKEN` are explicitly forwarded to deployment.
