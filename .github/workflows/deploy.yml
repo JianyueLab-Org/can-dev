@@ -14,11 +14,21 @@ permissions:
   deployments: write
 
 jobs:
+  check:
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/check.yml
+
   deploy:
-    uses: JianyueLab-Org/actions/.github/workflows/deploy-k8s.yml@main
+    needs: check
+    uses: JianyueLab-Org/actions/.github/workflows/deploy-k8s.yml@f88d7b04291aa9076f26949fa35bb04a6baa9cc1
     with:
       image: ghcr.io/jianyuelab-org/can-dev
       namespace: can-dev
       manifest: deploy/k8s.yaml
       environment_url: https://platform.ceruleanavi.net
-    secrets: inherit
+      bun-version: 1.4.2
+    secrets:
+      KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+      GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
