@@ -1086,7 +1086,7 @@ const OAUTH_USERINFO: ApiEndpoint = {
 }`,
   },
   notes: [
-    "`divisions` is a scope and appears in `claims_supported`, but userinfo carries no division claim. Read memberships from `/api/v1/pilot/divisions` with that scope.",
+    "`divisions` grants access to `/api/v1/pilot/divisions`; it is not a userinfo or ID token claim.",
   ],
 };
 
