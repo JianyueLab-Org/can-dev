@@ -38,6 +38,11 @@ metadata:
   namespace: can-dev
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: can-dev
@@ -46,6 +51,7 @@ spec:
       labels:
         app: can-dev
     spec:
+      terminationGracePeriodSeconds: 30
       containers:
         - name: app
           # 按 sha 钉住，不用 :latest —— 集群里别的应用也是这么做的
@@ -55,6 +61,10 @@ spec:
           # 「用最后推上去的那个」。CI 两个标签都推，所以换成 sha 只是改这一行。
           image: ghcr.io/jianyuelab-org/can-dev:latest
           imagePullPolicy: Always
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "10"]
           ports:
             - containerPort: 4321
           env:

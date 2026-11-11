@@ -1,7 +1,5 @@
 # syntax=docker/dockerfile:1
-# Astro SSR（standalone Node 适配器）。两段式：装依赖 + 构建在前一段，跑的那
-# 一段只带 dist/ 和生产依赖 —— node_modules 里 @astrojs/check、typescript、
-# tailwind 这些加起来比应用本身大得多，没必要进运行镜像。
+# Astro SSR（standalone Node 适配器）。运行镜像只带 dist/、生产依赖和启动脚本。
 FROM oven/bun:1 AS build
 WORKDIR /app
 
@@ -38,9 +36,10 @@ USER 1000
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/package.json ./package.json
+COPY --from=build --chown=node:node /app/scripts/start.mjs /app/scripts/graceful-shutdown.mjs ./scripts/
 
 EXPOSE 4321
 
 # 运行时用 node 而不是 bun：适配器产出的是标准 Node 入口，而 node:22-alpine
 # 比 bun 的镜像小，也是 Astro 官方测试的那条路。
-CMD ["node", "./dist/server/entry.mjs"]
+CMD ["node", "./scripts/start.mjs"]

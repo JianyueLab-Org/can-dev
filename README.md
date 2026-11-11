@@ -120,6 +120,11 @@ can-api 再检查 `apps:manage`、当前开发者资格和应用所有权。
 互地过不去，所以 CI 用的是直连 API server 的 `deployer` 服务账号
 （`KUBECONFIG_B64`）。
 
+`bun run start` 和容器均通过 `scripts/start.mjs` 启动 standalone Node 服务。
+滚动更新保留全部现有副本，最多新增 1 个副本。
+Pod 终止先执行 10 秒 `preStop`，再停止接受新连接，最多排空 15 秒的在途响应。
+`terminationGracePeriodSeconds` 为 30 秒；排空超时以非零状态退出。
+
 Docker 构建上下文排除本地 `.env*` 和 `.npmrc`、依赖、生成产物、Git 元数据和商业
 `data/navdata`，保留源码、静态资源、词典、构建脚本、`Dockerfile`、`.dockerignore` 和 `deploy/`。
 构建阶段生成仅含 registry 和字面量 `${GITHUB_TOKEN}` 占位符的干净配置。
