@@ -155,7 +155,7 @@
         "name": "应用名",
         "nameHint": "成员在授权页上看到的就是这个名字。不能让人误以为它是网络官方的应用。",
         "redirectUris": "回调地址",
-        "redirectUrisHint": "一行一个，整串精确匹配。只收 https；本机调试用 http://127.0.0.1（端口可变），移动端可用带点的私有 scheme。",
+        "redirectUrisHint": "一行一个，整串精确匹配。通常须用 HTTPS；本机调试可用 http://127.0.0.1 或 http://[::1]（端口可变，不接受 localhost），移动端可用带点的私有 scheme。",
         "scopes": "申请的权限",
         "website": "主页（可选）",
         "logo": "图标地址（可选）",
