@@ -2124,7 +2124,7 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
       "The network's community bot. Service tokens only, with bot scopes that are granted by hand and cannot be requested by a self-registered application.",
   },
   {
-    path: "/v1/… bridge, /api/v1/atc/* and /healthz (can-fsd)",
+    path: "/api/v1/bridge/*, /api/v1/atc/* and /healthz (can-fsd)",
     reason:
       "The FSD daemon's other HTTP routes: a key-guarded copy of the datafeed for the network's own relays, the controller automation plane (its own token, obtained with the network password), and a health probe. None is a third-party surface.",
   },
