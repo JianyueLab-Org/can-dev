@@ -155,7 +155,7 @@
         "name": "Application name",
         "nameHint": "This is the name members see on the consent screen. It must not be mistakable for an official network application.",
         "redirectUris": "Redirect URIs",
-        "redirectUrisHint": "One per line, matched in full and exactly. https only; use http://127.0.0.1 for local development (the port may vary), and a private scheme containing a dot for mobile.",
+        "redirectUrisHint": "One per line, matched in full and exactly. HTTPS required, except HTTP loopback redirects to http://127.0.0.1 or http://[::1] (the port may vary; localhost is not accepted). Mobile apps may use a private scheme containing a dot.",
         "scopes": "Scopes requested",
         "website": "Homepage (optional)",
         "logo": "Icon URL (optional)",

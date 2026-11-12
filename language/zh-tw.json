@@ -155,7 +155,7 @@
         "name": "應用程式名稱",
         "nameHint": "成員在授權頁上看到的就是這個名稱。不能讓人誤以為它是網路官方的應用程式。",
         "redirectUris": "回呼位址",
-        "redirectUrisHint": "一行一個，整串完全比對。只收 https；本機除錯用 http://127.0.0.1（連接埠可變），行動端可用帶點的私有 scheme。",
+        "redirectUrisHint": "一行一個，整串完全比對。通常須用 HTTPS；本機除錯可用 http://127.0.0.1 或 http://[::1]（連接埠可變，不接受 localhost），行動端可用帶點的私有 scheme。",
         "scopes": "申請的權限",
         "website": "首頁（選填）",
         "logo": "圖示位址（選填）",
