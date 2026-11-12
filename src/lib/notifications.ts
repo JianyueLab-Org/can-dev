@@ -107,7 +107,17 @@ export async function handleNotifications(
       } finally {
         reader.releaseLock();
       }
-      if (size) body = new TextDecoder().decode(bytes.subarray(0, size));
+      if (size) {
+        body = new TextDecoder().decode(bytes.subarray(0, size));
+        // UTF-8 替换字符可能扩大转发体；复用缓冲区检查是否能完整编码。
+        const { read } = new TextEncoder().encodeInto(body, bytes);
+        if (read < body.length) {
+          return Response.json(
+            { error: "too_large" },
+            { status: 413, headers: NO_STORE },
+          );
+        }
+      }
     }
   }
 

@@ -277,4 +277,26 @@ describe("bounded notification bodies", () => {
     expect((await handleNotifications(ctx)).status).toBe(204);
     expect(calls[0].init.body).toBe(text);
   });
+
+  test.each([341, 342, 1024])(
+    "bounds the forwarded UTF-8 encoding for %i invalid bytes",
+    async (size) => {
+      stub(() => new Response(null, { status: 204 }));
+      const ctx = context("POST", "read-all", { origin: ORIGIN });
+      ctx.request = new Request(ctx.url, {
+        method: "POST",
+        headers: { origin: ORIGIN },
+        body: new Uint8Array(size).fill(0xff),
+      });
+      const result = await handleNotifications(ctx);
+      if (size === 341) {
+        expect(result.status).toBe(204);
+        expect(calls[0].init.body).toBe("\uFFFD".repeat(size));
+      } else {
+        expect(result.status).toBe(413);
+        expect(await result.json()).toEqual({ error: "too_large" });
+        expect(calls).toEqual([]);
+      }
+    },
+  );
 });
