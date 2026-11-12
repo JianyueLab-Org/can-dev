@@ -17,8 +17,8 @@ Astro SSR + Vue 岛屿 + Tailwind v4，形状照 can-web。README 是给人读�
 
 上游是**两个**地址：`CAN_API_ORIGIN` 是 can-api，OIDC 的 issuer，换令牌、
 userinfo、吊销和 `/api/v1/dev/clients` 都在那儿；`CAN_WEB_ORIGIN` 只剩同意页
-`/oauth/authorize` —— 那是渲染给人看的页面，没有跟着数据层搬进 Go。两者共用同
-一个数据库，授权码由 can-web 写进 `oauthCode`、由 can-api 兑换。
+`/oauth/authorize` —— 那是渲染给人看的页面。can-web 不持有数据库凭据；
+授权决定和授权码的签发、存储及兑换均由 can-api 处理。
 
 ## 命令
 
@@ -98,7 +98,7 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 和 `Ground/NavData/naip.json` 跑一遍 `buildAirportFromSource`（有
 `Ground/<FIR>/layers/<ICAO>.json` 的机场跑 `buildPrebuiltAirport`），和
 `Sector/<FIR>/Plugins/GroundMap/ground.json` 里对应的机场逐字节比较，漂了就非零
-退出。写下这段时十个 FIR、325 处检查（305 个机场加 20 个 world 图层）全部相同。
+退出。检查范围和结果以命令输出为准，不在文档中固定机场或图层数量。
 两个参数的 `undefined` 和 `[]` 不是一回事：
 `undefined` 是"没有扇区文件，跑道用 OSM 近似"，`[]` 是"扇区文件在，但它没有这
 个机场的跑道行"（ZL02、ZL03 那种只在站位表里的场，产物里本来就没有跑道层）。
