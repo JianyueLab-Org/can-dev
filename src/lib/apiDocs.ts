@@ -2168,6 +2168,16 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
       "What this developer centre uses to register your applications. It needs the `apps:manage` scope, which is deliberately not self-serviceable — an application that could grant itself that scope could repoint another application's redirect URI and collect its next authorization code.",
   },
   {
+    path: "/api/v1/va/client/* (can-va-api)",
+    reason:
+      "First-party standalone ACARS recording and filing. Bearer-only, requiring both `profile` and the operator-granted `va:flight` scope; `va:flight` is not available to self-service applications. The public client uses Authorization Code with PKCE S256 and no client secret. Bookings are created on the VA website. Uploading evidence does not submit or approve a PIREP, and this scope grants no airline administration, finance or review access.",
+  },
+  {
+    path: "/api/v1/va/recordings/{uuid}, /api/v1/va/recordings/{uuid}/track and /api/v1/va/me/recordings (can-va-api)",
+    reason:
+      "Website cookie-only recording evidence and authenticated streaming NDJSON downloads. The member can access their own recordings; a current authorized airline reviewer can access attached report evidence. Review permission loss removes access. Personal exports contain owned metadata and a download index, not other pilots' raw tracks or permanent public download links.",
+  },
+  {
     path: "/api/v1/pilot/authorizations",
     reason:
       "Where a member reviews and revokes the apps they have authorized. Session cookie only, and deliberately not reachable with an access token — an app that could call it could revoke a competitor, or lock the member out of the page that removes it.",
