@@ -49,10 +49,13 @@ cp .env.example .env      # 填 CAN_CLIENT_SECRET 和 SESSION_SECRET
 bun install
 bun run dev               # http://127.0.0.1:4322
 
-bun run lint              # format:check + astro check + bun test
+bun run lint              # format:check + astro check + vue-tsc + bun test
 bun run check:pages       # 站点注册表里的页面都有路由
 bun run build && bun run start
 ```
+
+`bun run typecheck` 同时检查 Astro、TypeScript 和 Vue 组件。`vue-tsc` 使用
+`tsconfig.vue.json`，类型错误直接阻止 CI 和部署。
 
 本机调试要指两个地址：`CAN_API_ORIGIN` 指本地的 can-api，`CAN_WEB_ORIGIN` 指
 本地的 can-web（`http://127.0.0.1:4321`，同意页在那儿）。再注册一个回调地址是

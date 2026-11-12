@@ -24,7 +24,7 @@ userinfo、吊销和 `/api/v1/dev/clients` 都在那儿；`CAN_WEB_ORIGIN` 只�
 
 ```bash
 bun run dev        # :4322（4321 留给 can-web，两个常常同时开着）
-bun run lint       # format:check + astro check + bun test
+bun run lint       # format:check + astro check + vue-tsc + bun test
 bun run check:pages # 站点注册表里的页面都有路由
 bun run build && bun run start
 
@@ -33,6 +33,8 @@ bun run verify:ground
 ```
 
 门禁是 `bun run lint`、`bun run build`、`bun run check:pages`，CI（`.github/workflows/check.yml`）跑同样三条。
+
+`typecheck` 依次运行 `astro check` 和 `vue-tsc --noEmit -p tsconfig.vue.json`，Vue 组件错误同样阻止 CI 和部署。
 
 **测试**（`bun test`，只多一个 `@types/bun` 让 `astro check` 认得
 `bun:test`）。判据和 can-efb 那边一样 —— 「错了会不会被屏幕出卖」。
