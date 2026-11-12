@@ -4,9 +4,8 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "jsx": "preserve",
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "types": ["node", "bun"]
   }

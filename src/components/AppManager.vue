@@ -159,7 +159,12 @@ async function submit() {
       );
 
   if (!data) return;
-  if (!editing.value && "clientSecret" in data && data.clientSecret) {
+  if (
+    !editing.value &&
+    "clientSecret" in data &&
+    typeof data.clientSecret === "string" &&
+    data.clientSecret
+  ) {
     freshSecret.value = { id: data.id, secret: data.clientSecret };
   }
   close();
