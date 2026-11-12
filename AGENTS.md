@@ -153,7 +153,9 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
   `Set-Cookie`。公开页原地刷新；`/apps`、`/docs` 上退出回主站首页。第三方应用的令牌不吊销。
 - 通知铃：`Frame.vue` 设 `notifications`。`src/pages/api/v1/notifications/[...path].ts`
   把五条路径转给 can-api，只带 `can_session`；写操作查 Origin。逻辑在
-  `src/lib/notifications.ts`。
+  `src/lib/notifications.ts`。请求体按字节流读取，最多保留 1 KiB；声明长度或实际
+  内容超限时取消读取并返回 413，不向上游转发。
+  UTF-8 解码后的转发内容同样限制为 1 KiB，替换字符导致编码超限时返回 413。
 - 中间件：有 `can_dev_session` 时只向 can-api 的 `/api/v1/auth/session`
   查一次网络身份，须与本站令牌所属成员一致。缺失、失效、换号或上游不可用时，
   清本站 cookie 并后台吊销令牌，不改网络 cookie。开发者资格和评级使用当前值，

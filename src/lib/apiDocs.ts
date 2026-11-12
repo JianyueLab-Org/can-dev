@@ -2079,6 +2079,22 @@ export const API_GROUPS: ApiGroup[] = [
     endpoints: [SERVERS, META_LIMITS, META_NAVDATA],
   },
   {
+    key: "aeronautical-data",
+    name: "Aeronautical data (can-db)",
+    description:
+      "The separate API service at `https://api-db.ceruleanavi.net` serves aeronautical reads under `/api/v1/aip/`: airports, runways, stands, procedures, fixes, airways and related navigation data. This origin is an API service, not a documentation website. OAuth access requires both `aip:read` and `profile`; `aip:read` must be granted by a network administrator and is not available through self-service app registration. A token never raises the member's data access. Call from your server or native app, not an arbitrary browser origin. Licensed AIRAC data must not be redistributed, mirrored, bundled or committed to public repositories; respect each response's licence and attribution.",
+    icon: "mapPin",
+    endpoints: [],
+  },
+  {
+    key: "voice",
+    name: "Voice (Mumble)",
+    description:
+      "Active network voice uses Mumble at `audio.ceruleanavi.net`, not the retired can-voice/listen service and not a REST audio endpoint. Members connect using CAN's voice clients. The network directory above provides server addresses; the desktop client endpoints provide the controller voice client (`audio-for-can`) and ATIS client (`atis-for-can`). Third-party web applications should use OAuth for member sign-in and must not collect network passwords. This page does not define a third-party voice integration API.",
+    icon: "speakerWave",
+    endpoints: [],
+  },
+  {
     key: "clients",
     name: "Desktop clients",
     description:
@@ -2124,7 +2140,7 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
       "The network's community bot. Service tokens only, with bot scopes that are granted by hand and cannot be requested by a self-registered application.",
   },
   {
-    path: "/v1/… bridge, /api/v1/atc/* and /healthz (can-fsd)",
+    path: "/api/v1/bridge/*, /api/v1/atc/* and /healthz (can-fsd)",
     reason:
       "The FSD daemon's other HTTP routes: a key-guarded copy of the datafeed for the network's own relays, the controller automation plane (its own token, obtained with the network password), and a health probe. None is a third-party surface.",
   },
@@ -2156,6 +2172,35 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
     path: "/api/v1/public/auth",
     reason:
       "Despite the name, this is the wire contract between the FSD server, the voice server and can-api — it takes a member's network credentials and nothing else calls it. Not a third-party endpoint.",
+  },
+  {
+    path: "/api/v1/auth/signin",
+    reason:
+      "First-party member sign-in. Third-party applications use the documented OAuth flow and must not collect member passwords.",
+  },
+  {
+    path: "/api/v1/controller/metar",
+    reason:
+      "Weather preview for CAN's own signed-in controller pages. Third-party applications use the documented `/api/v1/metar` endpoint.",
+  },
+  {
+    path: "/api/v1/support",
+    reason: "Support submissions from CAN's own signed-in member pages.",
+  },
+  {
+    path: "/api/oauth/authorize/context and /api/oauth/authorize",
+    reason:
+      "Calls used by CAN's consent page, not direct application integration endpoints. Applications send the member's browser to the discovery document's authorization_endpoint (`/oauth/authorize` on can-web), as documented above.",
+  },
+  {
+    path: "/healthz and /health (can-api)",
+    reason:
+      "Operational liveness and dependency-health checks, respectively. These are publicly reachable checks, not member-data or third-party integration APIs.",
+  },
+  {
+    path: "/api/v1/voice/listen-token",
+    reason:
+      "Legacy compatibility for the retired can-voice/listen project. Not a supported endpoint for new third-party integrations.",
   },
   {
     path: "/api/email/*",
