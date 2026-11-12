@@ -27,7 +27,7 @@ function required(name: string): string {
  * 的 discovery 文档正是这么写的（issuer 是它自己，authorization_endpoint 指回
  * can-web），所以这不是配错了。
  *
- * 两者共用同一个数据库：授权码由 can-web 写进 `oauthCode`，由 can-api 兑换。
+ * can-web 不持有数据库凭据；授权决定及授权码的签发、存储和兑换均由 can-api 处理。
  *
  * 旧的 `CAN_ISSUER` 没有保留。它当时同时表示这两件事，而现在这两件事是两个地
  * 址 —— 留着它只会让人以为改一个值就够了。

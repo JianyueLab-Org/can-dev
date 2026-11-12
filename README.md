@@ -64,15 +64,16 @@ bun run build && bun run start
 
 ## 环境变量
 
-| 变量                       | 说明                                                    |
-| -------------------------- | ------------------------------------------------------- |
-| `CAN_API_ORIGIN`           | can-api，默认 `https://api.ceruleanavi.net`             |
-| `CAN_WEB_ORIGIN`           | can-web，只用来拼同意页，默认 `https://ceruleanavi.net` |
-| `CAN_CLIENT_ID`            | 默认 `can-dev`                                          |
-| `CAN_CLIENT_SECRET`        | 注册时打印的那一次                                      |
-| `PUBLIC_ORIGIN`            | 本部署的对外地址，回调地址由它拼出                      |
-| `SESSION_SECRET`           | 会话 cookie 的加密密钥，`openssl rand -base64 32`       |
-| `PUBLIC_CAN_<SITE>_ORIGIN` | 外壳里其它站的地址，构建期内联，不设用生产地址          |
+| 变量                       | 说明                                                                             |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| `CAN_API_ORIGIN`           | can-api，默认 `https://api.ceruleanavi.net`                                      |
+| `CAN_WEB_ORIGIN`           | can-web，只用来拼同意页，默认 `https://ceruleanavi.net`                          |
+| `CAN_FSD_ORIGIN`           | 文档中的 HTTP 数据源地址，默认 `https://data.ceruleanavi.net`；不是 FSD 协议地址 |
+| `CAN_CLIENT_ID`            | 默认 `can-dev`                                                                   |
+| `CAN_CLIENT_SECRET`        | 注册时打印的那一次                                                               |
+| `PUBLIC_ORIGIN`            | 本部署的对外地址，回调地址由它拼出                                               |
+| `SESSION_SECRET`           | 会话 cookie 的加密密钥，`openssl rand -base64 32`                                |
+| `PUBLIC_CAN_<SITE>_ORIGIN` | 外壳里其它站的地址，构建期内联，不设用生产地址                                   |
 
 ## 几件值得知道的事
 
@@ -112,8 +113,8 @@ can-api 再检查 `apps:manage`、当前开发者资格和应用所有权。
 库里（Ground / Sector），所以这两份代码只能靠自觉跟上 —— 逐字照抄，连
 `merge.py` 把 `cos(36°)` 当纬度传给抽稀函数那个怪癖也抄了。改动那边而不改这边
 的下场，是预览和管制员机器上装的那份对不上，而预览工具唯一不能犯的就是这个
-错。对得上是可以证明的：拿一份合并好的 `ground.json` 和对应的
-`airports/*.json` 比一遍，当前十个 FIR 的 117 个机场逐字节相同。
+错。`bun run verify:ground` 用源文件重建机场和 world 图层，与扇区包中的
+`ground.json` 逐字节比较。检查范围和结果以命令输出为准。
 
 ## 部署
 
