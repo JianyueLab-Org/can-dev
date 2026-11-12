@@ -28,19 +28,19 @@ Astro SSR（standalone Node 适配器）+ Vue 岛屿 + Tailwind v4。外壳是 c
 须手工注册：
 
 ```bash
-# 在 can-web 仓库，需要 DATABASE_URL
-bun run scripts/oauth-client.mjs create can-dev \
-  --name "CAN 开发者中心" \
-  --redirect https://platform.ceruleanavi.net/auth/callback \
-  --scopes "openid profile apps:manage" \
-  --trusted --website https://platform.ceruleanavi.net
+# 在 can-api 仓库执行；先设置 DATABASE_URL
+go run ./cmd/oauth-client create can-dev \
+  -name "CAN 开发者中心" \
+  -redirect https://platform.ceruleanavi.net/auth/callback \
+  -scopes "openid profile apps:manage" \
+  -trusted -website https://platform.ceruleanavi.net
 ```
 
 打印出来的 `client_secret` 只出现这一次。回调地址要和 `PUBLIC_ORIGIN` 拼出来
 的**一字不差** —— 服务端是整串精确匹配。
 
-那个脚本写的是 `oauthClient` 表，而 can-api 读的是同一个库，所以数据层搬走之后
-已经注册过的行不用重来：换的是主机，不是凭据。
+该命令直接管理 can-api 的 `oauthClient` 表。已注册的应用继续使用现有凭据，
+无需重新注册或轮换密钥。
 
 ## 开发
 
