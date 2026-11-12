@@ -46,6 +46,17 @@ spec:
       labels:
         app: can-dev
     spec:
+      # 副本分散到不同节点，单个节点故障时仍有副本在线。
+      # matchLabelKeys 只统计同一版本的 Pod，滚动更新时新旧 Pod 不互相卡住。
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: can-dev
+          matchLabelKeys:
+            - pod-template-hash
       containers:
         - name: app
           # 按 sha 钉住，不用 :latest —— 集群里别的应用也是这么做的
