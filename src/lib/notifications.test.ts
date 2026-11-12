@@ -220,3 +220,61 @@ describe("handleNotifications", () => {
     });
   });
 });
+
+describe("bounded notification bodies", () => {
+  test.each([undefined, "1", "1025"])(
+    "rejects oversized streaming bodies with length %s without draining",
+    async (length) => {
+      stub(() => new Response(null, { status: 204 }));
+      let cancelled = false;
+      let reads = 0;
+      const stream = new ReadableStream<Uint8Array>(
+        {
+          pull(controller) {
+            reads++;
+            if (reads === 1) controller.enqueue(new Uint8Array(1025));
+            else controller.error(new Error("Read past the body limit"));
+          },
+          cancel() {
+            cancelled = true;
+          },
+        },
+        { highWaterMark: 0 },
+      );
+      const ctx = context("POST", "read-all", { origin: ORIGIN });
+      ctx.request = new Request(ctx.url, {
+        method: "POST",
+        headers: {
+          origin: ORIGIN,
+          ...(length ? { "content-length": length } : {}),
+        },
+        body: stream,
+      });
+      const result = await handleNotifications(ctx);
+      expect(result.status).toBe(413);
+      expect(cancelled).toBe(true);
+      expect(reads).toBe(length === "1025" ? 0 : 1);
+      expect(calls).toEqual([]);
+    },
+  );
+
+  test("preserves split UTF-8 at the exact byte limit", async () => {
+    stub(() => new Response(null, { status: 204 }));
+    const text = "é".repeat(512);
+    const bytes = new TextEncoder().encode(text);
+    const ctx = context("POST", "read-all", { origin: ORIGIN });
+    ctx.request = new Request(ctx.url, {
+      method: "POST",
+      headers: { origin: ORIGIN },
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(bytes.subarray(0, 1));
+          controller.enqueue(bytes.subarray(1));
+          controller.close();
+        },
+      }),
+    });
+    expect((await handleNotifications(ctx)).status).toBe(204);
+    expect(calls[0].init.body).toBe(text);
+  });
+});

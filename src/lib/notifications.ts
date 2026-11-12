@@ -79,14 +79,36 @@ export async function handleNotifications(
 
   let body: string | undefined;
   if (method !== "GET") {
-    const text = await request.text();
-    if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) {
+    if (Number(request.headers.get("content-length")) > MAX_BODY_BYTES) {
+      await request.body?.cancel();
       return Response.json(
         { error: "too_large" },
         { status: 413, headers: NO_STORE },
       );
     }
-    if (text) body = text;
+    if (request.body) {
+      const reader = request.body.getReader();
+      const bytes = new Uint8Array(MAX_BODY_BYTES);
+      let size = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value.byteLength > MAX_BODY_BYTES - size) {
+            await reader.cancel();
+            return Response.json(
+              { error: "too_large" },
+              { status: 413, headers: NO_STORE },
+            );
+          }
+          bytes.set(value, size);
+          size += value.byteLength;
+        }
+      } finally {
+        reader.releaseLock();
+      }
+      if (size) body = new TextDecoder().decode(bytes.subarray(0, size));
+    }
   }
 
   const headers: Record<string, string> = { accept: "application/json" };
