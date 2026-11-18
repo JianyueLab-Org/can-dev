@@ -4,8 +4,8 @@
  * 这个站不碰 Ground 仓库，也不带任何地面数据：文件是使用者自己拖进来的，全部
  * 在浏览器里解析。之所以要在这里重做一遍合并，是因为**手工编辑的是每机场文
  * 件**（`Ground/<FIR>/airports/<ICAO>.json`），而插件读的是合并产物
- * （`Sector/<FIR>/Plugins/GroundMap/ground.json`）—— 改一笔要跑一次 merge.py
- * 再开 EuroScope 才看得见，这个来回是这个页面要消掉的东西。
+ * `ground.json`（扇区包的 `Plugins/CANGroundRender/` 或 `Plugins/GroundMap/`）。
+ * 改一笔要跑一次 merge.py 再开 EuroScope 才看得见，这个来回是这个页面要消掉的东西。
  *
  * **逐行照着 merge.py 抄，包括它的常量和它的怪癖**（见 `dp()` 在 world 图层上
  * 的调用）。这里"更正确"一点，预览就和真正装到管制员机器上的那份对不上了 ——

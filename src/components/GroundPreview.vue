@@ -9,8 +9,8 @@
  *
  * 两条路进来，走的是同一个渲染器：
  *
- * - **合并产物** `Sector/<FIR>/Plugins/GroundMap/ground.json`：插件读什么就画
- *   什么，一比一。
+ * - **合并产物** `ground.json`（扇区包的 `Plugins/CANGroundRender/` 或
+ *   `Plugins/GroundMap/`）：插件读什么就画什么，一比一。
  * - **每机场源文件** `Ground/<FIR>/airports/<ICAO>.json`：先在浏览器里跑一遍
  *   `merge.py`（`lib/groundMap.ts`），再画。手工改完一个机场，拖进来就能看，
  *   不用先合并再开 EuroScope。

@@ -16,7 +16,7 @@
  * 退出码非零就是漂了。差异会打印出第一处不同的位置 —— 通常是某个常量，或者
  * merge.py 那边加了一层而这边没跟。
  */
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -81,11 +81,20 @@ let checked = 0;
 let failed = 0;
 
 for (const [fir, sctName] of Object.entries(FIRS)) {
-  const groundJson = join(SECTOR, fir, "Plugins/GroundMap/ground.json");
+  // Like Ground/tools/common.py:deploy_dir, select the directory, not the file.
+  const plugins = join(SECTOR, fir, "Plugins");
+  const preferred = join(plugins, "CANGroundRender");
+  const preferredStat = statSync(preferred, { throwIfNoEntry: false });
+  const deployDir = preferredStat?.isDirectory()
+    ? preferred
+    : join(plugins, "GroundMap");
+  const groundJson = join(deployDir, "ground.json");
   const airportsDir = join(GROUND, fir, "airports");
   const layersDir = join(GROUND, fir, "layers");
   if (!existsSync(groundJson)) {
-    console.log(`${fir}: 扇区包里没有 ground.json，跳过`);
+    checked++;
+    failed++;
+    console.log(`[x] ${fir}: 找不到 ${groundJson}`);
     continue;
   }
   const truth = json(groundJson);
