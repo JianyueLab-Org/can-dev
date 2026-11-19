@@ -93,6 +93,8 @@ scope，全在 can-api 的 `internal/oauth/registry.go`。应用名称去除首�
 1–120 个 UTF-8 字节；`invalid_name` 显示四语言提示，`name_reserved` 和其他错误
 仍显示上游 `message`。前端不重复校验。
 
+应用注册和编辑表单可选 `flightplan` 权限，用于读取、提交和撤销飞行计划，以及管理 SimBrief 关联和导入。
+
 **停用和启用走独立端点。** 应用卡片发送
 `POST /api/clients/{id}/disabled`，服务端转到 can-api 的
 `POST /api/v1/dev/clients/{id}/disabled`。请求体的 `disabled` 是必填布尔值；
