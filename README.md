@@ -114,7 +114,9 @@ can-api 再检查 `apps:manage`、当前开发者资格和应用所有权。
 `merge.py` 把 `cos(36°)` 当纬度传给抽稀函数那个怪癖也抄了。改动那边而不改这边
 的下场，是预览和管制员机器上装的那份对不上，而预览工具唯一不能犯的就是这个
 错。`bun run verify:ground` 用源文件重建机场和 world 图层，与扇区包中的
-`ground.json` 逐字节比较。检查范围和结果以命令输出为准。
+`ground.json` 逐字节比较。优先使用已有的 `Plugins/CANGroundRender/`，否则使用
+`Plugins/GroundMap/`。选定目录缺少 `ground.json` 时检查失败，不改读另一个目录。
+检查范围和结果以命令输出为准。
 
 ## 部署
 

@@ -96,9 +96,10 @@ Direct2D 的虚线段长以描边宽度为单位、线帽是平的，这边也�
 对得上是**可以证明的**，改完跑一次 `bun run verify:ground`：它
 拿 `Ground/<FIR>/airports/*.json` 加 `<FIR>.sct`、`<FIR>.ese`、`GRpluginStands.txt`
 和 `Ground/NavData/naip.json` 跑一遍 `buildAirportFromSource`（有
-`Ground/<FIR>/layers/<ICAO>.json` 的机场跑 `buildPrebuiltAirport`），和
-`Sector/<FIR>/Plugins/GroundMap/ground.json` 里对应的机场逐字节比较，漂了就非零
-退出。检查范围和结果以命令输出为准，不在文档中固定机场或图层数量。
+`Ground/<FIR>/layers/<ICAO>.json` 的机场跑 `buildPrebuiltAirport`），
+与扇区包中选定的 `ground.json` 逐字节比较。选目录的规则和 `merge.py` 一样：
+`Plugins/CANGroundRender/` 存在就用它，否则用 `Plugins/GroundMap/`。选定目录内
+缺少 `ground.json` 或产物不一致时以非零状态退出。检查范围和结果以命令输出为准。
 两个参数的 `undefined` 和 `[]` 不是一回事：
 `undefined` 是"没有扇区文件，跑道用 OSM 近似"，`[]` 是"扇区文件在，但它没有这
 个机场的跑道行"（ZL02、ZL03 那种只在站位表里的场，产物里本来就没有跑道层）。
