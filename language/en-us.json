@@ -334,6 +334,10 @@
         "title": "Controlling records",
         "detail": "Positions, durations, rating changes."
       },
+      "flightplan": {
+        "title": "Manage flight plans",
+        "detail": "Read, file, and cancel a member’s flight plan. Link or unlink their SimBrief account and import plans from it."
+      },
       "offline_access": {
         "title": "Offline access",
         "detail": "Keeps working after the member closes the browser, until they revoke it. Do not ask for it unless you are sure."
