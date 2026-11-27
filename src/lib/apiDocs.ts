@@ -2166,7 +2166,7 @@ export const NOT_PUBLIC: { path: string; reason: string }[] = [
   {
     path: "/api/v1/internal/flightplan (can-fsd)",
     reason:
-      "Not can-api's at all: it is on the FSD daemon, beside the datafeed, and it is how can-api pushes a plan filed through `/api/v1/pilot/flightplan` into an already-connected pilot's live session. It exists only when the daemon is configured with a shared secret, that secret is its whole protection, and the daemon advertises only GET and OPTIONS for cross-origin requests — a browser's preflight for it fails by design, and a member's session can never be ridden into it.",
+      "Internal can-fsd endpoint, not available to third-party applications. Members file flight plans through `/api/v1/pilot/flightplan`.",
   },
   {
     path: "/api/v1/public/auth",
